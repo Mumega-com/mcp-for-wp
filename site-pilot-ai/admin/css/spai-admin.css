@@ -1,0 +1,204 @@
+/**
+ * Site Pilot AI Admin Styles
+ *
+ * @package SitePilotAI
+ */
+
+/* Admin Container */
+.spai-admin {
+	max-width: 900px;
+}
+
+/* Cards */
+.spai-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 20px;
+	margin-bottom: 20px;
+}
+
+.spai-card h2 {
+	margin-top: 0;
+	padding-bottom: 10px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.spai-card h3 {
+	margin-top: 20px;
+	margin-bottom: 10px;
+}
+
+/* Upgrade Banner */
+.spai-upgrade-banner {
+	background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+	color: #fff;
+	padding: 20px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+}
+
+.spai-upgrade-banner strong {
+	font-size: 16px;
+}
+
+.spai-upgrade-banner p {
+	margin: 10px 0;
+	opacity: 0.9;
+}
+
+.spai-upgrade-banner .button-primary {
+	background: #fff;
+	color: #2271b1;
+	border-color: #fff;
+}
+
+.spai-upgrade-banner .button-primary:hover {
+	background: #f0f0f1;
+	color: #135e96;
+}
+
+/* API Key */
+.spai-api-key-wrapper {
+	display: flex;
+	gap: 10px;
+	margin: 15px 0;
+}
+
+.spai-api-key-input {
+	flex: 1;
+	font-family: monospace;
+	font-size: 14px;
+	padding: 8px 12px;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+}
+
+.spai-copy-btn {
+	min-width: 80px;
+}
+
+.spai-regenerate-form {
+	margin-top: 15px;
+	padding-top: 15px;
+	border-top: 1px solid #f0f0f1;
+}
+
+.spai-regenerate-btn {
+	margin-right: 10px;
+}
+
+/* Status Badges */
+.spai-status {
+	display: inline-block;
+	padding: 3px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.spai-status-active {
+	background: #d4edda;
+	color: #155724;
+}
+
+.spai-status-inactive {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+.spai-badge {
+	display: inline-block;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	margin-left: 5px;
+}
+
+.spai-badge-pro {
+	background: #9b59b6;
+	color: #fff;
+}
+
+/* Tables */
+.spai-capabilities-table td,
+.spai-capabilities-table th {
+	padding: 12px;
+}
+
+.spai-endpoints-table td,
+.spai-endpoints-table th {
+	padding: 8px 12px;
+	font-size: 13px;
+}
+
+.spai-endpoints-table td:first-child {
+	font-family: monospace;
+	font-weight: 600;
+}
+
+.spai-endpoints-table td:nth-child(2) {
+	font-family: monospace;
+	color: #2271b1;
+}
+
+/* Code Blocks */
+.spai-code-block {
+	display: block;
+	background: #23282d;
+	color: #f1f1f1;
+	padding: 15px;
+	border-radius: 4px;
+	font-family: monospace;
+	font-size: 13px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	word-break: break-all;
+	margin: 10px 0;
+}
+
+/* Details/Summary */
+.spai-endpoints-details {
+	margin-top: 15px;
+}
+
+.spai-endpoints-details summary {
+	cursor: pointer;
+	color: #2271b1;
+	font-weight: 500;
+	padding: 10px 0;
+}
+
+.spai-endpoints-details summary:hover {
+	color: #135e96;
+}
+
+.spai-endpoints-details[open] summary {
+	margin-bottom: 15px;
+}
+
+/* Form Styles */
+.spai-card .form-table th {
+	padding-left: 0;
+}
+
+.spai-card .form-table td {
+	padding-left: 0;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+	.spai-api-key-wrapper {
+		flex-direction: column;
+	}
+
+	.spai-copy-btn {
+		width: 100%;
+	}
+
+	.spai-code-block {
+		font-size: 12px;
+	}
+}

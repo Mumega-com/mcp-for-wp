@@ -1,0 +1,317 @@
+<?php
+/**
+ * Posts handler
+ *
+ * @package SitePilotAI
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Handle post operations.
+ */
+class Spai_Posts {
+
+	use Spai_Sanitization;
+
+	/**
+	 * List posts.
+	 *
+	 * @param array $args Query arguments.
+	 * @return array Posts data.
+	 */
+	public function list_posts( $args = array() ) {
+		$defaults = array(
+			'post_type'      => 'post',
+			'posts_per_page' => 10,
+			'paged'          => 1,
+			'post_status'    => 'publish',
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+		);
+
+		$args = wp_parse_args( $args, $defaults );
+
+		// Sanitize arguments
+		$args['posts_per_page'] = absint( $args['posts_per_page'] );
+		$args['paged'] = absint( $args['paged'] );
+
+		$query = new WP_Query( $args );
+		$posts = array();
+
+		foreach ( $query->posts as $post ) {
+			$posts[] = $this->format_post( $post );
+		}
+
+		return array(
+			'posts'       => $posts,
+			'total'       => $query->found_posts,
+			'pages'       => $query->max_num_pages,
+			'page'        => $args['paged'],
+			'per_page'    => $args['posts_per_page'],
+		);
+	}
+
+	/**
+	 * Get a single post.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array|WP_Error Post data or error.
+	 */
+	public function get_post( $post_id ) {
+		$post = get_post( absint( $post_id ) );
+
+		if ( ! $post || 'post' !== $post->post_type ) {
+			return new WP_Error(
+				'not_found',
+				__( 'Post not found.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		return $this->format_post( $post, true );
+	}
+
+	/**
+	 * Create a post.
+	 *
+	 * @param array $data Post data.
+	 * @return array|WP_Error Created post data or error.
+	 */
+	public function create_post( $data ) {
+		$post_data = array(
+			'post_type'    => 'post',
+			'post_title'   => isset( $data['title'] ) ? sanitize_text_field( $data['title'] ) : '',
+			'post_content' => isset( $data['content'] ) ? wp_kses_post( $data['content'] ) : '',
+			'post_status'  => isset( $data['status'] ) ? sanitize_key( $data['status'] ) : 'draft',
+			'post_excerpt' => isset( $data['excerpt'] ) ? sanitize_textarea_field( $data['excerpt'] ) : '',
+		);
+
+		// Validate status
+		$allowed_statuses = array( 'publish', 'draft', 'pending', 'private' );
+		if ( ! in_array( $post_data['post_status'], $allowed_statuses, true ) ) {
+			$post_data['post_status'] = 'draft';
+		}
+
+		$post_id = wp_insert_post( $post_data, true );
+
+		if ( is_wp_error( $post_id ) ) {
+			return $post_id;
+		}
+
+		// Set categories
+		if ( ! empty( $data['categories'] ) ) {
+			$categories = array_map( 'absint', (array) $data['categories'] );
+			wp_set_post_categories( $post_id, $categories );
+		}
+
+		// Set tags
+		if ( ! empty( $data['tags'] ) ) {
+			$tags = array_map( 'sanitize_text_field', (array) $data['tags'] );
+			wp_set_post_tags( $post_id, $tags );
+		}
+
+		// Set featured image
+		if ( ! empty( $data['featured_image'] ) ) {
+			set_post_thumbnail( $post_id, absint( $data['featured_image'] ) );
+		}
+
+		return $this->get_post( $post_id );
+	}
+
+	/**
+	 * Update a post.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $data    Post data.
+	 * @return array|WP_Error Updated post data or error.
+	 */
+	public function update_post( $post_id, $data ) {
+		$post = get_post( absint( $post_id ) );
+
+		if ( ! $post || 'post' !== $post->post_type ) {
+			return new WP_Error(
+				'not_found',
+				__( 'Post not found.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$post_data = array( 'ID' => $post_id );
+
+		if ( isset( $data['title'] ) ) {
+			$post_data['post_title'] = sanitize_text_field( $data['title'] );
+		}
+
+		if ( isset( $data['content'] ) ) {
+			$post_data['post_content'] = wp_kses_post( $data['content'] );
+		}
+
+		if ( isset( $data['status'] ) ) {
+			$allowed_statuses = array( 'publish', 'draft', 'pending', 'private', 'trash' );
+			$status = sanitize_key( $data['status'] );
+			if ( in_array( $status, $allowed_statuses, true ) ) {
+				$post_data['post_status'] = $status;
+			}
+		}
+
+		if ( isset( $data['excerpt'] ) ) {
+			$post_data['post_excerpt'] = sanitize_textarea_field( $data['excerpt'] );
+		}
+
+		$result = wp_update_post( $post_data, true );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		// Update categories
+		if ( isset( $data['categories'] ) ) {
+			$categories = array_map( 'absint', (array) $data['categories'] );
+			wp_set_post_categories( $post_id, $categories );
+		}
+
+		// Update tags
+		if ( isset( $data['tags'] ) ) {
+			$tags = array_map( 'sanitize_text_field', (array) $data['tags'] );
+			wp_set_post_tags( $post_id, $tags );
+		}
+
+		// Update featured image
+		if ( isset( $data['featured_image'] ) ) {
+			if ( empty( $data['featured_image'] ) ) {
+				delete_post_thumbnail( $post_id );
+			} else {
+				set_post_thumbnail( $post_id, absint( $data['featured_image'] ) );
+			}
+		}
+
+		return $this->get_post( $post_id );
+	}
+
+	/**
+	 * Delete a post.
+	 *
+	 * @param int  $post_id Post ID.
+	 * @param bool $force   Force delete (skip trash).
+	 * @return array|WP_Error Success or error.
+	 */
+	public function delete_post( $post_id, $force = false ) {
+		$post = get_post( absint( $post_id ) );
+
+		if ( ! $post || 'post' !== $post->post_type ) {
+			return new WP_Error(
+				'not_found',
+				__( 'Post not found.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$result = wp_delete_post( $post_id, $force );
+
+		if ( ! $result ) {
+			return new WP_Error(
+				'delete_failed',
+				__( 'Failed to delete post.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return array(
+			'success' => true,
+			'message' => $force
+				? __( 'Post permanently deleted.', 'site-pilot-ai' )
+				: __( 'Post moved to trash.', 'site-pilot-ai' ),
+			'post_id' => $post_id,
+		);
+	}
+
+	/**
+	 * Format post for API response.
+	 *
+	 * @param WP_Post $post         Post object.
+	 * @param bool    $include_full Include full content.
+	 * @return array Formatted post.
+	 */
+	protected function format_post( $post, $include_full = false ) {
+		$data = array(
+			'id'             => $post->ID,
+			'title'          => $post->post_title,
+			'slug'           => $post->post_name,
+			'status'         => $post->post_status,
+			'date'           => $post->post_date,
+			'date_gmt'       => $post->post_date_gmt,
+			'modified'       => $post->post_modified,
+			'modified_gmt'   => $post->post_modified_gmt,
+			'url'            => get_permalink( $post ),
+			'edit_url'       => get_edit_post_link( $post->ID, 'raw' ),
+			'author'         => array(
+				'id'   => (int) $post->post_author,
+				'name' => get_the_author_meta( 'display_name', $post->post_author ),
+			),
+			'featured_image' => $this->get_featured_image( $post->ID ),
+			'categories'     => $this->get_post_terms( $post->ID, 'category' ),
+			'tags'           => $this->get_post_terms( $post->ID, 'post_tag' ),
+		);
+
+		if ( $include_full ) {
+			$data['content'] = $post->post_content;
+			$data['excerpt'] = $post->post_excerpt;
+		} else {
+			$data['excerpt'] = wp_trim_words( $post->post_excerpt ?: $post->post_content, 30 );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Get featured image data.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array|null Image data or null.
+	 */
+	protected function get_featured_image( $post_id ) {
+		$thumbnail_id = get_post_thumbnail_id( $post_id );
+
+		if ( ! $thumbnail_id ) {
+			return null;
+		}
+
+		$image = wp_get_attachment_image_src( $thumbnail_id, 'full' );
+
+		return array(
+			'id'     => $thumbnail_id,
+			'url'    => $image ? $image[0] : '',
+			'width'  => $image ? $image[1] : 0,
+			'height' => $image ? $image[2] : 0,
+		);
+	}
+
+	/**
+	 * Get post terms.
+	 *
+	 * @param int    $post_id  Post ID.
+	 * @param string $taxonomy Taxonomy name.
+	 * @return array Terms.
+	 */
+	protected function get_post_terms( $post_id, $taxonomy ) {
+		$terms = wp_get_post_terms( $post_id, $taxonomy );
+
+		if ( is_wp_error( $terms ) ) {
+			return array();
+		}
+
+		return array_map(
+			function ( $term ) {
+				return array(
+					'id'   => $term->term_id,
+					'name' => $term->name,
+					'slug' => $term->slug,
+				);
+			},
+			$terms
+		);
+	}
+}

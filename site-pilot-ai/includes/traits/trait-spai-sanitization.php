@@ -1,0 +1,206 @@
+<?php
+/**
+ * Sanitization Trait
+ *
+ * @package SitePilotAI
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Input sanitization and validation functionality.
+ */
+trait Spai_Sanitization {
+
+	/**
+	 * Sanitize post data array.
+	 *
+	 * @param array $data Raw post data.
+	 * @return array Sanitized data.
+	 */
+	protected function sanitize_post_data( $data ) {
+		$sanitized = array();
+
+		if ( isset( $data['title'] ) ) {
+			$sanitized['title'] = sanitize_text_field( $data['title'] );
+		}
+
+		if ( isset( $data['content'] ) ) {
+			$sanitized['content'] = wp_kses_post( $data['content'] );
+		}
+
+		if ( isset( $data['excerpt'] ) ) {
+			$sanitized['excerpt'] = sanitize_textarea_field( $data['excerpt'] );
+		}
+
+		if ( isset( $data['status'] ) ) {
+			$sanitized['status'] = sanitize_key( $data['status'] );
+		}
+
+		if ( isset( $data['slug'] ) ) {
+			$sanitized['slug'] = sanitize_title( $data['slug'] );
+		}
+
+		if ( isset( $data['featured_image'] ) ) {
+			$sanitized['featured_image'] = absint( $data['featured_image'] );
+		}
+
+		if ( isset( $data['categories'] ) ) {
+			$sanitized['categories'] = array_map( 'absint', (array) $data['categories'] );
+		}
+
+		if ( isset( $data['tags'] ) ) {
+			$sanitized['tags'] = array_map( 'sanitize_text_field', (array) $data['tags'] );
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Sanitize page data array.
+	 *
+	 * @param array $data Raw page data.
+	 * @return array Sanitized data.
+	 */
+	protected function sanitize_page_data( $data ) {
+		$sanitized = $this->sanitize_post_data( $data );
+
+		if ( isset( $data['parent'] ) ) {
+			$sanitized['parent'] = absint( $data['parent'] );
+		}
+
+		if ( isset( $data['menu_order'] ) ) {
+			$sanitized['menu_order'] = absint( $data['menu_order'] );
+		}
+
+		if ( isset( $data['template'] ) ) {
+			$sanitized['template'] = sanitize_text_field( $data['template'] );
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Sanitize query arguments.
+	 *
+	 * @param array $args Raw arguments.
+	 * @return array Sanitized arguments.
+	 */
+	protected function sanitize_query_args( $args ) {
+		$sanitized = array();
+
+		if ( isset( $args['per_page'] ) ) {
+			$sanitized['posts_per_page'] = min( absint( $args['per_page'] ), 100 );
+		}
+
+		if ( isset( $args['page'] ) ) {
+			$sanitized['paged'] = max( 1, absint( $args['page'] ) );
+		}
+
+		if ( isset( $args['status'] ) ) {
+			$valid_statuses = array( 'publish', 'draft', 'pending', 'private', 'any' );
+			$status = sanitize_key( $args['status'] );
+			if ( in_array( $status, $valid_statuses, true ) ) {
+				$sanitized['post_status'] = $status;
+			}
+		}
+
+		if ( isset( $args['orderby'] ) ) {
+			$valid_orderby = array( 'date', 'modified', 'title', 'ID', 'menu_order', 'rand' );
+			$orderby = sanitize_key( $args['orderby'] );
+			if ( in_array( $orderby, $valid_orderby, true ) ) {
+				$sanitized['orderby'] = $orderby;
+			}
+		}
+
+		if ( isset( $args['order'] ) ) {
+			$sanitized['order'] = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
+		}
+
+		if ( isset( $args['category'] ) ) {
+			$sanitized['cat'] = absint( $args['category'] );
+		}
+
+		if ( isset( $args['search'] ) ) {
+			$sanitized['s'] = sanitize_text_field( $args['search'] );
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Validate post status.
+	 *
+	 * @param string $status Status to validate.
+	 * @param array  $allowed Allowed statuses.
+	 * @return string Valid status or default.
+	 */
+	protected function validate_post_status( $status, $allowed = null ) {
+		if ( null === $allowed ) {
+			$allowed = array( 'publish', 'draft', 'pending', 'private' );
+		}
+
+		$status = sanitize_key( $status );
+
+		return in_array( $status, $allowed, true ) ? $status : 'draft';
+	}
+
+	/**
+	 * Validate and sanitize URL.
+	 *
+	 * @param string $url URL to validate.
+	 * @return string|false Sanitized URL or false.
+	 */
+	protected function validate_url( $url ) {
+		$url = esc_url_raw( $url );
+
+		if ( empty( $url ) ) {
+			return false;
+		}
+
+		// Check for valid scheme
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Sanitize JSON string.
+	 *
+	 * @param string $json JSON string.
+	 * @return string|false Sanitized JSON or false on error.
+	 */
+	protected function sanitize_json( $json ) {
+		if ( ! is_string( $json ) ) {
+			return false;
+		}
+
+		// Try to decode and re-encode to validate
+		$decoded = json_decode( $json, true );
+
+		if ( null === $decoded && json_last_error() !== JSON_ERROR_NONE ) {
+			return false;
+		}
+
+		return wp_json_encode( $decoded );
+	}
+
+	/**
+	 * Sanitize filename.
+	 *
+	 * @param string $filename Filename.
+	 * @return string Sanitized filename.
+	 */
+	protected function sanitize_filename( $filename ) {
+		// Remove path components
+		$filename = basename( $filename );
+
+		// Use WordPress sanitization
+		return sanitize_file_name( $filename );
+	}
+}

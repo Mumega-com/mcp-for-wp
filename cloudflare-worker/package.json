@@ -1,0 +1,31 @@
+{
+  "name": "wp-ai-gateway",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker gateway for wp-ai-operator",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "tail": "wrangler tail",
+    "db:create": "wrangler d1 create wp-ai-operator",
+    "db:migrate": "wrangler d1 migrations apply wp-ai-operator",
+    "db:migrate:local": "wrangler d1 migrations apply wp-ai-operator --local",
+    "kv:create": "wrangler kv:namespace create WP_CACHE",
+    "setup": "npm run kv:create && npm run db:create && echo 'Update wrangler.toml with the IDs from above, then run: npm run db:migrate'"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "wordpress",
+    "mcp",
+    "ai"
+  ],
+  "author": "DigID Inc",
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "typescript": "^5.3.0",
+    "wrangler": "^3.22.0"
+  }
+}

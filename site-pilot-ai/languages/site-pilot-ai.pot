@@ -1,0 +1,225 @@
+# Copyright (C) 2024 DigID Inc
+# This file is distributed under the GPL v2.
+msgid ""
+msgstr ""
+"Project-Id-Version: Site Pilot AI 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/site-pilot-ai\n"
+"POT-Creation-Date: 2024-01-01 00:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2024-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#: site-pilot-ai.php:1
+msgid "Site Pilot AI"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Settings"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Site Pilot AI Settings"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "API Key"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Your API key for authenticating requests"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Copy"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Copied!"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Copy failed"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Regenerate Key"
+msgstr ""
+
+#: includes/admin/class-spai-admin.php
+msgid "Are you sure you want to regenerate your API key? All existing integrations will stop working."
+msgstr ""
+
+#: includes/admin/class-spai-settings.php
+msgid "Enable API"
+msgstr ""
+
+#: includes/admin/class-spai-settings.php
+msgid "Allow REST API access"
+msgstr ""
+
+#: includes/admin/class-spai-settings.php
+msgid "Enable Logging"
+msgstr ""
+
+#: includes/admin/class-spai-settings.php
+msgid "Log all API requests"
+msgstr ""
+
+#: includes/admin/class-spai-settings.php
+msgid "Log Retention"
+msgstr ""
+
+#: includes/admin/class-spai-settings.php
+msgid "Days to keep logs (0 = forever)"
+msgstr ""
+
+#: includes/api/class-spai-rest-api.php
+msgid "Unauthorized. API key required."
+msgstr ""
+
+#: includes/api/class-spai-rest-api.php
+msgid "Invalid API key."
+msgstr ""
+
+#: includes/api/class-spai-rest-posts.php
+msgid "Post created successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-posts.php
+msgid "Post updated successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-posts.php
+msgid "Post deleted successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-posts.php
+msgid "Post not found."
+msgstr ""
+
+#: includes/api/class-spai-rest-posts.php
+msgid "Failed to create post."
+msgstr ""
+
+#: includes/api/class-spai-rest-posts.php
+msgid "Failed to update post."
+msgstr ""
+
+#: includes/api/class-spai-rest-posts.php
+msgid "Failed to delete post."
+msgstr ""
+
+#: includes/api/class-spai-rest-pages.php
+msgid "Page created successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-pages.php
+msgid "Page updated successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-pages.php
+msgid "Page deleted successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-pages.php
+msgid "Page not found."
+msgstr ""
+
+#: includes/api/class-spai-rest-media.php
+msgid "Media uploaded successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-media.php
+msgid "No file provided."
+msgstr ""
+
+#: includes/api/class-spai-rest-media.php
+msgid "File upload failed."
+msgstr ""
+
+#: includes/api/class-spai-rest-media.php
+msgid "URL is required."
+msgstr ""
+
+#: includes/api/class-spai-rest-media.php
+msgid "Failed to download file from URL."
+msgstr ""
+
+#: includes/api/class-spai-rest-elementor.php
+msgid "Elementor is not active."
+msgstr ""
+
+#: includes/api/class-spai-rest-elementor.php
+msgid "Elementor data retrieved successfully."
+msgstr ""
+
+#: includes/api/class-spai-rest-elementor.php
+msgid "Elementor data updated successfully."
+msgstr ""
+
+#: includes/core/class-spai-drafts.php
+msgid "Drafts deleted successfully."
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Get full Elementor integration, SEO tools, and forms support."
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Learn More"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "API Configuration"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Quick Start"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Base URL"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Available Endpoints"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Method"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Endpoint"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Description"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Detected Capabilities"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Plugin"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Status"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Active"
+msgstr ""
+
+#: admin/partials/spai-admin-display.php
+msgid "Not Installed"
+msgstr ""
