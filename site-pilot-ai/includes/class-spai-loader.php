@@ -82,7 +82,7 @@ class Spai_Loader {
 	 */
 	private function define_api_hooks() {
 		// Initialize REST API
-		$this->add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+		$this->add_action( 'rest_api_init', $this, 'register_rest_routes' );
 	}
 
 	/**
