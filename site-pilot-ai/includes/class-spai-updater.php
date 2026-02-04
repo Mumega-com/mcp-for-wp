@@ -87,6 +87,7 @@ class Spai_Updater {
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_update' ) );
 		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
 		add_filter( 'upgrader_source_selection', array( $this, 'fix_directory_name' ), 10, 4 );
+		add_filter( 'http_request_args', array( $this, 'add_download_auth' ), 10, 2 );
 	}
 
 	/**
@@ -213,13 +214,21 @@ class Spai_Updater {
 			return $cached;
 		}
 
+		$headers = array(
+			'Accept' => 'application/vnd.github.v3+json',
+		);
+
+		// Add authentication token if available (required for private repos).
+		$token = Spai_Settings::get_github_token();
+		if ( ! empty( $token ) ) {
+			$headers['Authorization'] = 'Bearer ' . $token;
+		}
+
 		$response = wp_remote_get(
 			"https://api.github.com/repos/{$this->owner}/{$this->repo}/releases/latest",
 			array(
 				'timeout' => 10,
-				'headers' => array(
-					'Accept' => 'application/vnd.github.v3+json',
-				),
+				'headers' => $headers,
 			)
 		);
 
@@ -296,5 +305,33 @@ class Spai_Updater {
 	 */
 	public function clear_cache() {
 		delete_transient( $this->cache_key );
+	}
+
+	/**
+	 * Add authentication headers for GitHub downloads.
+	 *
+	 * @param array  $args Request arguments.
+	 * @param string $url  Request URL.
+	 * @return array Modified arguments.
+	 */
+	public function add_download_auth( $args, $url ) {
+		// Only add auth for GitHub release downloads.
+		if ( strpos( $url, "github.com/{$this->owner}/{$this->repo}/releases/download/" ) === false ) {
+			return $args;
+		}
+
+		$token = Spai_Settings::get_github_token();
+		if ( empty( $token ) ) {
+			return $args;
+		}
+
+		// Add authentication header.
+		if ( ! isset( $args['headers'] ) ) {
+			$args['headers'] = array();
+		}
+		$args['headers']['Authorization'] = 'Bearer ' . $token;
+		$args['headers']['Accept']        = 'application/octet-stream';
+
+		return $args;
 	}
 }
