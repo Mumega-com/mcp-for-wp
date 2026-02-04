@@ -11,7 +11,7 @@
  * Plugin Name:       Site Pilot AI Pro
  * Plugin URI:        https://sitepilot.ai/pro
  * Description:       Pro add-on for Site Pilot AI. Adds advanced Elementor integration, SEO tools, and forms support.
- * Version:           1.0.7
+ * Version:           1.0.8
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'SPAI_PRO_VERSION', '1.0.7' );
+define( 'SPAI_PRO_VERSION', '1.0.8' );
 define( 'SPAI_PRO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -121,6 +121,7 @@ function spai_pro_init() {
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-widgets.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-themes.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-woocommerce.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-multilang.php';
 
 	// Load REST API controllers.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-elementor-pro.php';
@@ -132,6 +133,7 @@ function spai_pro_init() {
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-widgets.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-themes.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-woocommerce.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-multilang.php';
 
 	// Load admin.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/admin/class-spai-pro-admin.php';

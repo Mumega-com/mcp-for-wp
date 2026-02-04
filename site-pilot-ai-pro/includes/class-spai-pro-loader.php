@@ -80,6 +80,13 @@ class Spai_Pro_Loader {
 	private $woocommerce;
 
 	/**
+	 * Multilanguage handler.
+	 *
+	 * @var Spai_Multilang
+	 */
+	private $multilang;
+
+	/**
 	 * Initialize the loader.
 	 */
 	public function __construct() {
@@ -92,6 +99,7 @@ class Spai_Pro_Loader {
 		$this->widgets       = new Spai_Widgets();
 		$this->themes        = new Spai_Themes();
 		$this->woocommerce   = new Spai_WooCommerce();
+		$this->multilang     = new Spai_Multilang();
 	}
 
 	/**
@@ -150,6 +158,10 @@ class Spai_Pro_Loader {
 		// WooCommerce endpoints.
 		$woocommerce_controller = new Spai_REST_WooCommerce( $this->woocommerce );
 		$woocommerce_controller->register_routes();
+
+		// Multilanguage endpoints.
+		$multilang_controller = new Spai_REST_Multilang( $this->multilang );
+		$multilang_controller->register_routes();
 	}
 
 	/**
@@ -218,6 +230,9 @@ class Spai_Pro_Loader {
 			'active'  => $wc_status['active'],
 			'version' => isset( $wc_status['version'] ) ? $wc_status['version'] : null,
 		);
+
+		// Multilanguage features.
+		$capabilities['multilang'] = $this->multilang->get_status();
 
 		return $capabilities;
 	}

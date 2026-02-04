@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.0.7
+**Version:** 1.0.8
 
 ## Table of Contents
 
@@ -28,6 +28,7 @@
   - [Themes](#themes)
   - [Theme Builder](#theme-builder)
   - [WooCommerce (Pro)](#woocommerce-pro)
+  - [Multilanguage (Pro)](#multilanguage-pro)
   - [Webhooks](#webhooks)
 - [Rate Limiting](#rate-limiting)
 - [Auto-Updates](#auto-updates)
@@ -1834,6 +1835,176 @@ GET /woocommerce/analytics
   }
 }
 ```
+
+---
+
+### Multilanguage (Pro)
+
+Full multilingual site support for WPML, Polylang, and TranslatePress.
+
+> **Pro Feature:** Requires Site Pilot AI Pro with valid license.
+
+#### Supported Plugins
+
+| Plugin | Detection | Translations |
+|--------|-----------|--------------|
+| WPML | Full support | Separate posts per language |
+| Polylang | Full support | Separate posts per language |
+| TranslatePress | Detection only | Inline translations (same post) |
+
+#### Get Languages
+
+```http
+GET /languages
+```
+
+**Response (WPML example):**
+
+```json
+{
+  "plugin": "wpml",
+  "plugin_version": "4.6.5",
+  "default_language": "en",
+  "current_language": "en",
+  "languages": [
+    {
+      "code": "en",
+      "name": "English",
+      "native_name": "English",
+      "flag": "https://example.com/flags/en.png",
+      "is_default": true,
+      "active": true
+    },
+    {
+      "code": "fr",
+      "name": "French",
+      "native_name": "Français",
+      "flag": "https://example.com/flags/fr.png",
+      "is_default": false,
+      "active": true
+    },
+    {
+      "code": "es",
+      "name": "Spanish",
+      "native_name": "Español",
+      "flag": "https://example.com/flags/es.png",
+      "is_default": false,
+      "active": true
+    }
+  ]
+}
+```
+
+**Response (no plugin):**
+
+```json
+{
+  "active": false,
+  "plugin": null,
+  "languages": [],
+  "message": "No multilingual plugin detected."
+}
+```
+
+#### Set Current Language
+
+```http
+PUT /languages/current
+```
+
+**Body:**
+
+```json
+{
+  "language": "fr"
+}
+```
+
+Sets the language context for subsequent API calls in the same session.
+
+#### Get Post Translations
+
+```http
+GET /posts/{id}/translations
+GET /pages/{id}/translations
+```
+
+**Response:**
+
+```json
+{
+  "post_id": 42,
+  "post_type": "post",
+  "post_language": "en",
+  "plugin": "wpml",
+  "translations": {
+    "en": {
+      "post_id": 42,
+      "status": "original",
+      "title": "Hello World",
+      "post_status": "publish",
+      "permalink": "https://example.com/hello-world/",
+      "modified": "2024-02-01T10:30:00"
+    },
+    "fr": {
+      "post_id": 156,
+      "status": "translation",
+      "title": "Bonjour le Monde",
+      "post_status": "publish",
+      "permalink": "https://example.com/fr/bonjour-le-monde/",
+      "modified": "2024-02-01T11:45:00"
+    }
+  },
+  "missing": [
+    {"code": "es", "name": "Spanish"}
+  ]
+}
+```
+
+#### Create Post Translation
+
+```http
+POST /posts/{id}/translations
+POST /pages/{id}/translations
+```
+
+**Body:**
+
+```json
+{
+  "language": "es",
+  "title": "Hola Mundo",
+  "content": "<p>Este es el contenido traducido...</p>",
+  "excerpt": "Resumen del artículo",
+  "status": "draft"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "original_post_id": 42,
+  "translation_id": 189,
+  "language": "es",
+  "title": "Hola Mundo",
+  "status": "draft",
+  "permalink": "https://example.com/es/hola-mundo/",
+  "edit_link": "https://example.com/wp-admin/post.php?post=189&action=edit"
+}
+```
+
+#### Filter Content by Language
+
+All list endpoints support the `lang` parameter:
+
+```http
+GET /posts?lang=fr
+GET /pages?lang=es
+```
+
+This filters results to only return content in the specified language.
 
 ---
 
