@@ -52,6 +52,10 @@ trait Spai_Api_Auth {
 			);
 		}
 
+		// Set the current user to admin for capability checks.
+		// API key authentication implies full admin access.
+		$this->set_api_user_context();
+
 		return true;
 	}
 
@@ -145,6 +149,26 @@ trait Spai_Api_Auth {
 		}
 
 		return 'unknown';
+	}
+
+	/**
+	 * Set the current user context for API requests.
+	 *
+	 * Sets the current user to the first admin user so that
+	 * capability checks work correctly for API key authenticated requests.
+	 */
+	protected function set_api_user_context() {
+		// Get the first admin user.
+		$admins = get_users( array(
+			'role'    => 'administrator',
+			'number'  => 1,
+			'orderby' => 'ID',
+			'order'   => 'ASC',
+		) );
+
+		if ( ! empty( $admins ) ) {
+			wp_set_current_user( $admins[0]->ID );
+		}
 	}
 
 	/**
