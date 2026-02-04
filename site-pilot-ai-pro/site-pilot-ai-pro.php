@@ -80,6 +80,7 @@ function spai_pro_init() {
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-site-manager.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-theme-builder.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-users.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-widgets.php';
 
 	// Load REST API controllers.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-elementor-pro.php';
@@ -88,6 +89,7 @@ function spai_pro_init() {
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-site-manager.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-theme-builder.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-users.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-widgets.php';
 
 	// Load admin.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/admin/class-spai-pro-admin.php';

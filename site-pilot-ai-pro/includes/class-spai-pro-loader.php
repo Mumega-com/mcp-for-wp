@@ -59,6 +59,13 @@ class Spai_Pro_Loader {
 	private $users;
 
 	/**
+	 * Widgets handler.
+	 *
+	 * @var Spai_Widgets
+	 */
+	private $widgets;
+
+	/**
 	 * Initialize the loader.
 	 */
 	public function __construct() {
@@ -68,6 +75,7 @@ class Spai_Pro_Loader {
 		$this->site_manager  = new Spai_Site_Manager();
 		$this->theme_builder = new Spai_Theme_Builder();
 		$this->users         = new Spai_Users();
+		$this->widgets       = new Spai_Widgets();
 	}
 
 	/**
@@ -114,6 +122,10 @@ class Spai_Pro_Loader {
 		// Users endpoints.
 		$users_controller = new Spai_REST_Users( $this->users );
 		$users_controller->register_routes();
+
+		// Widgets endpoints.
+		$widgets_controller = new Spai_REST_Widgets( $this->widgets );
+		$widgets_controller->register_routes();
 	}
 
 	/**
@@ -158,6 +170,11 @@ class Spai_Pro_Loader {
 
 		// Users features.
 		$capabilities['users'] = array(
+			'management' => true,
+		);
+
+		// Widgets features.
+		$capabilities['widgets'] = array(
 			'management' => true,
 		);
 
