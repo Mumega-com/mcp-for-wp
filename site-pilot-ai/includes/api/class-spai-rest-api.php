@@ -48,7 +48,30 @@ abstract class Spai_REST_API {
 	 * @return WP_REST_Response Response object.
 	 */
 	protected function success_response( $data, $status = 200 ) {
-		return new WP_REST_Response( $data, $status );
+		$response = new WP_REST_Response( $data, $status );
+
+		// Add rate limit headers.
+		$this->add_rate_limit_headers( $response );
+
+		return $response;
+	}
+
+	/**
+	 * Add rate limit headers to response.
+	 *
+	 * @param WP_REST_Response $response Response object.
+	 */
+	protected function add_rate_limit_headers( $response ) {
+		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
+			return;
+		}
+
+		$limiter = Spai_Rate_Limiter::get_instance();
+		$headers = $limiter->get_headers();
+
+		foreach ( $headers as $key => $value ) {
+			$response->header( $key, $value );
+		}
 	}
 
 	/**

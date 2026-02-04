@@ -62,8 +62,11 @@ class Spai_Activator {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
-		$table_name = $wpdb->prefix . 'spai_activity_log';
 
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		// Activity log table
+		$table_name = $wpdb->prefix . 'spai_activity_log';
 		$sql = "CREATE TABLE IF NOT EXISTS $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			action varchar(100) NOT NULL,
@@ -79,8 +82,42 @@ class Spai_Activator {
 			KEY action (action),
 			KEY created_at (created_at)
 		) $charset_collate;";
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		// Webhooks table
+		$webhooks_table = $wpdb->prefix . 'spai_webhooks';
+		$sql_webhooks = "CREATE TABLE $webhooks_table (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL,
+			url varchar(2048) NOT NULL,
+			secret varchar(255) DEFAULT NULL,
+			events text NOT NULL,
+			status varchar(20) DEFAULT 'active',
+			retry_count int(11) DEFAULT 0,
+			last_triggered datetime DEFAULT NULL,
+			last_status varchar(50) DEFAULT NULL,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP,
+			updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			KEY status (status)
+		) $charset_collate;";
+		dbDelta( $sql_webhooks );
+
+		// Webhook logs table
+		$logs_table = $wpdb->prefix . 'spai_webhook_logs';
+		$sql_logs = "CREATE TABLE $logs_table (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			webhook_id bigint(20) unsigned NOT NULL,
+			event varchar(100) NOT NULL,
+			payload longtext NOT NULL,
+			response_code int(11) DEFAULT NULL,
+			response_body text DEFAULT NULL,
+			duration float DEFAULT NULL,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			KEY webhook_id (webhook_id),
+			KEY created_at (created_at)
+		) $charset_collate;";
+		dbDelta( $sql_logs );
 	}
 }

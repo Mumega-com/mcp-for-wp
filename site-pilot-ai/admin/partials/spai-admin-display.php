@@ -13,19 +13,35 @@ $api_key = get_option( 'spai_api_key', '' );
 $admin = new Spai_Admin();
 $capabilities = $admin->get_capabilities_display();
 $is_pro = class_exists( 'Spai_Pro_Loader' );
+$license = function_exists( 'spai_license' ) ? spai_license() : null;
+$is_paying = $license ? $license->is_paying() : false;
+$plan = $license ? $license->get_plan() : 'free';
+$upgrade_url = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pricing/';
 ?>
 
 <div class="wrap spai-admin">
 	<h1><?php esc_html_e( 'Site Pilot AI', 'site-pilot-ai' ); ?></h1>
 
-	<?php if ( ! $is_pro ) : ?>
+	<?php if ( ! $is_paying ) : ?>
 	<div class="spai-upgrade-banner">
 		<div class="spai-upgrade-content">
 			<strong><?php esc_html_e( 'Unlock Pro Features', 'site-pilot-ai' ); ?></strong>
-			<p><?php esc_html_e( 'Get full Elementor integration, SEO tools, forms, and more.', 'site-pilot-ai' ); ?></p>
-			<a href="https://sitepilotai.com/pricing" target="_blank" class="button button-primary">
-				<?php esc_html_e( 'Upgrade to Pro', 'site-pilot-ai' ); ?>
+			<p><?php esc_html_e( 'Get full Elementor integration, SEO tools, forms, WooCommerce support, and more.', 'site-pilot-ai' ); ?></p>
+			<a href="<?php echo esc_url( $upgrade_url ); ?>" class="button button-primary">
+				<?php esc_html_e( 'Upgrade to Pro - $49/year', 'site-pilot-ai' ); ?>
 			</a>
+		</div>
+	</div>
+	<?php else : ?>
+	<div class="spai-license-banner spai-license-active">
+		<div class="spai-license-content">
+			<span class="dashicons dashicons-yes-alt"></span>
+			<strong><?php printf( esc_html__( '%s Plan Active', 'site-pilot-ai' ), esc_html( ucfirst( $plan ) ) ); ?></strong>
+			<?php if ( $license && $license->get_expiration() ) : ?>
+				<span class="spai-license-expiry">
+					<?php printf( esc_html__( 'Renews: %s', 'site-pilot-ai' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $license->get_expiration() ) ) ) ); ?>
+				</span>
+			<?php endif; ?>
 		</div>
 	</div>
 	<?php endif; ?>

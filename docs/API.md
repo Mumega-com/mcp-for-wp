@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.0.0
+**Version:** 1.0.7
 
 ## Table of Contents
 
@@ -22,7 +22,15 @@
   - [Users](#users)
   - [Menus](#menus)
   - [Settings](#settings)
+  - [Options](#options)
+  - [Favicon](#favicon)
+  - [Widgets](#widgets)
+  - [Themes](#themes)
   - [Theme Builder](#theme-builder)
+  - [WooCommerce (Pro)](#woocommerce-pro)
+  - [Webhooks](#webhooks)
+- [Rate Limiting](#rate-limiting)
+- [Auto-Updates](#auto-updates)
 - [MCP Server Configuration](#mcp-server-configuration)
 - [AI Integration Examples](#ai-integration-examples)
 
@@ -91,21 +99,79 @@ curl "https://your-site.com/wp-json/site-pilot-ai/v1/site-info?api_key=spai_your
 
 ## Rate Limiting
 
-Default rate limits (configurable in settings):
+Rate limiting protects your WordPress site from API abuse. Limits are configurable in settings.
 
-| Tier | Requests/Minute | Requests/Hour |
-|------|-----------------|---------------|
-| Free | 60 | 1,000 |
-| Pro | 300 | 10,000 |
-| Agency | Unlimited | Unlimited |
+### Default Limits
 
-Rate limit headers are included in responses:
+| Window | Requests |
+|--------|----------|
+| Per Minute | 60 |
+| Per Hour | 1,000 |
+
+### Rate Limit Headers
+
+All API responses include rate limit headers:
 
 ```
 X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 45
 X-RateLimit-Reset: 1699574400
 ```
+
+### Check Rate Limit Status
+
+```http
+GET /rate-limit
+```
+
+**Response:**
+
+```json
+{
+  "enabled": true,
+  "limits": {
+    "per_minute": 60,
+    "per_hour": 1000
+  },
+  "usage": {
+    "identifier": "192.168.1.1",
+    "minute": {
+      "used": 15,
+      "limit": 60,
+      "remaining": 45,
+      "reset": 1699574400
+    },
+    "hour": {
+      "used": 150,
+      "limit": 1000,
+      "remaining": 850,
+      "reset": 1699577400
+    }
+  }
+}
+```
+
+### Rate Limit Exceeded Response
+
+When rate limited, the API returns `429 Too Many Requests`:
+
+```json
+{
+  "code": "rate_limit_exceeded",
+  "message": "Rate limit exceeded. 60 requests per minute allowed. Try again in 45 seconds.",
+  "data": {
+    "status": 429,
+    "retry_after": 45,
+    "limit": 60,
+    "remaining": 0,
+    "reset": 1699574400
+  }
+}
+```
+
+### IP Whitelisting
+
+Configure trusted IPs in WordPress settings to bypass rate limiting
 
 ---
 
@@ -311,6 +377,37 @@ GET /pages/{id}
 PUT /pages/{id}
 ```
 
+#### Delete Page
+
+```http
+DELETE /pages/{id}
+```
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `force` | boolean | false | Permanently delete (bypass trash) |
+
+#### List Page Templates
+
+```http
+GET /templates/page
+```
+
+**Response:**
+
+```json
+{
+  "templates": [
+    {"slug": "default", "name": "Default Template"},
+    {"slug": "templates/full-width.php", "name": "Full Width"},
+    {"slug": "elementor_header_footer", "name": "Elementor Canvas"}
+  ],
+  "total": 3
+}
+```
+
 ---
 
 ### Media
@@ -366,6 +463,51 @@ POST /media/from-url
   "title": "Downloaded Image",
   "alt": "Image description",
   "filename": "custom-name.jpg"
+}
+```
+
+#### Bulk Upload from URLs
+
+```http
+POST /media/bulk
+```
+
+Upload multiple images in a single request (max 20).
+
+**Body (simple):**
+
+```json
+{
+  "urls": [
+    "https://example.com/image1.jpg",
+    "https://example.com/image2.jpg",
+    "https://example.com/image3.jpg"
+  ]
+}
+```
+
+**Body (with metadata):**
+
+```json
+{
+  "items": [
+    {"url": "https://example.com/hero.jpg", "title": "Hero Image", "alt": "Main banner"},
+    {"url": "https://example.com/logo.png", "title": "Logo", "alt": "Company logo"}
+  ]
+}
+```
+
+**Response:**
+
+```json
+{
+  "uploaded": 2,
+  "failed": 0,
+  "media": [
+    {"id": 123, "url": "https://site.com/wp-content/uploads/hero.jpg", "title": "Hero Image"},
+    {"id": 124, "url": "https://site.com/wp-content/uploads/logo.png", "title": "Logo"}
+  ],
+  "errors": []
 }
 ```
 
@@ -902,6 +1044,350 @@ PUT /settings
 
 ---
 
+### Options
+
+*Requires Pro license*
+
+#### Get Site Options
+
+```http
+GET /options
+```
+
+Returns reading and front page settings.
+
+**Response:**
+
+```json
+{
+  "show_on_front": "page",
+  "page_on_front": 2,
+  "page_for_posts": 10,
+  "posts_per_page": 10,
+  "posts_per_rss": 10,
+  "blog_public": "1"
+}
+```
+
+#### Update Site Options
+
+```http
+PUT /options
+```
+
+**Body:**
+
+```json
+{
+  "show_on_front": "page",
+  "page_on_front": 123,
+  "page_for_posts": 456,
+  "posts_per_page": 12
+}
+```
+
+**Allowed Options:**
+
+| Option | Description |
+|--------|-------------|
+| `show_on_front` | `posts` or `page` |
+| `page_on_front` | Homepage page ID |
+| `page_for_posts` | Blog page ID |
+| `posts_per_page` | Posts per page (1-100) |
+
+---
+
+### Favicon
+
+*Requires Pro license*
+
+Manage site icon (favicon) displayed in browser tabs.
+
+#### Get Favicon
+
+```http
+GET /favicon
+```
+
+**Response:**
+
+```json
+{
+  "has_icon": true,
+  "attachment_id": 123,
+  "sizes": {
+    "32": "https://example.com/wp-content/uploads/cropped-icon-32x32.png",
+    "180": "https://example.com/wp-content/uploads/cropped-icon-180x180.png",
+    "192": "https://example.com/wp-content/uploads/cropped-icon-192x192.png",
+    "270": "https://example.com/wp-content/uploads/cropped-icon-270x270.png",
+    "512": "https://example.com/wp-content/uploads/icon.png"
+  }
+}
+```
+
+#### Set Favicon
+
+```http
+PUT /favicon
+```
+
+**Body (by Media ID):**
+
+```json
+{
+  "attachment_id": 123
+}
+```
+
+**Body (by URL):**
+
+```json
+{
+  "url": "https://example.com/favicon.png"
+}
+```
+
+The URL method will automatically download and import the image.
+
+#### Remove Favicon
+
+```http
+DELETE /favicon
+```
+
+Removes the site icon. Returns `{"success": true}`.
+
+---
+
+### Widgets
+
+*Requires Pro license*
+
+Manage WordPress widgets and sidebars.
+
+#### List Sidebars
+
+```http
+GET /widgets/sidebars
+```
+
+**Response:**
+
+```json
+{
+  "sidebars": [
+    {
+      "id": "sidebar-1",
+      "name": "Main Sidebar",
+      "description": "Add widgets here to appear in your sidebar",
+      "widgets": ["text-2", "recent-posts-3"]
+    },
+    {
+      "id": "footer-1",
+      "name": "Footer Widget Area",
+      "description": "Footer column 1",
+      "widgets": []
+    }
+  ],
+  "total": 4
+}
+```
+
+#### List Widget Types
+
+```http
+GET /widgets/types
+```
+
+Returns all registered widget types.
+
+#### List Widgets
+
+```http
+GET /widgets
+```
+
+Returns all active widget instances.
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `sidebar` | string | Filter by sidebar ID |
+
+#### Get Widget
+
+```http
+GET /widgets/{id}
+```
+
+#### Create Widget
+
+```http
+POST /widgets
+```
+
+**Body:**
+
+```json
+{
+  "type": "text",
+  "sidebar": "sidebar-1",
+  "settings": {
+    "title": "Welcome",
+    "text": "<p>Welcome to our site!</p>"
+  }
+}
+```
+
+#### Update Widget
+
+```http
+PUT /widgets/{id}
+```
+
+#### Delete Widget
+
+```http
+DELETE /widgets/{id}
+```
+
+#### Move Widget to Sidebar
+
+```http
+POST /widgets/{id}/move
+```
+
+**Body:**
+
+```json
+{
+  "sidebar": "footer-1",
+  "position": 0
+}
+```
+
+---
+
+### Themes
+
+*Requires Pro license*
+
+Unified theme settings management for popular WordPress themes.
+
+#### Detect Active Theme
+
+```http
+GET /themes/detect
+```
+
+**Response:**
+
+```json
+{
+  "active_theme": "astra",
+  "theme_name": "Astra",
+  "theme_version": "4.5.0",
+  "is_supported": true,
+  "supported_features": ["colors", "typography", "header", "footer"]
+}
+```
+
+#### List Supported Themes
+
+```http
+GET /themes/supported
+```
+
+**Response:**
+
+```json
+{
+  "themes": [
+    {"slug": "astra", "name": "Astra", "features": ["colors", "typography", "header", "footer", "sidebar", "buttons"]},
+    {"slug": "flavor flavor flavor flavor flavore flavor", "name": "GeneratePress", "features": ["colors", "typography", "layout"]},
+    {"slug": "kadence", "name": "Flavor flavor flavor flavor flavore flavor", "features": ["colors", "typography", "header", "footer"]}
+  ]
+}
+```
+
+#### Get Theme Settings
+
+```http
+GET /themes/settings
+```
+
+Returns settings for the currently active theme in a normalized format.
+
+**Response (Astra example):**
+
+```json
+{
+  "theme": "astra",
+  "colors": {
+    "primary": "#0274be",
+    "secondary": "#557799",
+    "text": "#3a3a3a",
+    "heading": "#3a3a3a",
+    "background": "#ffffff",
+    "link": "#0274be",
+    "link_hover": "#3a3a3a"
+  },
+  "typography": {
+    "body_font_family": "system-ui",
+    "body_font_size": "16px",
+    "heading_font_family": "inherit",
+    "heading_font_weight": "600"
+  },
+  "header": {
+    "type": "header-main-layout-1",
+    "width": "content",
+    "sticky": false
+  },
+  "footer": {
+    "widgets_enabled": true,
+    "copyright": "Copyright © 2024"
+  }
+}
+```
+
+#### Update Theme Settings
+
+```http
+PUT /themes/settings
+```
+
+**Body:**
+
+```json
+{
+  "colors": {
+    "primary": "#ff6b35"
+  },
+  "typography": {
+    "body_font_size": "18px"
+  }
+}
+```
+
+#### Astra-Specific Endpoints
+
+```http
+GET /themes/astra/colors
+PUT /themes/astra/colors
+
+GET /themes/astra/typography
+PUT /themes/astra/typography
+
+GET /themes/astra/header
+PUT /themes/astra/header
+
+GET /themes/astra/footer
+PUT /themes/astra/footer
+```
+
+---
+
 ### Theme Builder
 
 *Requires Pro license and Elementor Pro*
@@ -977,6 +1463,604 @@ POST /theme-builder/templates/{id}/assign
 ```
 
 Scope options: `entire_site`, `singular`, `archive`, `specific`, `front_page`, `404`
+
+---
+
+### WooCommerce (Pro)
+
+Full WooCommerce integration for AI-powered e-commerce management.
+
+> **Pro Feature:** Requires Site Pilot AI Pro with valid license.
+
+#### WooCommerce Status
+
+```http
+GET /woocommerce/status
+```
+
+**Response:**
+
+```json
+{
+  "active": true,
+  "version": "8.5.1",
+  "currency": "USD",
+  "currency_symbol": "$",
+  "weight_unit": "lbs",
+  "dimension_unit": "in",
+  "tax_enabled": true,
+  "coupons_enabled": true,
+  "products_count": 156,
+  "orders_count": 1243
+}
+```
+
+#### Products
+
+##### List Products
+
+```http
+GET /woocommerce/products
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `per_page` | integer | 50 | Items per page (1-100) |
+| `page` | integer | 1 | Page number |
+| `status` | string | publish | Product status (publish, draft, pending, private, any) |
+| `type` | string | - | Product type (simple, variable, grouped, external) |
+| `category` | string | - | Category slug |
+| `tag` | string | - | Tag slug |
+| `search` | string | - | Search term |
+| `sku` | string | - | Exact SKU match |
+| `stock_status` | string | - | Stock status (instock, outofstock, onbackorder) |
+| `orderby` | string | date | Order by (date, title, price, popularity, rating) |
+| `order` | string | DESC | Sort order (ASC, DESC) |
+
+**Response:**
+
+```json
+{
+  "products": [
+    {
+      "id": 42,
+      "name": "Premium Widget",
+      "slug": "premium-widget",
+      "type": "simple",
+      "status": "publish",
+      "sku": "WIDGET-001",
+      "price": "29.99",
+      "regular_price": "39.99",
+      "sale_price": "29.99",
+      "on_sale": true,
+      "stock_status": "instock",
+      "stock_quantity": 150,
+      "manage_stock": true,
+      "categories": ["Electronics", "Widgets"],
+      "tags": ["bestseller", "featured"],
+      "permalink": "https://example.com/product/premium-widget",
+      "date_created": "2024-01-15T10:30:00+00:00",
+      "date_modified": "2024-02-01T14:22:00+00:00"
+    }
+  ],
+  "total": 156,
+  "page": 1,
+  "per_page": 50,
+  "total_pages": 4
+}
+```
+
+##### Get Single Product
+
+```http
+GET /woocommerce/products/{id}
+```
+
+Returns detailed product information including description, dimensions, images, and attributes.
+
+##### Create Product
+
+```http
+POST /woocommerce/products
+```
+
+**Body:**
+
+```json
+{
+  "name": "New Product",
+  "type": "simple",
+  "status": "publish",
+  "description": "Full product description with HTML support",
+  "short_description": "Brief product summary",
+  "sku": "NEWPROD-001",
+  "regular_price": "49.99",
+  "sale_price": "39.99",
+  "manage_stock": true,
+  "stock_quantity": 100,
+  "stock_status": "instock",
+  "categories": ["Electronics"],
+  "tags": ["new", "featured"],
+  "image_id": 123,
+  "gallery_image_ids": [124, 125, 126],
+  "virtual": false,
+  "downloadable": false
+}
+```
+
+##### Update Product
+
+```http
+PUT /woocommerce/products/{id}
+```
+
+Send only the fields you want to update.
+
+##### Delete Product
+
+```http
+DELETE /woocommerce/products/{id}
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `force` | boolean | false | Permanently delete (bypass trash) |
+
+##### Get Product Categories
+
+```http
+GET /woocommerce/products/categories
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 15,
+    "name": "Electronics",
+    "slug": "electronics",
+    "parent": 0,
+    "count": 45
+  }
+]
+```
+
+##### Get Product Tags
+
+```http
+GET /woocommerce/products/tags
+```
+
+#### Orders
+
+##### List Orders
+
+```http
+GET /woocommerce/orders
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `per_page` | integer | 50 | Items per page (1-100) |
+| `page` | integer | 1 | Page number |
+| `status` | string | any | Order status (pending, processing, completed, etc.) |
+| `customer` | integer | - | Customer ID |
+| `after` | string | - | Orders after date (ISO 8601) |
+| `before` | string | - | Orders before date (ISO 8601) |
+
+**Response:**
+
+```json
+{
+  "orders": [
+    {
+      "id": 1001,
+      "number": "1001",
+      "status": "processing",
+      "currency": "USD",
+      "total": "129.97",
+      "subtotal": "119.97",
+      "tax_total": "10.00",
+      "shipping_total": "0.00",
+      "discount_total": "0.00",
+      "payment_method": "Credit Card (Stripe)",
+      "customer_id": 42,
+      "date_created": "2024-02-01T09:15:00+00:00",
+      "date_completed": null,
+      "items_count": 3
+    }
+  ],
+  "total": 1243,
+  "page": 1,
+  "per_page": 50,
+  "total_pages": 25
+}
+```
+
+##### Get Single Order
+
+```http
+GET /woocommerce/orders/{id}
+```
+
+Returns full order details including billing/shipping addresses, line items, and order notes.
+
+##### Update Order
+
+```http
+PUT /woocommerce/orders/{id}
+```
+
+**Body:**
+
+```json
+{
+  "status": "completed",
+  "note": "Order shipped via FedEx, tracking: 123456789",
+  "note_customer": true
+}
+```
+
+##### Get Order Statuses
+
+```http
+GET /woocommerce/orders/statuses
+```
+
+**Response:**
+
+```json
+[
+  {"slug": "pending", "name": "Pending payment"},
+  {"slug": "processing", "name": "Processing"},
+  {"slug": "on-hold", "name": "On hold"},
+  {"slug": "completed", "name": "Completed"},
+  {"slug": "cancelled", "name": "Cancelled"},
+  {"slug": "refunded", "name": "Refunded"},
+  {"slug": "failed", "name": "Failed"}
+]
+```
+
+#### Customers
+
+##### List Customers
+
+```http
+GET /woocommerce/customers
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `per_page` | integer | 50 | Items per page (1-100) |
+| `page` | integer | 1 | Page number |
+| `search` | string | - | Search term |
+| `orderby` | string | registered | Order by (registered, display_name, user_login, user_email) |
+| `order` | string | DESC | Sort order (ASC, DESC) |
+
+**Response:**
+
+```json
+{
+  "customers": [
+    {
+      "id": 42,
+      "email": "customer@example.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "display_name": "John Doe",
+      "date_created": "2023-06-15T10:30:00+00:00",
+      "orders_count": 12,
+      "total_spent": "1,245.67"
+    }
+  ],
+  "total": 523,
+  "page": 1,
+  "per_page": 50,
+  "total_pages": 11
+}
+```
+
+##### Get Single Customer
+
+```http
+GET /woocommerce/customers/{id}
+```
+
+Returns full customer details including billing and shipping addresses.
+
+#### Analytics
+
+```http
+GET /woocommerce/analytics
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `period` | string | month | Time period (day, week, month, year) |
+| `date_min` | string | - | Start date (ISO 8601) |
+| `date_max` | string | - | End date (ISO 8601) |
+
+**Response:**
+
+```json
+{
+  "period": "month",
+  "date_range": {
+    "start": "2024-01-01T00:00:00",
+    "end": "2024-01-31T23:59:59"
+  },
+  "sales": {
+    "total": "15,678.90",
+    "count": 156,
+    "average": "100.51"
+  },
+  "products": {
+    "total": 156,
+    "in_stock": 142,
+    "out_of_stock": 14
+  },
+  "top_products": [
+    {
+      "id": 42,
+      "name": "Premium Widget",
+      "sku": "WIDGET-001",
+      "quantity": 89,
+      "price": "29.99"
+    }
+  ],
+  "customers": {
+    "total": 523,
+    "new": 45
+  },
+  "orders_by_status": {
+    "pending": 12,
+    "processing": 34,
+    "on-hold": 5,
+    "completed": 1156,
+    "cancelled": 23,
+    "refunded": 8,
+    "failed": 5
+  }
+}
+```
+
+---
+
+### Webhooks
+
+Webhooks allow your external systems to receive real-time notifications when events occur on your WordPress site.
+
+#### List Available Events
+
+```http
+GET /webhooks/events
+```
+
+**Response:**
+
+```json
+{
+  "events": [
+    "post.created", "post.updated", "post.deleted", "post.published",
+    "page.created", "page.updated", "page.deleted", "page.published",
+    "media.uploaded", "media.deleted",
+    "user.created", "user.updated", "user.deleted",
+    "comment.created", "comment.approved", "comment.deleted"
+  ],
+  "grouped": {
+    "post": ["post.created", "post.updated", "post.deleted", "post.published"],
+    "page": ["page.created", "page.updated", "page.deleted", "page.published"],
+    "media": ["media.uploaded", "media.deleted"],
+    "user": ["user.created", "user.updated", "user.deleted"],
+    "comment": ["comment.created", "comment.approved", "comment.deleted"]
+  },
+  "total": 16
+}
+```
+
+#### List Webhooks
+
+```http
+GET /webhooks
+```
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `status` | string | all | Filter: `active`, `disabled`, `all` |
+| `per_page` | integer | 50 | Items per page |
+| `page` | integer | 1 | Page number |
+
+#### Create Webhook
+
+```http
+POST /webhooks
+```
+
+**Body:**
+
+```json
+{
+  "name": "My Webhook",
+  "url": "https://example.com/webhook-receiver",
+  "events": ["post.published", "page.published"],
+  "secret": "optional-custom-secret"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": 1,
+  "webhook": {
+    "id": 1,
+    "name": "My Webhook",
+    "url": "https://example.com/webhook-receiver",
+    "events": ["post.published", "page.published"],
+    "status": "active",
+    "secret": "abc123..."
+  },
+  "message": "Webhook created successfully."
+}
+```
+
+#### Get/Update/Delete Webhook
+
+```http
+GET /webhooks/{id}
+PUT /webhooks/{id}
+DELETE /webhooks/{id}
+```
+
+#### Test Webhook
+
+```http
+POST /webhooks/{id}/test
+```
+
+Sends a test payload to verify the webhook URL is reachable.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "response_code": 200,
+  "response_body": "OK",
+  "duration": 0.245
+}
+```
+
+#### View Delivery Logs
+
+```http
+GET /webhooks/{id}/logs
+```
+
+**Response:**
+
+```json
+{
+  "logs": [
+    {
+      "id": 1,
+      "webhook_id": 1,
+      "event": "post.published",
+      "response_code": 200,
+      "duration": 0.312,
+      "created_at": "2024-01-15 10:30:00"
+    }
+  ],
+  "total": 15,
+  "pages": 1,
+  "page": 1
+}
+```
+
+#### Webhook Payload Format
+
+When an event triggers, Site Pilot AI sends a POST request with:
+
+**Headers:**
+
+```
+Content-Type: application/json
+X-SPAI-Event: post.published
+X-SPAI-Signature: sha256-hmac-of-body
+X-SPAI-Webhook-ID: 1
+X-SPAI-Delivery-ID: uuid
+```
+
+**Body:**
+
+```json
+{
+  "event": "post.published",
+  "timestamp": "2024-01-15T10:30:00+00:00",
+  "site_url": "https://example.com",
+  "id": 123,
+  "title": "New Blog Post",
+  "type": "post",
+  "permalink": "https://example.com/new-blog-post/"
+}
+```
+
+#### Verifying Webhook Signatures
+
+Verify the `X-SPAI-Signature` header using HMAC-SHA256:
+
+```php
+$payload = file_get_contents('php://input');
+$signature = $_SERVER['HTTP_X_SPAI_SIGNATURE'];
+$expected = hash_hmac('sha256', $payload, $your_webhook_secret);
+
+if (hash_equals($expected, $signature)) {
+    // Valid webhook
+}
+```
+
+---
+
+## Auto-Updates
+
+Site Pilot AI supports automatic updates directly from GitHub releases, without requiring WordPress.org hosting.
+
+### How It Works
+
+1. The plugin periodically checks the [GitHub releases page](https://github.com/Digidinc/wp-ai-operator/releases)
+2. If a newer version is found, WordPress displays an update notice
+3. Clicking "Update" downloads and installs the new version automatically
+
+### Update Process
+
+- **Check frequency:** Every 6 hours (cached)
+- **Source:** GitHub Releases API
+- **Both plugins:** Site Pilot AI (free) and Site Pilot AI Pro check independently
+
+### Manual Update Check
+
+To force an update check:
+
+1. Go to **Dashboard → Updates**
+2. Click **Check Again**
+
+Or clear the update transient:
+
+```php
+// Clear update cache (run in theme functions.php or plugin)
+delete_transient( 'spai_github_' . md5( 'site-pilot-ai' ) );
+delete_transient( 'spai_github_' . md5( 'site-pilot-ai-pro' ) );
+```
+
+### Version Numbering
+
+We follow semantic versioning: `MAJOR.MINOR.PATCH`
+
+- **MAJOR:** Breaking API changes
+- **MINOR:** New features (backwards compatible)
+- **PATCH:** Bug fixes
+
+### Release Assets
+
+Each GitHub release includes:
+
+| Asset | Description |
+|-------|-------------|
+| `site-pilot-ai.zip` | Free plugin (core features) |
+| `site-pilot-ai-pro.zip` | Pro add-on (requires free plugin) |
 
 ---
 

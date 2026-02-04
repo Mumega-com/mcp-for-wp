@@ -11,7 +11,7 @@ info:
     ## Authentication
     All endpoints require API key authentication via the `X-API-Key` header
     or `Authorization: Bearer` header.
-  version: 1.0.0
+  version: 1.0.4
   contact:
     name: DigID Inc
     url: https://digid.ca
@@ -55,6 +55,14 @@ tags:
     description: Navigation menu management (Pro)
   - name: Settings
     description: Site settings (Pro)
+  - name: Options
+    description: Reading and front page options (Pro)
+  - name: Favicon
+    description: Site icon management (Pro)
+  - name: Widgets
+    description: Widget and sidebar management (Pro)
+  - name: Themes
+    description: Theme settings integration (Pro)
   - name: Theme Builder
     description: Elementor Theme Builder (Pro)
 
@@ -277,6 +285,47 @@ paths:
       responses:
         '200':
           description: Page updated
+    delete:
+      tags: [Pages]
+      summary: Delete page
+      operationId: deletePage
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+        - name: force
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Bypass trash and permanently delete
+      responses:
+        '200':
+          description: Page deleted
+
+  /templates/page:
+    get:
+      tags: [Pages]
+      summary: List page templates
+      description: Get all available page templates
+      operationId: listPageTemplates
+      responses:
+        '200':
+          description: Available page templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        slug:
+                          type: string
+                        name:
+                          type: string
+                  total:
+                    type: integer
 
   /media:
     get:
@@ -341,6 +390,74 @@ paths:
       responses:
         '201':
           description: Media uploaded
+
+  /media/bulk:
+    post:
+      tags: [Media]
+      summary: Bulk upload from URLs
+      description: Upload multiple media items from URLs in a single request (max 20)
+      operationId: bulkUploadMedia
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  maxItems: 20
+                  description: Simple array of URLs
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [url]
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                      title:
+                        type: string
+                      alt:
+                        type: string
+                  maxItems: 20
+                  description: Array of objects with URL and metadata
+      responses:
+        '200':
+          description: Bulk upload results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploaded:
+                    type: integer
+                  failed:
+                    type: integer
+                  media:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        url:
+                          type: string
+                        title:
+                          type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url:
+                          type: string
+                        error:
+                          type: string
 
   /elementor/status:
     get:
@@ -734,6 +851,381 @@ paths:
       responses:
         '200':
           description: Settings updated
+
+  /options:
+    get:
+      tags: [Options]
+      summary: Get site options
+      description: Get reading and front page settings
+      operationId: getOptions
+      responses:
+        '200':
+          description: Site options
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  show_on_front:
+                    type: string
+                    enum: [posts, page]
+                  page_on_front:
+                    type: integer
+                  page_for_posts:
+                    type: integer
+                  posts_per_page:
+                    type: integer
+                  posts_per_rss:
+                    type: integer
+                  blog_public:
+                    type: string
+    put:
+      tags: [Options]
+      summary: Update site options
+      operationId: updateOptions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                show_on_front:
+                  type: string
+                  enum: [posts, page]
+                page_on_front:
+                  type: integer
+                page_for_posts:
+                  type: integer
+                posts_per_page:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+      responses:
+        '200':
+          description: Options updated
+
+  /favicon:
+    get:
+      tags: [Favicon]
+      summary: Get site favicon
+      description: Get site icon (favicon) information
+      operationId: getFavicon
+      responses:
+        '200':
+          description: Favicon information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  has_icon:
+                    type: boolean
+                  attachment_id:
+                    type: integer
+                    nullable: true
+                  sizes:
+                    type: object
+                    properties:
+                      '32':
+                        type: string
+                      '180':
+                        type: string
+                      '192':
+                        type: string
+                      '270':
+                        type: string
+                      '512':
+                        type: string
+    put:
+      tags: [Favicon]
+      summary: Set site favicon
+      operationId: setFavicon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                attachment_id:
+                  type: integer
+                  description: Media library attachment ID
+                url:
+                  type: string
+                  format: uri
+                  description: URL to download and set as favicon
+      responses:
+        '200':
+          description: Favicon updated
+    delete:
+      tags: [Favicon]
+      summary: Remove site favicon
+      operationId: deleteFavicon
+      responses:
+        '200':
+          description: Favicon removed
+
+  /widgets/sidebars:
+    get:
+      tags: [Widgets]
+      summary: List sidebars
+      description: Get all registered widget areas/sidebars
+      operationId: listSidebars
+      responses:
+        '200':
+          description: List of sidebars
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sidebars:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        widgets:
+                          type: array
+                          items:
+                            type: string
+                  total:
+                    type: integer
+
+  /widgets/types:
+    get:
+      tags: [Widgets]
+      summary: List widget types
+      description: Get all registered widget types
+      operationId: listWidgetTypes
+      responses:
+        '200':
+          description: Available widget types
+
+  /widgets:
+    get:
+      tags: [Widgets]
+      summary: List widgets
+      description: Get all active widget instances
+      operationId: listWidgets
+      parameters:
+        - name: sidebar
+          in: query
+          schema:
+            type: string
+          description: Filter by sidebar ID
+      responses:
+        '200':
+          description: List of widgets
+    post:
+      tags: [Widgets]
+      summary: Create widget
+      operationId: createWidget
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, sidebar]
+              properties:
+                type:
+                  type: string
+                sidebar:
+                  type: string
+                settings:
+                  type: object
+      responses:
+        '201':
+          description: Widget created
+
+  /widgets/{id}:
+    get:
+      tags: [Widgets]
+      summary: Get widget
+      operationId: getWidget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Widget details
+    put:
+      tags: [Widgets]
+      summary: Update widget
+      operationId: updateWidget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                settings:
+                  type: object
+      responses:
+        '200':
+          description: Widget updated
+    delete:
+      tags: [Widgets]
+      summary: Delete widget
+      operationId: deleteWidget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Widget deleted
+
+  /widgets/{id}/move:
+    post:
+      tags: [Widgets]
+      summary: Move widget to sidebar
+      operationId: moveWidget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sidebar]
+              properties:
+                sidebar:
+                  type: string
+                position:
+                  type: integer
+      responses:
+        '200':
+          description: Widget moved
+
+  /themes/detect:
+    get:
+      tags: [Themes]
+      summary: Detect active theme
+      description: Detect the active WordPress theme and its support level
+      operationId: detectTheme
+      responses:
+        '200':
+          description: Theme detection results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_theme:
+                    type: string
+                  theme_name:
+                    type: string
+                  theme_version:
+                    type: string
+                  is_supported:
+                    type: boolean
+                  supported_features:
+                    type: array
+                    items:
+                      type: string
+
+  /themes/supported:
+    get:
+      tags: [Themes]
+      summary: List supported themes
+      description: Get all themes with advanced settings support
+      operationId: listSupportedThemes
+      responses:
+        '200':
+          description: Supported themes list
+
+  /themes/settings:
+    get:
+      tags: [Themes]
+      summary: Get theme settings
+      description: Get settings for the active theme in normalized format
+      operationId: getThemeSettings
+      responses:
+        '200':
+          description: Theme settings
+    put:
+      tags: [Themes]
+      summary: Update theme settings
+      operationId: updateThemeSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                colors:
+                  type: object
+                typography:
+                  type: object
+                header:
+                  type: object
+                footer:
+                  type: object
+      responses:
+        '200':
+          description: Settings updated
+
+  /themes/astra/colors:
+    get:
+      tags: [Themes]
+      summary: Get Astra colors
+      operationId: getAstraColors
+      responses:
+        '200':
+          description: Astra color settings
+    put:
+      tags: [Themes]
+      summary: Update Astra colors
+      operationId: updateAstraColors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Colors updated
+
+  /themes/astra/typography:
+    get:
+      tags: [Themes]
+      summary: Get Astra typography
+      operationId: getAstraTypography
+      responses:
+        '200':
+          description: Astra typography settings
+    put:
+      tags: [Themes]
+      summary: Update Astra typography
+      operationId: updateAstraTypography
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Typography updated
 
   /theme-builder/status:
     get:

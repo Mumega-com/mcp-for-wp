@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://github.com/Digidinc/site-pilot-ai
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.0
+ * Version:           1.0.7
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.0' );
+define( 'SPAI_VERSION', '1.0.7' );
 
 /**
  * Plugin directory path.
@@ -123,6 +123,16 @@ function spai_wp_version_notice() {
 }
 
 /**
+ * Initialize Freemius SDK.
+ */
+function spai_init_freemius() {
+	if ( ! function_exists( 'spai_fs' ) ) {
+		require_once SPAI_PLUGIN_DIR . 'includes/freemius-init.php';
+	}
+}
+add_action( 'plugins_loaded', 'spai_init_freemius', 5 );
+
+/**
  * Load plugin files.
  */
 function spai_load_plugin() {
@@ -141,6 +151,9 @@ function spai_load_plugin() {
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-i18n.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-activator.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-deactivator.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-rate-limiter.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-webhooks.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-license.php';
 
 	// Load core functionality
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-core.php';
@@ -157,14 +170,21 @@ function spai_load_plugin() {
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-media.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-site.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-elementor.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-webhooks.php';
 
 	// Load admin
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-admin.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-settings.php';
 
+	// Load updater
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-updater.php';
+
 	// Initialize the plugin
 	$loader = new Spai_Loader();
 	$loader->run();
+
+	// Initialize GitHub updater (checks Digidinc/wp-ai-operator releases)
+	new Spai_Updater( SPAI_PLUGIN_BASENAME, SPAI_VERSION, 'site-pilot-ai' );
 }
 
 /**

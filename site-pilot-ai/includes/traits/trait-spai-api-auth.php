@@ -21,6 +21,12 @@ trait Spai_Api_Auth {
 	 * @return bool|WP_Error True if valid, error otherwise.
 	 */
 	public function verify_api_key( $request ) {
+		// Check rate limit first.
+		$rate_limit_check = $this->check_rate_limit();
+		if ( is_wp_error( $rate_limit_check ) ) {
+			return $rate_limit_check;
+		}
+
 		$api_key = $this->get_api_key_from_request( $request );
 
 		if ( empty( $api_key ) ) {
@@ -57,6 +63,20 @@ trait Spai_Api_Auth {
 		$this->set_api_user_context();
 
 		return true;
+	}
+
+	/**
+	 * Check rate limit for current request.
+	 *
+	 * @return bool|WP_Error True if allowed, error if rate limited.
+	 */
+	protected function check_rate_limit() {
+		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
+			return true;
+		}
+
+		$limiter = Spai_Rate_Limiter::get_instance();
+		return $limiter->check_limit();
 	}
 
 	/**

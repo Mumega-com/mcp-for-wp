@@ -58,6 +58,42 @@
 	color: #135e96;
 }
 
+/* License Active Banner */
+.spai-license-banner {
+	padding: 15px 20px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	display: flex;
+	align-items: center;
+}
+
+.spai-license-active {
+	background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+	color: #fff;
+}
+
+.spai-license-content {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.spai-license-content .dashicons {
+	font-size: 24px;
+	width: 24px;
+	height: 24px;
+}
+
+.spai-license-content strong {
+	font-size: 15px;
+}
+
+.spai-license-expiry {
+	opacity: 0.85;
+	font-size: 13px;
+	margin-left: 10px;
+}
+
 /* API Key */
 .spai-api-key-wrapper {
 	display: flex;

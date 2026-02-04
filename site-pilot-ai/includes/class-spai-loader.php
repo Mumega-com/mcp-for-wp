@@ -109,6 +109,10 @@ class Spai_Loader {
 		$elementor_controller = new Spai_REST_Elementor();
 		$elementor_controller->register_routes();
 
+		// Webhooks
+		$webhooks_controller = new Spai_REST_Webhooks();
+		$webhooks_controller->register_routes();
+
 		/**
 		 * Action to register additional REST routes.
 		 *

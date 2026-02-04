@@ -176,9 +176,20 @@ class Spai_Pages {
 			return $result;
 		}
 
-		// Update template
-		if ( isset( $data['template'] ) ) {
-			update_post_meta( $page_id, '_wp_page_template', sanitize_text_field( $data['template'] ) );
+		// Update template only if explicitly provided and not empty
+		if ( array_key_exists( 'template', $data ) && '' !== $data['template'] ) {
+			$template = sanitize_text_field( $data['template'] );
+
+			// Validate template exists (allow 'default' or valid theme templates)
+			if ( 'default' === $template || '' === $template ) {
+				update_post_meta( $page_id, '_wp_page_template', 'default' );
+			} else {
+				$valid_templates = wp_get_theme()->get_page_templates();
+				if ( isset( $valid_templates[ $template ] ) ) {
+					update_post_meta( $page_id, '_wp_page_template', $template );
+				}
+				// Silently ignore invalid templates instead of failing
+			}
 		}
 
 		// Update featured image
@@ -191,6 +202,41 @@ class Spai_Pages {
 		}
 
 		return $this->get_page( $page_id );
+	}
+
+	/**
+	 * Delete a page.
+	 *
+	 * @param int  $page_id Page ID.
+	 * @param bool $force   Force permanent deletion (bypass trash).
+	 * @return bool|WP_Error True on success or error.
+	 */
+	public function delete_page( $page_id, $force = false ) {
+		$page = get_post( absint( $page_id ) );
+
+		if ( ! $page || 'page' !== $page->post_type ) {
+			return new WP_Error(
+				'not_found',
+				__( 'Page not found.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		if ( $force ) {
+			$result = wp_delete_post( $page_id, true );
+		} else {
+			$result = wp_trash_post( $page_id );
+		}
+
+		if ( ! $result ) {
+			return new WP_Error(
+				'delete_failed',
+				__( 'Failed to delete page.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return true;
 	}
 
 	/**

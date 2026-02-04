@@ -11,7 +11,7 @@
  * Plugin Name:       Site Pilot AI Pro
  * Plugin URI:        https://sitepilot.ai/pro
  * Description:       Pro add-on for Site Pilot AI. Adds advanced Elementor integration, SEO tools, and forms support.
- * Version:           1.0.0
+ * Version:           1.0.7
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'SPAI_PRO_VERSION', '1.0.0' );
+define( 'SPAI_PRO_VERSION', '1.0.7' );
 define( 'SPAI_PRO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -60,6 +60,38 @@ function spai_pro_base_required_notice() {
 }
 
 /**
+ * Check if user has valid Pro license.
+ *
+ * @return bool
+ */
+function spai_pro_has_license() {
+	if ( ! function_exists( 'spai_license' ) ) {
+		return false;
+	}
+	return spai_license()->is_pro();
+}
+
+/**
+ * Admin notice when license is not valid.
+ */
+function spai_pro_license_required_notice() {
+	$upgrade_url = function_exists( 'spai_license' ) ? spai_license()->get_upgrade_url() : 'https://sitepilot.ai/pricing/';
+	?>
+	<div class="notice notice-warning">
+		<p>
+			<strong><?php esc_html_e( 'Site Pilot AI Pro - License Required', 'site-pilot-ai-pro' ); ?></strong>
+		</p>
+		<p>
+			<?php esc_html_e( 'Please activate your Pro license to unlock all features.', 'site-pilot-ai-pro' ); ?>
+			<a href="<?php echo esc_url( $upgrade_url ); ?>" class="button button-primary" style="margin-left: 10px;">
+				<?php esc_html_e( 'Get Pro License', 'site-pilot-ai-pro' ); ?>
+			</a>
+		</p>
+	</div>
+	<?php
+}
+
+/**
  * Initialize the Pro plugin.
  */
 function spai_pro_init() {
@@ -67,6 +99,12 @@ function spai_pro_init() {
 	if ( ! spai_pro_is_base_active() ) {
 		add_action( 'admin_notices', 'spai_pro_base_required_notice' );
 		return;
+	}
+
+	// Check for valid license.
+	if ( ! spai_pro_has_license() ) {
+		add_action( 'admin_notices', 'spai_pro_license_required_notice' );
+		// Still load Pro for trial/limited features, but show notice.
 	}
 
 	// Load Pro dependencies.
@@ -81,6 +119,8 @@ function spai_pro_init() {
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-theme-builder.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-users.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-widgets.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-themes.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-woocommerce.php';
 
 	// Load REST API controllers.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-elementor-pro.php';
@@ -90,6 +130,8 @@ function spai_pro_init() {
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-theme-builder.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-users.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-widgets.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-themes.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-woocommerce.php';
 
 	// Load admin.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/admin/class-spai-pro-admin.php';
@@ -97,6 +139,11 @@ function spai_pro_init() {
 	// Initialize loader.
 	$loader = new Spai_Pro_Loader();
 	$loader->run();
+
+	// Initialize GitHub updater for Pro plugin (uses base plugin's updater class)
+	if ( class_exists( 'Spai_Updater' ) ) {
+		new Spai_Updater( SPAI_PRO_PLUGIN_BASENAME, SPAI_PRO_VERSION, 'site-pilot-ai-pro' );
+	}
 }
 add_action( 'plugins_loaded', 'spai_pro_init', 20 );
 

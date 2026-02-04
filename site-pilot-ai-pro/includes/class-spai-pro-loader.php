@@ -66,6 +66,20 @@ class Spai_Pro_Loader {
 	private $widgets;
 
 	/**
+	 * Themes handler.
+	 *
+	 * @var Spai_Themes
+	 */
+	private $themes;
+
+	/**
+	 * WooCommerce handler.
+	 *
+	 * @var Spai_WooCommerce
+	 */
+	private $woocommerce;
+
+	/**
 	 * Initialize the loader.
 	 */
 	public function __construct() {
@@ -76,6 +90,8 @@ class Spai_Pro_Loader {
 		$this->theme_builder = new Spai_Theme_Builder();
 		$this->users         = new Spai_Users();
 		$this->widgets       = new Spai_Widgets();
+		$this->themes        = new Spai_Themes();
+		$this->woocommerce   = new Spai_WooCommerce();
 	}
 
 	/**
@@ -126,6 +142,14 @@ class Spai_Pro_Loader {
 		// Widgets endpoints.
 		$widgets_controller = new Spai_REST_Widgets( $this->widgets );
 		$widgets_controller->register_routes();
+
+		// Themes endpoints.
+		$themes_controller = new Spai_REST_Themes( $this->themes );
+		$themes_controller->register_routes();
+
+		// WooCommerce endpoints.
+		$woocommerce_controller = new Spai_REST_WooCommerce( $this->woocommerce );
+		$woocommerce_controller->register_routes();
 	}
 
 	/**
@@ -176,6 +200,23 @@ class Spai_Pro_Loader {
 		// Widgets features.
 		$capabilities['widgets'] = array(
 			'management' => true,
+		);
+
+		// Themes features.
+		$theme_info = $this->themes->detect_theme();
+		$capabilities['themes'] = array(
+			'active_theme'    => $theme_info['name'],
+			'theme_slug'      => $theme_info['slug'],
+			'is_supported'    => $theme_info['is_supported'],
+			'is_block_theme'  => $theme_info['is_block_theme'],
+			'supported_list'  => $this->themes->get_supported_themes(),
+		);
+
+		// WooCommerce features.
+		$wc_status = $this->woocommerce->get_status();
+		$capabilities['woocommerce'] = array(
+			'active'  => $wc_status['active'],
+			'version' => isset( $wc_status['version'] ) ? $wc_status['version'] : null,
 		);
 
 		return $capabilities;

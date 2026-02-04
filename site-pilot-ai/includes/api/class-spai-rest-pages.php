@@ -105,6 +105,31 @@ class Spai_REST_Pages extends Spai_REST_API {
 					'callback'            => array( $this, 'update_page' ),
 					'permission_callback' => array( $this, 'check_permission' ),
 				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_page' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'force' => array(
+							'description' => __( 'Bypass trash and force deletion.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
+					),
+				),
+			)
+		);
+
+		// Page templates list
+		register_rest_route(
+			$this->namespace,
+			'/templates/page',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_page_templates' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
 			)
 		);
 	}
@@ -187,5 +212,61 @@ class Spai_REST_Pages extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result );
+	}
+
+	/**
+	 * Delete page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function delete_page( $request ) {
+		$this->log_activity( 'delete_page', $request );
+
+		$page_id = absint( $request->get_param( 'id' ) );
+		$force   = (bool) $request->get_param( 'force' );
+
+		$result = $this->pages->delete_page( $page_id, $force );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
+		}
+
+		return $this->success_response( array(
+			'deleted' => true,
+			'id'      => $page_id,
+			'trashed' => ! $force,
+		) );
+	}
+
+	/**
+	 * Get available page templates.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_page_templates( $request ) {
+		$this->log_activity( 'get_page_templates', $request );
+
+		$templates = wp_get_theme()->get_page_templates();
+
+		$formatted = array(
+			array(
+				'slug' => 'default',
+				'name' => __( 'Default Template', 'site-pilot-ai' ),
+			),
+		);
+
+		foreach ( $templates as $slug => $name ) {
+			$formatted[] = array(
+				'slug' => $slug,
+				'name' => $name,
+			);
+		}
+
+		return $this->success_response( array(
+			'templates' => $formatted,
+			'total'     => count( $formatted ),
+		) );
 	}
 }
