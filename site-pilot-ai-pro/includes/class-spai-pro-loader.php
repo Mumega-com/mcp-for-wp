@@ -45,6 +45,20 @@ class Spai_Pro_Loader {
 	private $site_manager;
 
 	/**
+	 * Theme Builder handler.
+	 *
+	 * @var Spai_Theme_Builder
+	 */
+	private $theme_builder;
+
+	/**
+	 * Users handler.
+	 *
+	 * @var Spai_Users
+	 */
+	private $users;
+
+	/**
 	 * Initialize the loader.
 	 */
 	public function __construct() {
@@ -52,6 +66,8 @@ class Spai_Pro_Loader {
 		$this->seo           = new Spai_SEO();
 		$this->forms         = new Spai_Forms();
 		$this->site_manager  = new Spai_Site_Manager();
+		$this->theme_builder = new Spai_Theme_Builder();
+		$this->users         = new Spai_Users();
 	}
 
 	/**
@@ -90,6 +106,14 @@ class Spai_Pro_Loader {
 		// Site manager endpoints (menus, settings, theme, templates).
 		$site_manager_controller = new Spai_REST_Site_Manager( $this->site_manager );
 		$site_manager_controller->register_routes();
+
+		// Theme Builder endpoints (locations, conditions).
+		$theme_builder_controller = new Spai_REST_Theme_Builder( $this->theme_builder );
+		$theme_builder_controller->register_routes();
+
+		// Users endpoints.
+		$users_controller = new Spai_REST_Users( $this->users );
+		$users_controller->register_routes();
 	}
 
 	/**
@@ -125,6 +149,16 @@ class Spai_Pro_Loader {
 			'wpforms'      => $this->forms->is_wpforms_active(),
 			'gravityforms' => $this->forms->is_gravityforms_active(),
 			'ninjaforms'   => $this->forms->is_ninjaforms_active(),
+		);
+
+		// Theme Builder features.
+		$capabilities['theme_builder'] = array(
+			'available' => $this->theme_builder->is_available(),
+		);
+
+		// Users features.
+		$capabilities['users'] = array(
+			'management' => true,
 		);
 
 		return $capabilities;
