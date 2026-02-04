@@ -77,11 +77,13 @@ function spai_pro_init() {
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-elementor-pro.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-seo.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-forms.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/core/class-spai-site-manager.php';
 
 	// Load REST API controllers.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-elementor-pro.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-seo.php';
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-forms.php';
+	require_once SPAI_PRO_PLUGIN_DIR . 'includes/api/class-spai-rest-site-manager.php';
 
 	// Load admin.
 	require_once SPAI_PRO_PLUGIN_DIR . 'includes/admin/class-spai-pro-admin.php';

@@ -38,12 +38,20 @@ class Spai_Pro_Loader {
 	private $forms;
 
 	/**
+	 * Site manager handler.
+	 *
+	 * @var Spai_Site_Manager
+	 */
+	private $site_manager;
+
+	/**
 	 * Initialize the loader.
 	 */
 	public function __construct() {
 		$this->elementor_pro = new Spai_Elementor_Pro();
 		$this->seo           = new Spai_SEO();
 		$this->forms         = new Spai_Forms();
+		$this->site_manager  = new Spai_Site_Manager();
 	}
 
 	/**
@@ -78,6 +86,10 @@ class Spai_Pro_Loader {
 		// Forms endpoints.
 		$forms_controller = new Spai_REST_Forms( $this->forms );
 		$forms_controller->register_routes();
+
+		// Site manager endpoints (menus, settings, theme, templates).
+		$site_manager_controller = new Spai_REST_Site_Manager( $this->site_manager );
+		$site_manager_controller->register_routes();
 	}
 
 	/**
