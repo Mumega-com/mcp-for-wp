@@ -24,12 +24,54 @@ $upgrade_url = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pr
 
 	<?php if ( ! $is_paying ) : ?>
 	<div class="spai-upgrade-banner">
+		<div class="spai-upgrade-icon">
+			<span class="dashicons dashicons-superhero-alt"></span>
+		</div>
 		<div class="spai-upgrade-content">
-			<strong><?php esc_html_e( 'Unlock Pro Features', 'site-pilot-ai' ); ?></strong>
-			<p><?php esc_html_e( 'Get full Elementor integration, SEO tools, forms, WooCommerce support, and more.', 'site-pilot-ai' ); ?></p>
-			<a href="<?php echo esc_url( $upgrade_url ); ?>" class="button button-primary">
-				<?php esc_html_e( 'Upgrade to Pro - $49/year', 'site-pilot-ai' ); ?>
-			</a>
+			<h2><?php esc_html_e( 'Upgrade to Pro', 'site-pilot-ai' ); ?></h2>
+			<p class="spai-upgrade-tagline"><?php esc_html_e( 'Unlock the full power of AI-driven WordPress management', 'site-pilot-ai' ); ?></p>
+
+			<div class="spai-upgrade-features">
+				<div class="spai-feature-col">
+					<div class="spai-feature-item">
+						<span class="dashicons dashicons-yes"></span>
+						<?php esc_html_e( 'WooCommerce Management', 'site-pilot-ai' ); ?>
+					</div>
+					<div class="spai-feature-item">
+						<span class="dashicons dashicons-yes"></span>
+						<?php esc_html_e( 'SEO Tools (Yoast, RankMath)', 'site-pilot-ai' ); ?>
+					</div>
+					<div class="spai-feature-item">
+						<span class="dashicons dashicons-yes"></span>
+						<?php esc_html_e( 'Form Builders Support', 'site-pilot-ai' ); ?>
+					</div>
+				</div>
+				<div class="spai-feature-col">
+					<div class="spai-feature-item">
+						<span class="dashicons dashicons-yes"></span>
+						<?php esc_html_e( 'Multilingual (WPML, Polylang)', 'site-pilot-ai' ); ?>
+					</div>
+					<div class="spai-feature-item">
+						<span class="dashicons dashicons-yes"></span>
+						<?php esc_html_e( 'Advanced Elementor', 'site-pilot-ai' ); ?>
+					</div>
+					<div class="spai-feature-item">
+						<span class="dashicons dashicons-yes"></span>
+						<?php esc_html_e( 'User & Widget Management', 'site-pilot-ai' ); ?>
+					</div>
+				</div>
+			</div>
+
+			<div class="spai-upgrade-cta">
+				<a href="<?php echo esc_url( $upgrade_url ); ?>" class="spai-upgrade-button">
+					<span class="dashicons dashicons-cart"></span>
+					<?php esc_html_e( 'Get Pro Now', 'site-pilot-ai' ); ?>
+				</a>
+				<span class="spai-upgrade-price">
+					<?php esc_html_e( 'Starting at $49/year', 'site-pilot-ai' ); ?>
+					<small><?php esc_html_e( '30-day money-back guarantee', 'site-pilot-ai' ); ?></small>
+				</span>
+			</div>
 		</div>
 	</div>
 	<?php else : ?>
