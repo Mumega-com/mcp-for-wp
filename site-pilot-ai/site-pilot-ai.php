@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://github.com/Digidinc/site-pilot-ai
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.12
+ * Version:           1.0.14
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.12' );
+define( 'SPAI_VERSION', '1.0.14' );
 
 /**
  * Plugin directory path.
@@ -182,15 +182,12 @@ function spai_load_plugin() {
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-admin.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-settings.php';
 
-	// Load updater
-	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-updater.php';
-
 	// Initialize the plugin
 	$loader = new Spai_Loader();
 	$loader->run();
 
-	// Initialize GitHub updater (checks Digidinc/wp-ai-operator releases)
-	new Spai_Updater( SPAI_PLUGIN_BASENAME, SPAI_VERSION, 'site-pilot-ai' );
+	// Note: Plugin updates are handled by Freemius SDK automatically.
+	// Upload new versions at: https://dashboard.freemius.com
 }
 
 /**

@@ -20,10 +20,13 @@ class Spai_Activator {
 	 * Generate API key if not exists, set up options.
 	 */
 	public static function activate() {
+		// Create API role and user
+		self::create_api_role_and_user();
+
 		// Generate API key if not exists
 		if ( ! get_option( 'spai_api_key' ) ) {
 			$api_key = self::generate_api_key();
-			update_option( 'spai_api_key', $api_key );
+			update_option( 'spai_api_key', wp_hash_password( $api_key ) );
 		}
 
 		// Set default options
@@ -44,6 +47,40 @@ class Spai_Activator {
 
 		// Flush rewrite rules
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Create API role and user.
+	 */
+	private static function create_api_role_and_user() {
+		// Add Role
+		add_role( 'spai_api_agent', 'Site Pilot API Agent', array(
+			'read'               => true,
+			'edit_posts'         => true,
+			'edit_pages'         => true,
+			'edit_others_posts'  => true,
+			'edit_others_pages'  => true,
+			'publish_posts'      => true,
+			'publish_pages'      => true,
+			'delete_posts'       => true,
+			'delete_pages'       => true,
+			'manage_options'     => true,
+			'upload_files'       => true,
+			'list_users'         => true,
+			'edit_theme_options' => true,
+		) );
+
+		// Create User
+		$user = get_user_by( 'login', 'spai_bot' );
+		if ( ! $user ) {
+			wp_insert_user( array(
+				'user_login'   => 'spai_bot',
+				'user_pass'    => wp_generate_password( 64 ),
+				'role'         => 'spai_api_agent',
+				'display_name' => 'Site Pilot AI',
+				'description'  => 'Service account for Site Pilot AI API',
+			) );
+		}
 	}
 
 	/**

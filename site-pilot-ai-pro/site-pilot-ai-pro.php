@@ -11,7 +11,7 @@
  * Plugin Name:       Site Pilot AI Pro
  * Plugin URI:        https://sitepilot.ai/pro
  * Description:       Pro add-on for Site Pilot AI. Adds advanced Elementor integration, SEO tools, and forms support.
- * Version:           1.0.12
+ * Version:           1.0.14
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'SPAI_PRO_VERSION', '1.0.12' );
+define( 'SPAI_PRO_VERSION', '1.0.14' );
 define( 'SPAI_PRO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -142,10 +142,7 @@ function spai_pro_init() {
 	$loader = new Spai_Pro_Loader();
 	$loader->run();
 
-	// Initialize GitHub updater for Pro plugin (uses base plugin's updater class)
-	if ( class_exists( 'Spai_Updater' ) ) {
-		new Spai_Updater( SPAI_PRO_PLUGIN_BASENAME, SPAI_PRO_VERSION, 'site-pilot-ai-pro' );
-	}
+	// Note: Plugin updates are handled by Freemius SDK (via base plugin).
 }
 add_action( 'plugins_loaded', 'spai_pro_init', 20 );
 

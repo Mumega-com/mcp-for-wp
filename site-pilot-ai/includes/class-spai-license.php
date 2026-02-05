@@ -236,7 +236,12 @@ class Spai_License {
 			return null;
 		}
 
-		$license = spa_fs()->_get_license();
+		try {
+			$license = spa_fs()->_get_license();
+		} catch ( Exception $e ) {
+			return null;
+		}
+
 		if ( $license && isset( $license->secret_key ) ) {
 			// Return masked key.
 			return substr( $license->secret_key, 0, 8 ) . '...';
@@ -254,7 +259,12 @@ class Spai_License {
 			return null;
 		}
 
-		$license = spa_fs()->_get_license();
+		try {
+			$license = spa_fs()->_get_license();
+		} catch ( Exception $e ) {
+			return null;
+		}
+
 		if ( $license && isset( $license->expiration ) ) {
 			return $license->expiration;
 		}
@@ -271,7 +281,12 @@ class Spai_License {
 			return null;
 		}
 
-		$license = spa_fs()->_get_license();
+		try {
+			$license = spa_fs()->_get_license();
+		} catch ( Exception $e ) {
+			return null;
+		}
+
 		if ( $license && isset( $license->quota ) ) {
 			return (int) $license->quota;
 		}

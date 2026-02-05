@@ -85,28 +85,6 @@ class Spai_Settings {
 				'placeholder' => 'https://example.com, https://app.example.com',
 			)
 		);
-
-		// Updates section
-		add_settings_section(
-			'spai_updates_section',
-			__( 'Plugin Updates', 'site-pilot-ai' ),
-			array( $this, 'render_updates_section' ),
-			'spai_settings'
-		);
-
-		// GitHub Token
-		add_settings_field(
-			'github_token',
-			__( 'GitHub Token', 'site-pilot-ai' ),
-			array( $this, 'render_password_field' ),
-			'spai_settings',
-			'spai_updates_section',
-			array(
-				'id'          => 'github_token',
-				'description' => __( 'Personal access token for GitHub releases (required for private repositories). Create one at GitHub > Settings > Developer settings > Personal access tokens.', 'site-pilot-ai' ),
-				'placeholder' => 'ghp_xxxxxxxxxxxxxxxxxxxx',
-			)
-		);
 	}
 
 	/**
@@ -119,7 +97,6 @@ class Spai_Settings {
 			'enable_logging'     => true,
 			'log_retention_days' => 30,
 			'allowed_origins'    => '',
-			'github_token'       => '',
 		);
 	}
 
@@ -154,10 +131,6 @@ class Spai_Settings {
 			? sanitize_textarea_field( $input['allowed_origins'] )
 			: '';
 
-		$sanitized['github_token'] = isset( $input['github_token'] )
-			? sanitize_text_field( $input['github_token'] )
-			: '';
-
 		return $sanitized;
 	}
 
@@ -166,13 +139,6 @@ class Spai_Settings {
 	 */
 	public function render_general_section() {
 		echo '<p>' . esc_html__( 'Configure general plugin settings.', 'site-pilot-ai' ) . '</p>';
-	}
-
-	/**
-	 * Render updates section.
-	 */
-	public function render_updates_section() {
-		echo '<p>' . esc_html__( 'Configure plugin update settings. A GitHub token is required to receive updates from private repositories.', 'site-pilot-ai' ) . '</p>';
 	}
 
 	/**
@@ -239,40 +205,4 @@ class Spai_Settings {
 		}
 	}
 
-	/**
-	 * Render password field.
-	 *
-	 * @param array $args Field arguments.
-	 */
-	public function render_password_field( $args ) {
-		$settings = $this->get_settings();
-		$value = isset( $settings[ $args['id'] ] ) ? $settings[ $args['id'] ] : '';
-		$masked = ! empty( $value ) ? str_repeat( '*', min( strlen( $value ), 20 ) ) . substr( $value, -4 ) : '';
-
-		printf(
-			'<input type="password" name="%s[%s]" value="%s" class="regular-text" placeholder="%s" autocomplete="off" />',
-			esc_attr( self::OPTION_NAME ),
-			esc_attr( $args['id'] ),
-			esc_attr( $value ),
-			esc_attr( $args['placeholder'] ?? '' )
-		);
-
-		if ( ! empty( $value ) ) {
-			printf( ' <span class="description">%s</span>', esc_html__( 'Token saved', 'site-pilot-ai' ) );
-		}
-
-		if ( ! empty( $args['description'] ) ) {
-			printf( '<p class="description">%s</p>', esc_html( $args['description'] ) );
-		}
-	}
-
-	/**
-	 * Get GitHub token.
-	 *
-	 * @return string Token or empty string.
-	 */
-	public static function get_github_token() {
-		$settings = get_option( self::OPTION_NAME, array() );
-		return isset( $settings['github_token'] ) ? $settings['github_token'] : '';
-	}
 }

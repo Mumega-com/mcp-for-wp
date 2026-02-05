@@ -32,7 +32,7 @@ if ( ! function_exists( 'spa_fs' ) ) {
 				'slug'                => 'site-pilot-ai',
 				'type'                => 'plugin',
 				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
-				'is_premium'          => true,
+				'is_premium'          => false,
 				'has_premium_version' => true,
 				'has_addons'          => false,
 				'has_paid_plans'      => true,
@@ -99,6 +99,12 @@ function spa_fs_uninstall_cleanup() {
 	delete_option( 'spai_settings' );
 	delete_option( 'spai_version' );
 	delete_option( 'spai_rate_limit_settings' );
+
+	// Clean up transients.
+	delete_transient( 'spai_capabilities_cache' );
+
+	// Clear scheduled events.
+	wp_clear_scheduled_hook( 'spai_cleanup_logs' );
 
 	// Clean up tables.
 	global $wpdb;

@@ -97,13 +97,14 @@ class Spai_Admin {
 		}
 
 		// Handle regenerate action
+		$new_key = null;
 		if ( isset( $_POST['spai_regenerate_key'] ) ) {
 			check_admin_referer( 'spai_regenerate_key', 'spai_nonce' );
-			$this->regenerate_api_key();
+			$new_key = $this->regenerate_api_key();
 			add_settings_error(
 				'spai_messages',
 				'spai_key_regenerated',
-				__( 'API key has been regenerated.', 'site-pilot-ai' ),
+				__( 'API key has been regenerated. Please copy it now as it will not be shown again.', 'site-pilot-ai' ),
 				'updated'
 			);
 		}

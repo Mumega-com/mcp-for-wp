@@ -47,22 +47,30 @@ trait Spai_Api_Auth {
 			);
 		}
 
-		if ( ! hash_equals( $stored_key, $api_key ) ) {
-			// Log failed attempt
-			$this->log_auth_failure( $request );
-
-			return new WP_Error(
-				'invalid_api_key',
-				__( 'Invalid API key.', 'site-pilot-ai' ),
-				array( 'status' => 401 )
-			);
+		// Check hash (new secure method)
+		if ( wp_check_password( $api_key, $stored_key ) ) {
+			// Set user context and return true
+			$this->set_api_user_context();
+			return true;
 		}
 
-		// Set the current user to admin for capability checks.
-		// API key authentication implies full admin access.
-		$this->set_api_user_context();
+		// Fallback: Check plain text (legacy method)
+		if ( hash_equals( $stored_key, $api_key ) ) {
+			// Auto-migrate to hash
+			update_option( 'spai_api_key', wp_hash_password( $api_key ) );
+			
+			$this->set_api_user_context();
+			return true;
+		}
 
-		return true;
+		// Log failed attempt
+		$this->log_auth_failure( $request );
+
+		return new WP_Error(
+			'invalid_api_key',
+			__( 'Invalid API key.', 'site-pilot-ai' ),
+			array( 'status' => 401 )
+		);
 	}
 
 	/**
@@ -174,11 +182,24 @@ trait Spai_Api_Auth {
 	/**
 	 * Set the current user context for API requests.
 	 *
-	 * Sets the current user to the first admin user so that
-	 * capability checks work correctly for API key authenticated requests.
+	 * Sets the current user to the dedicated API agent role
+	 * so that capability checks work correctly.
 	 */
 	protected function set_api_user_context() {
-		// Get the first admin user.
+		// Try to find a user with the spai_api_agent role
+		$users = get_users( array(
+			'role'    => 'spai_api_agent',
+			'number'  => 1,
+			'orderby' => 'ID',
+			'order'   => 'ASC',
+		) );
+
+		if ( ! empty( $users ) ) {
+			wp_set_current_user( $users[0]->ID );
+			return;
+		}
+
+		// Fallback: Get the first admin user (for legacy compatibility)
 		$admins = get_users( array(
 			'role'    => 'administrator',
 			'number'  => 1,
@@ -203,11 +224,11 @@ trait Spai_Api_Auth {
 	/**
 	 * Regenerate API key.
 	 *
-	 * @return string New API key.
+	 * @return string New API key (plain text).
 	 */
 	public function regenerate_api_key() {
 		$new_key = $this->generate_api_key();
-		update_option( 'spai_api_key', $new_key );
+		update_option( 'spai_api_key', wp_hash_password( $new_key ) );
 		return $new_key;
 	}
 }

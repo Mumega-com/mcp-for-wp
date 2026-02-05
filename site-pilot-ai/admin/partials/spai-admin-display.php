@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$api_key = get_option( 'spai_api_key', '' );
+$stored_key_hash = get_option( 'spai_api_key', '' );
 $admin = new Spai_Admin();
 $capabilities = $admin->get_capabilities_display();
 $is_pro = class_exists( 'Spai_Pro_Loader' );
@@ -17,6 +17,18 @@ $license = function_exists( 'spai_license' ) ? spai_license() : null;
 $is_paying = $license ? $license->is_paying() : false;
 $plan = $license ? $license->get_plan() : 'free';
 $upgrade_url = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pricing/';
+
+// Determine key display
+if ( isset( $new_key ) && $new_key ) {
+	$display_key = $new_key;
+	$is_hidden = false;
+} elseif ( ! empty( $stored_key_hash ) ) {
+	$display_key = 'spai_******************** (Hidden)';
+	$is_hidden = true;
+} else {
+	$display_key = '';
+	$is_hidden = false;
+}
 ?>
 
 <div class="wrap spai-admin">
@@ -99,12 +111,14 @@ $upgrade_url = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pr
 				type="text"
 				id="spai-api-key"
 				class="spai-api-key-input"
-				value="<?php echo esc_attr( $api_key ); ?>"
+				value="<?php echo esc_attr( $display_key ); ?>"
 				readonly
 			/>
-			<button type="button" class="button spai-copy-btn" data-copy="<?php echo esc_attr( $api_key ); ?>">
+			<?php if ( ! $is_hidden ) : ?>
+			<button type="button" class="button spai-copy-btn" data-copy="<?php echo esc_attr( $display_key ); ?>">
 				<?php esc_html_e( 'Copy', 'site-pilot-ai' ); ?>
 			</button>
+			<?php endif; ?>
 		</div>
 
 		<form method="post" class="spai-regenerate-form">
@@ -165,7 +179,7 @@ $upgrade_url = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pr
 		<code class="spai-code-block"><?php echo esc_url( rest_url( 'site-pilot-ai/v1/' ) ); ?></code>
 
 		<h3><?php esc_html_e( 'Test Connection', 'site-pilot-ai' ); ?></h3>
-		<pre class="spai-code-block">curl -H "X-API-Key: <?php echo esc_attr( $api_key ); ?>" \
+		<pre class="spai-code-block">curl -H "X-API-Key: <?php echo $is_hidden ? '&lt;YOUR_API_KEY&gt;' : esc_attr( $display_key ); ?>" \
   "<?php echo esc_url( rest_url( 'site-pilot-ai/v1/site-info' ) ); ?>"</pre>
 
 		<h3><?php esc_html_e( 'Available Endpoints', 'site-pilot-ai' ); ?></h3>
