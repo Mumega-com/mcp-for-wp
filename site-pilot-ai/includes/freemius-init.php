@@ -19,6 +19,11 @@ if ( ! function_exists( 'spa_fs' ) ) {
 		global $spa_fs;
 
 		if ( ! isset( $spa_fs ) ) {
+			// Activate multisite network integration.
+			if ( ! defined( 'WP_FS__PRODUCT_23824_MULTISITE' ) ) {
+				define( 'WP_FS__PRODUCT_23824_MULTISITE', true );
+			}
+
 			// Include Freemius SDK.
 			require_once SPAI_PLUGIN_DIR . 'freemius/start.php';
 
@@ -27,20 +32,18 @@ if ( ! function_exists( 'spa_fs' ) ) {
 				'slug'                => 'site-pilot-ai',
 				'type'                => 'plugin',
 				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
-				'is_premium'          => false,
+				'is_premium'          => true,
 				'has_premium_version' => true,
 				'has_addons'          => false,
 				'has_paid_plans'      => true,
 				'trial'               => array(
 					'days'               => 14,
-					'is_require_payment' => false,
+					'is_require_payment' => true,
 				),
 				'menu'                => array(
-					'slug'    => 'site-pilot-ai',
-					'support' => false,
-					'parent'  => array(
-						'slug' => 'options-general.php',
-					),
+					'slug'       => 'site-pilot-ai',
+					'first-path' => 'wp-admin/tools.php?page=site-pilot-ai',
+					'support'    => false,
 				),
 				'is_live'             => true,
 			) );
