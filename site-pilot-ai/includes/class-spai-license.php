@@ -159,8 +159,8 @@ class Spai_License {
 	 * @return string
 	 */
 	public function get_upgrade_url() {
-		if ( 'freemius' === $this->provider && function_exists( 'spai_fs' ) ) {
-			return spai_fs()->get_upgrade_url();
+		if ( 'freemius' === $this->provider && function_exists( 'spa_fs' ) ) {
+			return spa_fs()->get_upgrade_url();
 		}
 		return 'https://sitepilot.ai/pricing/';
 	}
@@ -171,8 +171,8 @@ class Spai_License {
 	 * @return string
 	 */
 	public function get_account_url() {
-		if ( 'freemius' === $this->provider && function_exists( 'spai_fs' ) ) {
-			return spai_fs()->get_account_url();
+		if ( 'freemius' === $this->provider && function_exists( 'spa_fs' ) ) {
+			return spa_fs()->get_account_url();
 		}
 		return 'https://sitepilot.ai/account/';
 	}
@@ -206,10 +206,10 @@ class Spai_License {
 	 * @return bool
 	 */
 	private function freemius_is_paying() {
-		if ( ! function_exists( 'spai_fs' ) ) {
+		if ( ! function_exists( 'spa_fs' ) ) {
 			return false;
 		}
-		return spai_fs()->is_paying();
+		return spa_fs()->is_paying();
 	}
 
 	/**
@@ -218,11 +218,11 @@ class Spai_License {
 	 * @return string
 	 */
 	private function freemius_get_plan() {
-		if ( ! function_exists( 'spai_fs' ) || ! spai_fs()->is_paying() ) {
+		if ( ! function_exists( 'spa_fs' ) || ! spa_fs()->is_paying() ) {
 			return 'free';
 		}
 
-		$plan = spai_fs()->get_plan();
+		$plan = spa_fs()->get_plan();
 		return $plan ? $plan->name : 'free';
 	}
 
@@ -232,11 +232,11 @@ class Spai_License {
 	 * @return string|null
 	 */
 	private function freemius_get_license_key() {
-		if ( ! function_exists( 'spai_fs' ) ) {
+		if ( ! function_exists( 'spa_fs' ) ) {
 			return null;
 		}
 
-		$license = spai_fs()->_get_license();
+		$license = spa_fs()->_get_license();
 		if ( $license && isset( $license->secret_key ) ) {
 			// Return masked key.
 			return substr( $license->secret_key, 0, 8 ) . '...';
@@ -250,11 +250,11 @@ class Spai_License {
 	 * @return string|null
 	 */
 	private function freemius_get_expiration() {
-		if ( ! function_exists( 'spai_fs' ) ) {
+		if ( ! function_exists( 'spa_fs' ) ) {
 			return null;
 		}
 
-		$license = spai_fs()->_get_license();
+		$license = spa_fs()->_get_license();
 		if ( $license && isset( $license->expiration ) ) {
 			return $license->expiration;
 		}
@@ -267,11 +267,11 @@ class Spai_License {
 	 * @return int|null
 	 */
 	private function freemius_get_site_limit() {
-		if ( ! function_exists( 'spai_fs' ) ) {
+		if ( ! function_exists( 'spa_fs' ) ) {
 			return null;
 		}
 
-		$license = spai_fs()->_get_license();
+		$license = spa_fs()->_get_license();
 		if ( $license && isset( $license->quota ) ) {
 			return (int) $license->quota;
 		}

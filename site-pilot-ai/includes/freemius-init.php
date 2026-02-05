@@ -9,56 +9,65 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Initialize Freemius SDK.
- *
- * @return Freemius
- */
-function spai_fs() {
-	global $spai_fs;
+if ( ! function_exists( 'spa_fs' ) ) {
+	/**
+	 * Create a helper function for easy SDK access.
+	 *
+	 * @return Freemius
+	 */
+	function spa_fs() {
+		global $spa_fs;
 
-	if ( ! isset( $spai_fs ) ) {
-		// Include Freemius SDK.
-		require_once SPAI_PLUGIN_DIR . 'freemius/start.php';
+		if ( ! isset( $spa_fs ) ) {
+			// Include Freemius SDK.
+			require_once SPAI_PLUGIN_DIR . 'freemius/start.php';
 
-		$spai_fs = fs_dynamic_init( array(
-			'id'                  => '23824',
-			'slug'                => 'site-pilot-ai',
-			'type'                => 'plugin',
-			'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
-			'is_premium'          => false,
-			'has_addons'          => true,
-			'has_paid_plans'      => true,
-			'menu'                => array(
-				'slug'       => 'site-pilot-ai',
-				'first-path' => 'tools.php?page=site-pilot-ai',
-				'support'    => false,
-			),
-			'is_live'             => true,
-		) );
+			$spa_fs = fs_dynamic_init( array(
+				'id'                  => '23824',
+				'slug'                => 'site-pilot-ai',
+				'type'                => 'plugin',
+				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
+				'is_premium'          => false,
+				'has_premium_version' => true,
+				'has_addons'          => false,
+				'has_paid_plans'      => true,
+				'trial'               => array(
+					'days'               => 14,
+					'is_require_payment' => false,
+				),
+				'menu'                => array(
+					'slug'    => 'site-pilot-ai',
+					'support' => false,
+					'parent'  => array(
+						'slug' => 'options-general.php',
+					),
+				),
+				'is_live'             => true,
+			) );
+		}
+
+		return $spa_fs;
 	}
 
-	return $spai_fs;
+	// Init Freemius.
+	spa_fs();
+
+	// Signal that SDK was initiated.
+	do_action( 'spa_fs_loaded' );
 }
-
-// Initialize Freemius.
-spai_fs();
-
-// Signal that SDK was initiated.
-do_action( 'spai_fs_loaded' );
 
 /**
  * Freemius customizations.
  */
 
 // Custom icon for opt-in screen.
-function spai_fs_custom_icon() {
+function spa_fs_custom_icon() {
 	return SPAI_PLUGIN_DIR . 'assets/icon-128x128.png';
 }
-spai_fs()->add_filter( 'plugin_icon', 'spai_fs_custom_icon' );
+spa_fs()->add_filter( 'plugin_icon', 'spa_fs_custom_icon' );
 
 // Custom connect message.
-function spai_fs_custom_connect_message(
+function spa_fs_custom_connect_message(
 	$message,
 	$user_first_name,
 	$product_title,
@@ -67,20 +76,21 @@ function spai_fs_custom_connect_message(
 	$freemius_link
 ) {
 	return sprintf(
-		__( 'Hey %1$s, allow %2$s to collect diagnostic data to help improve the plugin.', 'site-pilot-ai' ),
+		/* translators: %1$s: User first name, %2$s: Product title */
+		__( 'Hey %1$s, allow %2$s to collect diagnostic data to help improve the plugin and enable license management.', 'site-pilot-ai' ),
 		$user_first_name,
 		'<b>' . $product_title . '</b>'
 	);
 }
-spai_fs()->add_filter( 'connect_message', 'spai_fs_custom_connect_message', 10, 6 );
+spa_fs()->add_filter( 'connect_message', 'spa_fs_custom_connect_message', 10, 6 );
 
 // Uninstall hook.
-spai_fs()->add_action( 'after_uninstall', 'spai_fs_uninstall_cleanup' );
+spa_fs()->add_action( 'after_uninstall', 'spa_fs_uninstall_cleanup' );
 
 /**
  * Cleanup on uninstall.
  */
-function spai_fs_uninstall_cleanup() {
+function spa_fs_uninstall_cleanup() {
 	// Clean up options.
 	delete_option( 'spai_api_key' );
 	delete_option( 'spai_settings' );
