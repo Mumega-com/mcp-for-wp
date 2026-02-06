@@ -182,6 +182,12 @@ class Spai_REST_MCP extends Spai_REST_API {
 			case 'tools/call':
 				return $this->handle_tools_call( $id, $params, $request );
 
+			case 'resources/list':
+				return $this->handle_resources_list( $id );
+
+			case 'resources/read':
+				return $this->handle_resources_read( $id, $params );
+
 			case 'ping':
 				return $this->handle_ping( $id );
 
@@ -221,7 +227,11 @@ class Spai_REST_MCP extends Spai_REST_API {
 					'version' => $this->server_version,
 				),
 				'capabilities'    => array(
-					'tools' => (object) array(), // Empty object indicates tools are supported
+					'tools'     => (object) array(), // Empty object indicates tools are supported
+					'resources' => array(
+						'subscribe'   => false,
+						'listChanged' => false,
+					),
 				),
 			),
 		);
@@ -261,6 +271,39 @@ class Spai_REST_MCP extends Spai_REST_API {
 				'tools' => $tools,
 			),
 		);
+	}
+
+	/**
+	 * Handle resources/list method.
+	 *
+	 * @param mixed $id Request ID.
+	 * @return array JSON-RPC response.
+	 */
+	private function handle_resources_list( $id ) {
+		return array(
+			'jsonrpc' => '2.0',
+			'id'      => $id,
+			'result'  => array(
+				'resources' => array(),
+			),
+		);
+	}
+
+	/**
+	 * Handle resources/read method.
+	 *
+	 * @param mixed $id     Request ID.
+	 * @param array $params Request parameters.
+	 * @return array JSON-RPC response.
+	 */
+	private function handle_resources_read( $id, $params ) {
+		$uri = isset( $params['uri'] ) ? (string) $params['uri'] : '';
+
+		if ( '' === $uri ) {
+			return $this->jsonrpc_error( $id, -32602, 'Missing resource URI' );
+		}
+
+		return $this->jsonrpc_error( $id, -32002, 'Resource not found', array( 'uri' => $uri ) );
 	}
 
 	/**

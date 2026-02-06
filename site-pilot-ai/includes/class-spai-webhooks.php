@@ -556,6 +556,14 @@ class Spai_Webhooks {
 			return new WP_Error( 'not_found', __( 'Webhook not found.', 'site-pilot-ai' ) );
 		}
 
+		// Re-validate URL at send time to defend against DNS changes and unsafe updates.
+		if ( class_exists( 'Spai_Security' ) ) {
+			$ssrf_check = Spai_Security::validate_external_url( $webhook['url'] );
+			if ( is_wp_error( $ssrf_check ) ) {
+				return $ssrf_check;
+			}
+		}
+
 		$payload = array(
 			'test'    => true,
 			'message' => __( 'This is a test webhook delivery from Site Pilot AI.', 'site-pilot-ai' ),
@@ -569,15 +577,19 @@ class Spai_Webhooks {
 		$response = wp_remote_post(
 			$webhook['url'],
 			array(
-				'timeout' => 30,
-				'headers' => array(
+				'timeout'     => 15,
+				'redirection' => 0,
+				'httpversion' => '1.1',
+				'blocking'    => true,
+				'sslverify'   => true,
+				'headers'     => array(
 					'Content-Type'      => 'application/json',
 					'X-SPAI-Event'      => 'test',
 					'X-SPAI-Signature'  => $signature,
 					'X-SPAI-Webhook-ID' => $webhook['id'],
 					'X-SPAI-Test'       => 'true',
 				),
-				'body'    => $body,
+				'body'        => $body,
 			)
 		);
 

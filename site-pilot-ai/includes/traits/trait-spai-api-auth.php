@@ -21,15 +21,14 @@ trait Spai_Api_Auth {
 	 * @return bool|WP_Error True if valid, error otherwise.
 	 */
 	public function verify_api_key( $request ) {
-		// Check rate limit first.
-		$rate_limit_check = $this->check_rate_limit();
-		if ( is_wp_error( $rate_limit_check ) ) {
-			return $rate_limit_check;
-		}
-
 		$api_key = $this->get_api_key_from_request( $request );
 
 		if ( empty( $api_key ) ) {
+			$rate_limit_check = $this->check_rate_limit( 'missing:' . $this->get_client_ip() );
+			if ( is_wp_error( $rate_limit_check ) ) {
+				return $rate_limit_check;
+			}
+
 			return new WP_Error(
 				'missing_api_key',
 				__( 'API key is required.', 'site-pilot-ai' ),
@@ -40,6 +39,11 @@ trait Spai_Api_Auth {
 		$stored_key = get_option( 'spai_api_key' );
 
 		if ( empty( $stored_key ) ) {
+			$rate_limit_check = $this->check_rate_limit( 'unconfigured:' . $this->get_client_ip() );
+			if ( is_wp_error( $rate_limit_check ) ) {
+				return $rate_limit_check;
+			}
+
 			return new WP_Error(
 				'api_not_configured',
 				__( 'API key not configured. Please visit the Site Pilot AI settings.', 'site-pilot-ai' ),
@@ -47,19 +51,32 @@ trait Spai_Api_Auth {
 			);
 		}
 
-		// Check hash (new secure method)
-		if ( wp_check_password( $api_key, $stored_key ) ) {
-			// Set user context and return true
-			$this->set_api_user_context();
-			return true;
+		$is_valid_key = $this->is_api_key_match( $api_key, $stored_key );
+
+		// Rate limit by verified principal where possible, else by source IP.
+		$identifier = $is_valid_key
+			? 'key:' . hash( 'sha256', $api_key )
+			: 'invalid:' . $this->get_client_ip();
+
+		$rate_limit_check = $this->check_rate_limit( $identifier );
+		if ( is_wp_error( $rate_limit_check ) ) {
+			return $rate_limit_check;
 		}
 
-		// Fallback: Check plain text (legacy method)
-		if ( hash_equals( $stored_key, $api_key ) ) {
-			// Auto-migrate to hash
-			update_option( 'spai_api_key', wp_hash_password( $api_key ) );
-			
-			$this->set_api_user_context();
+		if ( $is_valid_key ) {
+			// Auto-migrate legacy plain text keys to hashed storage.
+			if ( hash_equals( $stored_key, $api_key ) ) {
+				update_option( 'spai_api_key', wp_hash_password( $api_key ) );
+			}
+
+			if ( ! $this->set_api_user_context() ) {
+				return new WP_Error(
+					'api_user_missing',
+					__( 'API user context is not configured. Re-activate Site Pilot AI to provision the service account.', 'site-pilot-ai' ),
+					array( 'status' => 500 )
+				);
+			}
+
 			return true;
 		}
 
@@ -78,13 +95,13 @@ trait Spai_Api_Auth {
 	 *
 	 * @return bool|WP_Error True if allowed, error if rate limited.
 	 */
-	protected function check_rate_limit() {
+	protected function check_rate_limit( $identifier = null ) {
 		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
 			return true;
 		}
 
 		$limiter = Spai_Rate_Limiter::get_instance();
-		return $limiter->check_limit();
+		return $limiter->check_limit( $identifier );
 	}
 
 	/**
@@ -107,13 +124,6 @@ trait Spai_Api_Auth {
 		$auth_header = $request->get_header( 'Authorization' );
 		if ( ! empty( $auth_header ) && 0 === strpos( $auth_header, 'Bearer ' ) ) {
 			return sanitize_text_field( substr( $auth_header, 7 ) );
-		}
-
-		// Check query parameter as fallback
-		$api_key = $request->get_param( 'api_key' );
-
-		if ( ! empty( $api_key ) ) {
-			return sanitize_text_field( $api_key );
 		}
 
 		return null;
@@ -196,20 +206,29 @@ trait Spai_Api_Auth {
 
 		if ( ! empty( $users ) ) {
 			wp_set_current_user( $users[0]->ID );
-			return;
+			return true;
 		}
 
-		// Fallback: Get the first admin user (for legacy compatibility)
-		$admins = get_users( array(
-			'role'    => 'administrator',
-			'number'  => 1,
-			'orderby' => 'ID',
-			'order'   => 'ASC',
-		) );
+		return false;
+	}
 
-		if ( ! empty( $admins ) ) {
-			wp_set_current_user( $admins[0]->ID );
+	/**
+	 * Check whether incoming key matches stored key (hash or legacy plain text).
+	 *
+	 * @param string $api_key    Incoming API key.
+	 * @param string $stored_key Stored API key value.
+	 * @return bool True if key is valid.
+	 */
+	protected function is_api_key_match( $api_key, $stored_key ) {
+		if ( empty( $api_key ) || empty( $stored_key ) ) {
+			return false;
 		}
+
+		if ( wp_check_password( $api_key, $stored_key ) ) {
+			return true;
+		}
+
+		return hash_equals( $stored_key, $api_key );
 	}
 
 	/**

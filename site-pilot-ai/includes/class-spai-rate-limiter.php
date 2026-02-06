@@ -108,29 +108,19 @@ class Spai_Rate_Limiter {
 
 		$now = time();
 
-		// Initialize or get minute data.
-		if ( false === $minute_data ) {
-			$minute_data = array(
-				'count'  => 0,
-				'reset'  => $now + 60,
-			);
-		}
-
-		// Initialize or get hour data.
-		if ( false === $hour_data ) {
-			$hour_data = array(
-				'count'  => 0,
-				'reset'  => $now + 3600,
-			);
-		}
+		$minute_data = $this->initialize_window_data( $minute_data, 60, $now );
+		$hour_data   = $this->initialize_window_data( $hour_data, 3600, $now );
 
 		// Check minute limit.
 		if ( $minute_data['count'] >= $this->settings['requests_per_minute'] ) {
+			$retry_after = max( 0, $minute_data['reset'] - $now );
+
 			$this->current_data = array(
 				'limit'     => $this->settings['requests_per_minute'],
 				'remaining' => 0,
 				'reset'     => $minute_data['reset'],
 				'window'    => 'minute',
+				'retry_after' => $retry_after,
 			);
 
 			return new WP_Error(
@@ -138,11 +128,11 @@ class Spai_Rate_Limiter {
 				sprintf(
 					__( 'Rate limit exceeded. %d requests per minute allowed. Try again in %d seconds.', 'site-pilot-ai' ),
 					$this->settings['requests_per_minute'],
-					$minute_data['reset'] - $now
+					$retry_after
 				),
 				array(
 					'status'           => 429,
-					'retry_after'      => $minute_data['reset'] - $now,
+					'retry_after'      => $retry_after,
 					'limit'            => $this->settings['requests_per_minute'],
 					'remaining'        => 0,
 					'reset'            => $minute_data['reset'],
@@ -152,11 +142,14 @@ class Spai_Rate_Limiter {
 
 		// Check hour limit.
 		if ( $hour_data['count'] >= $this->settings['requests_per_hour'] ) {
+			$retry_after = max( 0, $hour_data['reset'] - $now );
+
 			$this->current_data = array(
 				'limit'     => $this->settings['requests_per_hour'],
 				'remaining' => 0,
 				'reset'     => $hour_data['reset'],
 				'window'    => 'hour',
+				'retry_after' => $retry_after,
 			);
 
 			return new WP_Error(
@@ -164,11 +157,11 @@ class Spai_Rate_Limiter {
 				sprintf(
 					__( 'Rate limit exceeded. %d requests per hour allowed. Try again in %d seconds.', 'site-pilot-ai' ),
 					$this->settings['requests_per_hour'],
-					$hour_data['reset'] - $now
+					$retry_after
 				),
 				array(
 					'status'           => 429,
-					'retry_after'      => $hour_data['reset'] - $now,
+					'retry_after'      => $retry_after,
 					'limit'            => $this->settings['requests_per_hour'],
 					'remaining'        => 0,
 					'reset'            => $hour_data['reset'],
@@ -180,9 +173,9 @@ class Spai_Rate_Limiter {
 		$minute_data['count']++;
 		$hour_data['count']++;
 
-		// Store updated counts.
-		set_transient( $cache_key_minute, $minute_data, 60 );
-		set_transient( $cache_key_hour, $hour_data, 3600 );
+		// Store updated counts using remaining window TTL (fixed window, no sliding expiration).
+		set_transient( $cache_key_minute, $minute_data, max( 1, $minute_data['reset'] - $now ) );
+		set_transient( $cache_key_hour, $hour_data, max( 1, $hour_data['reset'] - $now ) );
 
 		// Store current data for headers.
 		$this->current_data = array(
@@ -190,6 +183,7 @@ class Spai_Rate_Limiter {
 			'remaining' => $this->settings['requests_per_minute'] - $minute_data['count'],
 			'reset'     => $minute_data['reset'],
 			'window'    => 'minute',
+			'retry_after' => max( 0, $minute_data['reset'] - $now ),
 		);
 
 		return true;
@@ -205,11 +199,17 @@ class Spai_Rate_Limiter {
 			return array();
 		}
 
-		return array(
+		$headers = array(
 			'X-RateLimit-Limit'     => $this->current_data['limit'],
 			'X-RateLimit-Remaining' => max( 0, $this->current_data['remaining'] ),
 			'X-RateLimit-Reset'     => $this->current_data['reset'],
 		);
+
+		if ( isset( $this->current_data['retry_after'] ) && $this->current_data['remaining'] <= 0 ) {
+			$headers['Retry-After'] = max( 0, (int) $this->current_data['retry_after'] );
+		}
+
+		return $headers;
 	}
 
 	/**
@@ -314,21 +314,76 @@ class Spai_Rate_Limiter {
 
 		$minute_data = get_transient( $cache_key_minute );
 		$hour_data   = get_transient( $cache_key_hour );
+		$now         = time();
+
+		if ( $this->is_window_expired( $minute_data, $now ) ) {
+			delete_transient( $cache_key_minute );
+			$minute_data = false;
+		}
+
+		if ( $this->is_window_expired( $hour_data, $now ) ) {
+			delete_transient( $cache_key_hour );
+			$hour_data = false;
+		}
 
 		return array(
 			'identifier'         => $identifier,
 			'minute' => array(
 				'used'      => $minute_data ? $minute_data['count'] : 0,
 				'limit'     => $this->settings['requests_per_minute'],
-				'remaining' => $this->settings['requests_per_minute'] - ( $minute_data ? $minute_data['count'] : 0 ),
+				'remaining' => max( 0, $this->settings['requests_per_minute'] - ( $minute_data ? $minute_data['count'] : 0 ) ),
 				'reset'     => $minute_data ? $minute_data['reset'] : null,
 			),
 			'hour' => array(
 				'used'      => $hour_data ? $hour_data['count'] : 0,
 				'limit'     => $this->settings['requests_per_hour'],
-				'remaining' => $this->settings['requests_per_hour'] - ( $hour_data ? $hour_data['count'] : 0 ),
+				'remaining' => max( 0, $this->settings['requests_per_hour'] - ( $hour_data ? $hour_data['count'] : 0 ) ),
 				'reset'     => $hour_data ? $hour_data['reset'] : null,
 			),
 		);
+	}
+
+	/**
+	 * Initialize/reset fixed-window data.
+	 *
+	 * @param mixed $window_data Existing window data.
+	 * @param int   $window_size Window size in seconds.
+	 * @param int   $now         Current unix timestamp.
+	 * @return array Normalized window data.
+	 */
+	private function initialize_window_data( $window_data, $window_size, $now ) {
+		if ( ! is_array( $window_data ) || ! isset( $window_data['count'], $window_data['reset'] ) ) {
+			return array(
+				'count' => 0,
+				'reset' => $now + $window_size,
+			);
+		}
+
+		if ( $window_data['reset'] <= $now ) {
+			return array(
+				'count' => 0,
+				'reset' => $now + $window_size,
+			);
+		}
+
+		$window_data['count'] = max( 0, (int) $window_data['count'] );
+		$window_data['reset'] = (int) $window_data['reset'];
+
+		return $window_data;
+	}
+
+	/**
+	 * Check if a rate-limit window has expired or is malformed.
+	 *
+	 * @param mixed $window_data Existing window data.
+	 * @param int   $now         Current unix timestamp.
+	 * @return bool True when expired/invalid.
+	 */
+	private function is_window_expired( $window_data, $now ) {
+		if ( ! is_array( $window_data ) || ! isset( $window_data['reset'] ) ) {
+			return false;
+		}
+
+		return (int) $window_data['reset'] <= $now;
 	}
 }
