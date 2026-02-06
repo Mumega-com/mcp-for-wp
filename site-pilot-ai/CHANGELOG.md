@@ -5,6 +5,11 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.23] - 2026-02-06
+
+### Fixed
+- Switched Freemius product configuration to premium-version mode (`has_premium_version: true`, `has_addons: false`) to match non-add-on distribution.
+
 ## [1.0.22] - 2026-02-06
 
 ### Fixed
