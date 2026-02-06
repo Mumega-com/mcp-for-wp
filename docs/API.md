@@ -3,10 +3,11 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.0.8
+**Version:** 1.0.15
 
 ## Table of Contents
 
+- [Native MCP Endpoint](#native-mcp-endpoint)
 - [Authentication](#authentication)
 - [Error Handling](#error-handling)
 - [Rate Limiting](#rate-limiting)
@@ -34,6 +35,41 @@
 - [Auto-Updates](#auto-updates)
 - [MCP Server Configuration](#mcp-server-configuration)
 - [AI Integration Examples](#ai-integration-examples)
+
+---
+
+## Native MCP Endpoint
+
+**POST** `/wp-json/site-pilot-ai/v1/mcp`
+
+Direct JSON-RPC 2.0 MCP endpoint. Supports `initialize`, `tools/list`, `tools/call`, and batch requests.
+
+**Authentication:** `X-API-Key` header
+**Batch limit:** 10 requests per call
+
+**Example Request:**
+
+```bash
+curl -X POST "https://your-site.com/wp-json/site-pilot-ai/v1/mcp" \
+  -H "X-API-Key: spai_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+**Supported Methods:**
+- `initialize` - Initialize MCP session
+- `tools/list` - List all available tools (30 tools)
+- `tools/call` - Execute a tool
+- Batch requests - Execute up to 10 requests in parallel
+
+**Direct Claude Desktop/Code Connection:**
+
+This endpoint enables native MCP integration without an external MCP server. Configure Claude Desktop or Claude Code to connect directly to your WordPress site.
 
 ---
 

@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="#quick-start">Quick Start</a> •
   <a href="#installation">Installation</a> •
   <a href="#features">Features</a> •
   <a href="#tools">36 Tools</a> •
@@ -15,6 +16,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/plugin-v1.0.15-green" alt="Plugin">
   <img src="https://img.shields.io/badge/MCP-compatible-green" alt="MCP">
   <img src="https://img.shields.io/badge/WordPress-5.0%2B-blue" alt="WordPress">
   <img src="https://img.shields.io/badge/license-GPL--2.0-orange" alt="License">
@@ -29,6 +31,17 @@ Claude: *Creates page, builds Elementor layout, sets SEO metadata*
         "Done! https://yoursite.com/summer-sale (draft)"
 ```
 
+## Quick Start
+
+1. **Install Site Pilot AI** on your WordPress site (from Plugins → Add New or upload manually)
+2. **Copy your API key** from WP Admin → Site Pilot AI
+3. **Connect Claude Desktop, Claude Code, or ChatGPT:**
+   - **Native MCP endpoint**: `/wp-json/site-pilot-ai/v1/mcp` (no external server needed)
+   - **npm MCP server**: `npm install -g wp-ai-operator` → `wp-ai-operator --setup`
+   - **Cloudflare Worker**: Deploy gateway for caching and multi-site management
+
+That's it! Now your AI assistant can control WordPress directly.
+
 ## Overview
 
 WP AI Operator is a complete solution for controlling WordPress sites with AI assistants like Claude Code and Claude Desktop. It uses the **Model Context Protocol (MCP)** to expose WordPress functionality as AI-callable tools.
@@ -37,23 +50,28 @@ WP AI Operator is a complete solution for controlling WordPress sites with AI as
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Claude Code / Desktop                      │
+│                   Claude Code / Desktop / ChatGPT                │
 └─────────────────────────────────────────────────────────────────┘
                                 │ MCP
-                                ▼
+                  ┌─────────────┼─────────────┐
+                  │             │             │
+                  ▼             ▼             ▼
+        ┌──────────────┐ ┌──────────┐ ┌──────────────┐
+        │   Native MCP │ │npm Server│ │   Cloudflare │
+        │  (WordPress) │ │ (Node.js)│ │    Worker    │
+        └──────┬───────┘ └────┬─────┘ └──────┬───────┘
+               │              │               │
+               └──────────────┼───────────────┘
+                              │ REST API
+                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     MCP Server (Node.js)                         │
+│                    WordPress Plugin (PHP)                        │
+│         site-pilot-ai.php • 40+ REST Endpoints                   │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
 │  │   Core   │ │   SEO    │ │  Forms   │ │    Elementor     │   │
 │  │ 14 tools │ │ 5 tools  │ │ 8 tools  │ │     9 tools      │   │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
 │                      Microkernel Architecture                    │
-└─────────────────────────────────────────────────────────────────┘
-                                │ REST API
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    WordPress Plugin (PHP)                        │
-│         wp-ai-operator.php • 40+ REST Endpoints                  │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -61,6 +79,46 @@ WP AI Operator is a complete solution for controlling WordPress sites with AI as
 │  WordPress  │  Elementor  │  Yoast/RankMath  │  CF7/WPForms    │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Distribution Channels
+
+Site Pilot AI is available through **3 distribution channels**:
+
+| Channel | Purpose | When to Use |
+|---------|---------|-------------|
+| **Native MCP Endpoint** | Direct WordPress connection | Simple setup, single site, no caching needed |
+| **npm MCP Server** | Local MCP server with multi-site config | Multiple sites, local development |
+| **Cloudflare Worker** | Edge caching and analytics | Production, global sites, high traffic |
+
+### Native MCP Endpoint
+
+Built-in MCP server at `/wp-json/site-pilot-ai/v1/mcp` - no external dependencies.
+
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "command": "curl",
+      "args": ["-X", "POST", "https://yoursite.com/wp-json/site-pilot-ai/v1/mcp",
+               "-H", "X-API-Key: spai_your_key",
+               "-H", "Content-Type: application/json",
+               "--data-binary", "@-"]
+    }
+  }
+}
+```
+
+### npm MCP Server
+
+```bash
+npm install -g wp-ai-operator
+wp-ai-operator --setup    # Interactive setup
+wp-ai-operator --test     # Test connection
+```
+
+### Cloudflare Worker Gateway
+
+Deploy to Cloudflare Workers for edge caching, analytics, and multi-site batch operations.
 
 ## Features
 
@@ -75,21 +133,21 @@ WP AI Operator is a complete solution for controlling WordPress sites with AI as
 
 ## Installation
 
-### 1. WordPress Plugin
+### 1. WordPress Plugin (Site Pilot AI v1.0.15)
 
-Upload `plugin/wp-ai-operator.php` to your WordPress site:
+Upload `site-pilot-ai/site-pilot-ai.php` to your WordPress site:
 
 ```bash
 # Copy to plugins folder
-scp plugin/wp-ai-operator.php user@server:/var/www/html/wp-content/plugins/
+scp site-pilot-ai/site-pilot-ai.php user@server:/var/www/html/wp-content/plugins/
 
 # Or via WP-CLI
-wp plugin install /path/to/wp-ai-operator.php --activate
+wp plugin install /path/to/site-pilot-ai.php --activate
 ```
 
-Activate in **WordPress Admin → Plugins**, then get your API key from **Tools → AI Operator**.
+Activate in **WordPress Admin → Plugins**, then get your API key from **Site Pilot AI** (top-level menu).
 
-### 2. MCP Server
+### 2. MCP Server (npm)
 
 ```bash
 # Clone repository
@@ -108,12 +166,12 @@ Add to `~/.claude.json`:
 ```json
 {
   "mcpServers": {
-    "wp-ai-operator": {
+    "site-pilot-ai": {
       "command": "node",
       "args": ["/path/to/wp-ai-operator/mcp-server/dist/index.js"],
       "env": {
         "WP_URL": "https://yoursite.com",
-        "WP_API_KEY": "wpaio_your_api_key_here"
+        "WP_API_KEY": "spai_your_api_key_here"
       }
     }
   }
@@ -125,7 +183,7 @@ Or use a config file for multiple sites:
 ```json
 {
   "mcpServers": {
-    "wp-ai-operator": {
+    "site-pilot-ai": {
       "command": "node",
       "args": ["/path/to/wp-ai-operator/mcp-server/dist/index.js"],
       "env": {
@@ -214,17 +272,17 @@ Create `~/.wp-ai-operator/config.json`:
   "sites": {
     "production": {
       "url": "https://example.com",
-      "apiKey": "wpaio_prod_key_here",
+      "apiKey": "spai_prod_key_here",
       "name": "Production"
     },
     "staging": {
       "url": "https://staging.example.com",
-      "apiKey": "wpaio_staging_key_here",
+      "apiKey": "spai_staging_key_here",
       "name": "Staging"
     },
     "blog": {
       "url": "https://blog.example.com",
-      "apiKey": "wpaio_blog_key_here",
+      "apiKey": "spai_blog_key_here",
       "name": "Blog"
     }
   },
@@ -287,7 +345,7 @@ npm run deploy
 ```json
 {
   "mcpServers": {
-    "wp-ai-operator": {
+    "site-pilot-ai": {
       "command": "node",
       "args": ["/path/to/mcp-server/dist/index.js"],
       "env": {
@@ -405,16 +463,16 @@ clone it to staging with title "Test Landing Page"
 
 ## API Reference
 
-Base URL: `https://yoursite.com/wp-json/wp-ai-operator/v1/`
+Base URL: `https://yoursite.com/wp-json/site-pilot-ai/v1/`
 
 ### Authentication
 
 ```bash
 # Header (recommended)
-curl -H "X-API-Key: wpaio_xxx" https://site.com/wp-json/wp-ai-operator/v1/site-info
+curl -H "X-API-Key: spai_xxx" https://site.com/wp-json/site-pilot-ai/v1/site-info
 
 # Query parameter
-curl "https://site.com/wp-json/wp-ai-operator/v1/site-info?api_key=wpaio_xxx"
+curl "https://site.com/wp-json/site-pilot-ai/v1/site-info?api_key=spai_xxx"
 ```
 
 ### Core Endpoints
@@ -432,6 +490,7 @@ curl "https://site.com/wp-json/wp-ai-operator/v1/site-info?api_key=wpaio_xxx"
 | POST | `/media/from-url` | Upload from URL |
 | GET | `/drafts` | List drafts |
 | DELETE | `/drafts/delete-all` | Bulk delete drafts |
+| POST | `/mcp` | Native MCP endpoint (JSON-RPC 2.0) |
 
 ### SEO Endpoints
 
@@ -496,8 +555,8 @@ wp-ai-operator/
 │   ├── SETUP.md                  # Deployment guide
 │   └── package.json
 │
-├── plugin/                        # WordPress Plugin (PHP)
-│   └── wp-ai-operator.php        # All REST endpoints
+├── site-pilot-ai/                 # WordPress Plugin (PHP) v1.0.15
+│   └── site-pilot-ai.php         # All REST endpoints + native MCP
 │
 └── README.md
 
@@ -529,8 +588,8 @@ npm run dev        # Development with hot reload
 ### Test API Connection
 
 ```bash
-curl -s "https://yoursite.com/wp-json/wp-ai-operator/v1/site-info" \
-  -H "X-API-Key: wpaio_your_key" | jq
+curl -s "https://yoursite.com/wp-json/site-pilot-ai/v1/site-info" \
+  -H "X-API-Key: spai_your_key" | jq
 ```
 
 ### Add New Extension
@@ -539,14 +598,16 @@ curl -s "https://yoursite.com/wp-json/wp-ai-operator/v1/site-info" \
 2. Extend `BaseExtension` class
 3. Implement `getTools()` and handlers
 4. Register in `extensions/index.ts`
-5. Add WordPress endpoints to `plugin/wp-ai-operator.php`
+5. Add WordPress endpoints to `site-pilot-ai/site-pilot-ai.php`
 
 ## Security
 
-- API keys stored in WordPress `wp_options` table
+- API keys stored in WordPress `wp_options` table (hashed)
 - All inputs sanitized via WordPress functions
 - Activity logging for audit trail
 - HTTPS required for production
+- SSRF protection on media uploads and webhooks
+- Rate limiting configurable per site
 - Consider IP whitelisting for sensitive sites
 
 ## Troubleshooting
@@ -557,7 +618,7 @@ Set environment variables or create `~/.wp-ai-operator/config.json`.
 
 ### "401 Unauthorized"
 
-1. Check API key in WordPress Admin → Tools → AI Operator
+1. Check API key in WordPress Admin → Site Pilot AI
 2. Verify key matches config exactly (no extra spaces)
 3. Regenerate key if needed
 
@@ -574,6 +635,7 @@ The plugin auto-detects CF7, WPForms, Gravity Forms, and Ninja Forms. Ensure at 
 ## Roadmap
 
 - [x] Cloudflare Gateway (KV caching, D1 analytics)
+- [x] Native MCP endpoint (v1.0.15)
 - [ ] WooCommerce extension (products, orders, customers)
 - [ ] ACF (Advanced Custom Fields) support
 - [ ] Gutenberg blocks manipulation

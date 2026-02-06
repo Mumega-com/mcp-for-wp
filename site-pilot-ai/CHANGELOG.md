@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - npm MCP server package with `--setup`, `--version`, `--test` CLI flags
 
 ### Fixed
+- Fatal error: `log_activity()` access level conflict in MCP class (private vs protected inheritance)
+- MCP activity logging: corrected column names to match `wp_spai_activity_log` schema
 - Freemius `first-path` aligned with new top-level menu (`admin.php?page=site-pilot-ai`)
 - MCP namespace consistency: all components use `site-pilot-ai/v1`
 - Admin page hook: `toplevel_page_site-pilot-ai` (was `tools_page_...`)
