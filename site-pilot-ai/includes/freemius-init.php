@@ -27,14 +27,17 @@ if ( ! function_exists( 'spa_fs' ) ) {
 			// Include Freemius SDK.
 			require_once SPAI_PLUGIN_DIR . 'freemius/start.php';
 
+			// Determine premium/free from the plugin directory name.
+			// Note: SPAI_PLUGIN_DIR includes a trailing slash.
+			$spai_plugin_dir_slug = basename( rtrim( SPAI_PLUGIN_DIR, '/\\' ) );
+
 			$spa_fs = fs_dynamic_init( array(
 				'id'                  => '23824',
 				'slug'                => 'site-pilot-ai',
 				'type'                => 'plugin',
 				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
-				// Determine premium/free from the plugin directory name.
 				// Freemius premium version uses `site-pilot-ai-premium` by default.
-				'is_premium'          => ( 'site-pilot-ai-premium' === basename( dirname( SPAI_PLUGIN_DIR ) ) ),
+				'is_premium'          => ( 'site-pilot-ai-premium' === $spai_plugin_dir_slug ),
 				'has_premium_version' => true,
 				'has_addons'          => false,
 				'has_paid_plans'      => true,
