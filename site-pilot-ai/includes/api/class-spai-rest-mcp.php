@@ -204,7 +204,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 	private function handle_initialize( $id, $params ) {
 		$client_info = isset( $params['clientInfo'] ) ? $params['clientInfo'] : array();
 
-		$this->log_activity(
+		$this->log_mcp_activity(
 			'mcp_initialize',
 			array(
 				'client' => $client_info,
@@ -250,7 +250,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 * @return array JSON-RPC response.
 	 */
 	private function handle_tools_list( $id ) {
-		$this->log_activity( 'mcp_tools_list', array() );
+		$this->log_mcp_activity( 'mcp_tools_list', array() );
 
 		$tools = $this->get_tool_definitions();
 
@@ -281,7 +281,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			return $this->jsonrpc_error( $id, -32602, 'Missing tool name' );
 		}
 
-		$this->log_activity(
+		$this->log_mcp_activity(
 			'mcp_tool_call',
 			array(
 				'tool' => $tool_name,
@@ -1161,17 +1161,33 @@ class Spai_REST_MCP extends Spai_REST_API {
 	}
 
 	/**
-	 * Log activity (wrapper for trait method).
+	 * Log MCP activity.
 	 *
 	 * @param string $action  Action name.
 	 * @param mixed  $context Context data.
 	 */
-	private function log_activity( $action, $context ) {
-		if ( method_exists( $this, 'log_activity' ) ) {
-			// Use parent trait method if available
+	private function log_mcp_activity( $action, $context ) {
+		$settings = get_option( 'spai_settings', array() );
+		if ( empty( $settings['enable_logging'] ) ) {
 			return;
 		}
 
-		// Fallback: no-op if trait not available
+		global $wpdb;
+		$table = $wpdb->prefix . 'spai_activity_log';
+
+		$wpdb->insert(
+			$table,
+			array(
+				'action'       => sanitize_key( $action ),
+				'endpoint'     => '/site-pilot-ai/v1/mcp',
+				'method'       => 'POST',
+				'status_code'  => 200,
+				'ip_address'   => $this->get_client_ip_for_logging(),
+				'user_agent'   => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				'request_data' => wp_json_encode( $context ),
+				'created_at'   => current_time( 'mysql' ),
+			),
+			array( '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
+		);
 	}
 }
