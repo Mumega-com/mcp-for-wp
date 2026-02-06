@@ -36,6 +36,12 @@ interface SiteConfig {
   apiKey: string;
 }
 
+type McpResponseMode = 'auto' | 'json' | 'sse';
+
+interface McpTransportOptions {
+  responseMode?: string;
+}
+
 // JSON-RPC error codes
 const ErrorCode = {
   PARSE_ERROR: -32700,
@@ -51,7 +57,11 @@ const ErrorCode = {
 export async function handleMcp(
   request: Request,
   siteConfig: SiteConfig,
+  options: McpTransportOptions = {},
 ): Promise<Response> {
+  const responseMode = normalizeResponseMode(options.responseMode);
+  const useSse = shouldUseSseResponse(request, responseMode);
+
   // CORS headers for all responses
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -99,24 +109,22 @@ export async function handleMcp(
     const responses = await Promise.all(
       body.map((req) => handleSingleRequest(req, siteConfig))
     );
-    return new Response(JSON.stringify(responses), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders,
-      },
-    });
+    const payload = responses.filter((response): response is JsonRpcResponse => response !== null);
+
+    if (payload.length === 0) {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    return buildMcpTransportResponse(payload, useSse, corsHeaders);
   }
 
   // Handle single request
   const response = await handleSingleRequest(body, siteConfig);
-  return new Response(JSON.stringify(response), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders,
-    },
-  });
+  if (response === null) {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  return buildMcpTransportResponse(response, useSse, corsHeaders);
 }
 
 /**
@@ -125,7 +133,7 @@ export async function handleMcp(
 async function handleSingleRequest(
   req: JsonRpcRequest,
   siteConfig: SiteConfig
-): Promise<JsonRpcResponse> {
+): Promise<JsonRpcResponse | null> {
   // Validate JSON-RPC structure
   if (!req || req.jsonrpc !== '2.0' || typeof req.method !== 'string') {
     return {
@@ -139,6 +147,11 @@ async function handleSingleRequest(
   }
 
   const { method, params, id } = req;
+  const isNotification = (id === undefined || id === null) && method.startsWith('notifications/');
+
+  if (isNotification) {
+    return null;
+  }
 
   try {
     // Route to method handlers
@@ -151,12 +164,7 @@ async function handleSingleRequest(
         };
 
       case 'notifications/initialized':
-        // Client confirms initialization, we just acknowledge
-        return {
-          jsonrpc: '2.0',
-          id,
-          result: {},
-        };
+        return null;
 
       case 'tools/list':
         return {
@@ -345,6 +353,63 @@ async function handleToolsCall(params: any, siteConfig: SiteConfig) {
       endpoint: apiEndpoint,
     },
   };
+}
+
+function buildMcpTransportResponse(
+  payload: JsonRpcResponse | JsonRpcResponse[],
+  useSse: boolean,
+  headers: Record<string, string>,
+): Response {
+  if (!useSse) {
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    });
+  }
+
+  const body =
+    formatSseEvent('message', payload) +
+    formatSseEvent('done', { ok: true });
+
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
+      ...headers,
+    },
+  });
+}
+
+function formatSseEvent(event: string, data: unknown): string {
+  const serialized = typeof data === 'string' ? data : JSON.stringify(data);
+  const lines = serialized.split('\n').map((line) => `data: ${line}`).join('\n');
+  return `event: ${event}\n${lines}\n\n`;
+}
+
+function shouldUseSseResponse(request: Request, mode: McpResponseMode): boolean {
+  if (mode === 'sse') {
+    return true;
+  }
+
+  if (mode === 'json') {
+    return false;
+  }
+
+  const accept = request.headers.get('Accept') || '';
+  return accept.toLowerCase().includes('text/event-stream');
+}
+
+function normalizeResponseMode(value?: string): McpResponseMode {
+  if (value === 'json' || value === 'sse' || value === 'auto') {
+    return value;
+  }
+
+  return 'auto';
 }
 
 /**

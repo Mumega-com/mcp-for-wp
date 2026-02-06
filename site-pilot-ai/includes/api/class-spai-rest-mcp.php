@@ -437,6 +437,63 @@ class Spai_REST_MCP extends Spai_REST_API {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_search',
+			'Search posts and pages by query string with pagination and status filters',
+			array(
+				'query' => array(
+					'type'        => 'string',
+					'description' => 'Search query',
+					'required'    => true,
+				),
+				'type'  => array(
+					'type'        => 'string',
+					'description' => 'Content type filter (post, page, any)',
+					'default'     => 'any',
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Status filter (publish, draft, pending, private, any)',
+					'default'     => 'publish',
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page (1-50)',
+					'default'     => 10,
+				),
+				'page' => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_fetch',
+			'Fetch a single post or page by ID or URL',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID (use id or url)',
+				),
+				'url' => array(
+					'type'        => 'string',
+					'description' => 'Canonical URL (use id or url)',
+				),
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Expected type filter (post, page, any)',
+					'default'     => 'any',
+				),
+				'include_content' => array(
+					'type'        => 'boolean',
+					'description' => 'Include full content in response',
+					'default'     => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_list_posts',
 			'List blog posts with optional filters for status, category, search, and pagination',
 			array(
@@ -742,6 +799,182 @@ class Spai_REST_MCP extends Spai_REST_API {
 			)
 		);
 
+		$tools[] = $this->define_tool(
+			'wp_rate_limit_status',
+			'Get current rate-limit settings and usage for the calling identifier',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_rate_limit',
+			'Update rate-limit settings (admin only)',
+			array(
+				'enabled'             => array(
+					'type'        => 'boolean',
+					'description' => 'Enable or disable rate limiting',
+				),
+				'requests_per_minute' => array(
+					'type'        => 'number',
+					'description' => 'Requests allowed per minute',
+				),
+				'requests_per_hour'   => array(
+					'type'        => 'number',
+					'description' => 'Requests allowed per hour',
+				),
+				'burst_limit'         => array(
+					'type'        => 'number',
+					'description' => 'Requests allowed in short burst window',
+				),
+				'whitelist'           => array(
+					'type'        => 'array',
+					'description' => 'Identifiers to bypass rate limiting',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_reset_rate_limit',
+			'Reset rate-limit counters for an identifier (admin only)',
+			array(
+				'identifier' => array(
+					'type'        => 'string',
+					'description' => 'Identifier to reset (for example key:<id> or IP)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_webhook_events',
+			'List available webhook event names',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_webhooks',
+			'List webhooks with optional filters',
+			array(
+				'status'   => array(
+					'type'        => 'string',
+					'description' => 'Status filter (active, disabled, all)',
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page',
+					'default'     => 50,
+				),
+				'page'     => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_create_webhook',
+			'Create a webhook endpoint subscription',
+			array(
+				'name'   => array(
+					'type'        => 'string',
+					'description' => 'Webhook display name',
+					'required'    => true,
+				),
+				'url'    => array(
+					'type'        => 'string',
+					'description' => 'Webhook target URL',
+					'required'    => true,
+				),
+				'events' => array(
+					'type'        => 'array',
+					'description' => 'Events to subscribe to',
+					'required'    => true,
+				),
+				'secret' => array(
+					'type'        => 'string',
+					'description' => 'Optional signing secret',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_webhook',
+			'Update an existing webhook',
+			array(
+				'id'     => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+				'name'   => array(
+					'type'        => 'string',
+					'description' => 'Webhook display name',
+				),
+				'url'    => array(
+					'type'        => 'string',
+					'description' => 'Webhook target URL',
+				),
+				'events' => array(
+					'type'        => 'array',
+					'description' => 'Updated event list',
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Webhook status (active or disabled)',
+				),
+				'secret' => array(
+					'type'        => 'string',
+					'description' => 'Webhook signing secret',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_delete_webhook',
+			'Delete a webhook',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_test_webhook',
+			'Send a test delivery for a webhook',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_webhook_logs',
+			'List delivery logs for a webhook',
+			array(
+				'id'       => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page',
+					'default'     => 50,
+				),
+				'page'     => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+			)
+		);
+
 		// Add PRO tools if pro version is active
 		if ( $this->is_pro_active() ) {
 			$tools = array_merge( $tools, $this->get_pro_tool_definitions() );
@@ -985,7 +1218,80 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'name'        => $name,
 			'description' => $description,
 			'inputSchema' => $schema,
+			'annotations' => $this->get_tool_annotations( $name ),
 		);
+	}
+
+	/**
+	 * Get tool annotations for MCP compatibility.
+	 *
+	 * @param string $name Tool name.
+	 * @return array<string,bool> Tool annotation hints.
+	 */
+	private function get_tool_annotations( $name ) {
+		return array(
+			'readOnlyHint'    => $this->is_read_only_tool( $name ),
+			'openWorldHint'   => $this->is_open_world_tool( $name ),
+			'destructiveHint' => $this->is_destructive_tool( $name ),
+		);
+	}
+
+	/**
+	 * Determine whether a tool is read-only.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool does not modify data.
+	 */
+	private function is_read_only_tool( $name ) {
+		$tool_map = $this->get_tool_map();
+		if ( empty( $tool_map[ $name ]['method'] ) ) {
+			return false;
+		}
+
+		$method = strtoupper( (string) $tool_map[ $name ]['method'] );
+		return in_array( $method, array( 'GET', 'HEAD', 'OPTIONS' ), true );
+	}
+
+	/**
+	 * Determine whether a tool can access external systems.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool may interact with external services.
+	 */
+	private function is_open_world_tool( $name ) {
+		$open_world_tools = array(
+			'wp_upload_media_from_url',
+			'wp_test_webhook',
+		);
+
+		return in_array( $name, $open_world_tools, true );
+	}
+
+	/**
+	 * Determine whether a tool performs destructive actions.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool can delete/revoke/reset data.
+	 */
+	private function is_destructive_tool( $name ) {
+		$destructive_tools = array(
+			'wp_delete_post',
+			'wp_delete_all_drafts',
+			'wp_revoke_api_key',
+			'wp_reset_rate_limit',
+			'wp_delete_webhook',
+		);
+
+		if ( in_array( $name, $destructive_tools, true ) ) {
+			return true;
+		}
+
+		$tool_map = $this->get_tool_map();
+		if ( empty( $tool_map[ $name ]['method'] ) ) {
+			return false;
+		}
+
+		return 'DELETE' === strtoupper( (string) $tool_map[ $name ]['method'] );
 	}
 
 	/**
@@ -1007,6 +1313,14 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_detect_plugins' => array(
 				'method' => 'GET',
 				'route'  => '/plugins',
+			),
+			'wp_search'         => array(
+				'method' => 'GET',
+				'route'  => '/search',
+			),
+			'wp_fetch'          => array(
+				'method' => 'GET',
+				'route'  => '/fetch',
 			),
 
 			// Posts
@@ -1085,6 +1399,46 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_revoke_api_key'       => array(
 				'method' => 'DELETE',
 				'route'  => '/api-keys/{id}',
+			),
+			'wp_rate_limit_status'    => array(
+				'method' => 'GET',
+				'route'  => '/rate-limit',
+			),
+			'wp_update_rate_limit'    => array(
+				'method' => 'POST',
+				'route'  => '/rate-limit',
+			),
+			'wp_reset_rate_limit'     => array(
+				'method' => 'POST',
+				'route'  => '/rate-limit/reset',
+			),
+			'wp_list_webhook_events'  => array(
+				'method' => 'GET',
+				'route'  => '/webhooks/events',
+			),
+			'wp_list_webhooks'        => array(
+				'method' => 'GET',
+				'route'  => '/webhooks',
+			),
+			'wp_create_webhook'       => array(
+				'method' => 'POST',
+				'route'  => '/webhooks',
+			),
+			'wp_update_webhook'       => array(
+				'method' => 'POST',
+				'route'  => '/webhooks/{id}',
+			),
+			'wp_delete_webhook'       => array(
+				'method' => 'DELETE',
+				'route'  => '/webhooks/{id}',
+			),
+			'wp_test_webhook'         => array(
+				'method' => 'POST',
+				'route'  => '/webhooks/{id}/test',
+			),
+			'wp_list_webhook_logs'    => array(
+				'method' => 'GET',
+				'route'  => '/webhooks/{id}/logs',
 			),
 		);
 

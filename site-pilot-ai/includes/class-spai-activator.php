@@ -49,6 +49,9 @@ class Spai_Activator {
 		// Create activity log table
 		self::create_tables();
 
+		// Ensure periodic log cleanup is scheduled.
+		self::schedule_log_cleanup();
+
 		// Set version
 		update_option( 'spai_version', SPAI_VERSION );
 
@@ -144,6 +147,21 @@ class Spai_Activator {
 		);
 
 		update_option( 'spai_api_keys', array( $record ) );
+	}
+
+	/**
+	 * Ensure activity-log cleanup cron is scheduled.
+	 */
+	private static function schedule_log_cleanup() {
+		if ( ! function_exists( 'wp_next_scheduled' ) || ! function_exists( 'wp_schedule_event' ) ) {
+			return;
+		}
+
+		if ( wp_next_scheduled( 'spai_cleanup_logs' ) ) {
+			return;
+		}
+
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'spai_cleanup_logs' );
 	}
 
 	/**

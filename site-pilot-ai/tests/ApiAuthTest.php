@@ -89,4 +89,55 @@ final class ApiAuthTest extends TestCase {
 		$this->assertNotSame( 'spai_legacy_plain', $keys[0]['hash'] );
 		$this->assertTrue( wp_check_password( 'spai_legacy_plain', $keys[0]['hash'] ) );
 	}
+
+	public function test_oauth_bearer_token_with_read_scope_authenticates_read_requests(): void {
+		$auth = new Spai_Api_Auth_Test_Harness();
+		update_option(
+			'spai_settings',
+			array(
+				'oauth_enabled'            => true,
+				'oauth_client_id'          => 'site_pilot_ai',
+				'oauth_client_secret_hash' => wp_hash_password( 'secret' ),
+				'oauth_token_ttl'          => 3600,
+			)
+		);
+
+		$token_response = $auth->issue_oauth_access_token( array( 'read' ), 3600 );
+
+		$request = new WP_REST_Request(
+			'GET',
+			'/site-pilot-ai/v1/site-info',
+			array(),
+			array( 'Authorization' => 'Bearer ' . $token_response['access_token'] )
+		);
+
+		$result = $auth->verify_api_key( $request );
+		$this->assertTrue( $result );
+	}
+
+	public function test_oauth_bearer_token_with_read_scope_cannot_write(): void {
+		$auth = new Spai_Api_Auth_Test_Harness();
+		update_option(
+			'spai_settings',
+			array(
+				'oauth_enabled'            => true,
+				'oauth_client_id'          => 'site_pilot_ai',
+				'oauth_client_secret_hash' => wp_hash_password( 'secret' ),
+				'oauth_token_ttl'          => 3600,
+			)
+		);
+
+		$token_response = $auth->issue_oauth_access_token( array( 'read' ), 3600 );
+
+		$request = new WP_REST_Request(
+			'POST',
+			'/site-pilot-ai/v1/posts',
+			array(),
+			array( 'Authorization' => 'Bearer ' . $token_response['access_token'] )
+		);
+
+		$result = $auth->verify_api_key( $request );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'insufficient_scope', $result->get_error_code() );
+	}
 }

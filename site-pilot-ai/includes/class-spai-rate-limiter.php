@@ -68,6 +68,14 @@ class Spai_Rate_Limiter {
 
 		$saved = get_option( 'spai_rate_limit_settings', array() );
 		$this->settings = wp_parse_args( $saved, $defaults );
+		$this->settings['enabled'] = (bool) $this->settings['enabled'];
+		$this->settings['requests_per_minute'] = max( 1, min( 100000, absint( $this->settings['requests_per_minute'] ) ) );
+		$this->settings['requests_per_hour'] = max( 1, min( 100000, absint( $this->settings['requests_per_hour'] ) ) );
+		$this->settings['burst_limit'] = max( 1, min( 100000, absint( $this->settings['burst_limit'] ) ) );
+		$this->settings['whitelist'] = $this->sanitize_whitelist( $this->settings['whitelist'] );
+		if ( $this->settings['burst_limit'] > $this->settings['requests_per_minute'] ) {
+			$this->settings['burst_limit'] = $this->settings['requests_per_minute'];
+		}
 	}
 
 	/**
@@ -101,15 +109,49 @@ class Spai_Rate_Limiter {
 
 		$cache_key_minute = 'spai_rate_' . md5( $identifier . '_minute' );
 		$cache_key_hour   = 'spai_rate_' . md5( $identifier . '_hour' );
+		$cache_key_burst  = 'spai_rate_' . md5( $identifier . '_burst' );
 
 		// Get current counts.
 		$minute_data = get_transient( $cache_key_minute );
 		$hour_data   = get_transient( $cache_key_hour );
+		$burst_data  = get_transient( $cache_key_burst );
 
 		$now = time();
+		$burst_window = $this->get_burst_window();
 
 		$minute_data = $this->initialize_window_data( $minute_data, 60, $now );
 		$hour_data   = $this->initialize_window_data( $hour_data, 3600, $now );
+		$burst_data  = $this->initialize_window_data( $burst_data, $burst_window, $now );
+
+		// Check short burst limit first.
+		if ( $burst_data['count'] >= $this->settings['burst_limit'] ) {
+			$retry_after = max( 0, $burst_data['reset'] - $now );
+
+			$this->current_data = array(
+				'limit'       => $this->settings['burst_limit'],
+				'remaining'   => 0,
+				'reset'       => $burst_data['reset'],
+				'window'      => 'burst',
+				'retry_after' => $retry_after,
+			);
+
+			return new WP_Error(
+				'rate_limit_exceeded',
+				sprintf(
+					__( 'Burst limit exceeded. %1$d requests per %2$d seconds allowed. Try again in %3$d seconds.', 'site-pilot-ai' ),
+					$this->settings['burst_limit'],
+					$burst_window,
+					$retry_after
+				),
+				array(
+					'status'           => 429,
+					'retry_after'      => $retry_after,
+					'limit'            => $this->settings['burst_limit'],
+					'remaining'        => 0,
+					'reset'            => $burst_data['reset'],
+				)
+			);
+		}
 
 		// Check minute limit.
 		if ( $minute_data['count'] >= $this->settings['requests_per_minute'] ) {
@@ -172,10 +214,12 @@ class Spai_Rate_Limiter {
 		// Increment counts.
 		$minute_data['count']++;
 		$hour_data['count']++;
+		$burst_data['count']++;
 
 		// Store updated counts using remaining window TTL (fixed window, no sliding expiration).
 		set_transient( $cache_key_minute, $minute_data, max( 1, $minute_data['reset'] - $now ) );
 		set_transient( $cache_key_hour, $hour_data, max( 1, $hour_data['reset'] - $now ) );
+		set_transient( $cache_key_burst, $burst_data, max( 1, $burst_data['reset'] - $now ) );
 
 		// Store current data for headers.
 		$this->current_data = array(
@@ -275,8 +319,24 @@ class Spai_Rate_Limiter {
 
 		foreach ( $new_settings as $key => $value ) {
 			if ( in_array( $key, $allowed, true ) ) {
-				$this->settings[ $key ] = $value;
+				switch ( $key ) {
+					case 'enabled':
+						$this->settings['enabled'] = (bool) $value;
+						break;
+					case 'requests_per_minute':
+					case 'requests_per_hour':
+					case 'burst_limit':
+						$this->settings[ $key ] = max( 1, min( 100000, absint( $value ) ) );
+						break;
+					case 'whitelist':
+						$this->settings['whitelist'] = $this->sanitize_whitelist( $value );
+						break;
+				}
 			}
+		}
+
+		if ( $this->settings['burst_limit'] > $this->settings['requests_per_minute'] ) {
+			$this->settings['burst_limit'] = $this->settings['requests_per_minute'];
 		}
 
 		return update_option( 'spai_rate_limit_settings', $this->settings );
@@ -291,9 +351,11 @@ class Spai_Rate_Limiter {
 	public function reset_limit( $identifier ) {
 		$cache_key_minute = 'spai_rate_' . md5( $identifier . '_minute' );
 		$cache_key_hour   = 'spai_rate_' . md5( $identifier . '_hour' );
+		$cache_key_burst  = 'spai_rate_' . md5( $identifier . '_burst' );
 
 		delete_transient( $cache_key_minute );
 		delete_transient( $cache_key_hour );
+		delete_transient( $cache_key_burst );
 
 		return true;
 	}
@@ -311,9 +373,11 @@ class Spai_Rate_Limiter {
 
 		$cache_key_minute = 'spai_rate_' . md5( $identifier . '_minute' );
 		$cache_key_hour   = 'spai_rate_' . md5( $identifier . '_hour' );
+		$cache_key_burst  = 'spai_rate_' . md5( $identifier . '_burst' );
 
 		$minute_data = get_transient( $cache_key_minute );
 		$hour_data   = get_transient( $cache_key_hour );
+		$burst_data  = get_transient( $cache_key_burst );
 		$now         = time();
 
 		if ( $this->is_window_expired( $minute_data, $now ) ) {
@@ -326,8 +390,19 @@ class Spai_Rate_Limiter {
 			$hour_data = false;
 		}
 
+		if ( $this->is_window_expired( $burst_data, $now ) ) {
+			delete_transient( $cache_key_burst );
+			$burst_data = false;
+		}
+
 		return array(
 			'identifier'         => $identifier,
+			'burst' => array(
+				'used'      => $burst_data ? $burst_data['count'] : 0,
+				'limit'     => $this->settings['burst_limit'],
+				'remaining' => max( 0, $this->settings['burst_limit'] - ( $burst_data ? $burst_data['count'] : 0 ) ),
+				'reset'     => $burst_data ? $burst_data['reset'] : null,
+			),
 			'minute' => array(
 				'used'      => $minute_data ? $minute_data['count'] : 0,
 				'limit'     => $this->settings['requests_per_minute'],
@@ -385,5 +460,41 @@ class Spai_Rate_Limiter {
 		}
 
 		return (int) $window_data['reset'] <= $now;
+	}
+
+	/**
+	 * Get burst window length in seconds.
+	 *
+	 * @return int Window size in seconds.
+	 */
+	private function get_burst_window() {
+		return 10;
+	}
+
+	/**
+	 * Sanitize whitelist identifiers.
+	 *
+	 * @param mixed $value Whitelist input.
+	 * @return array Sanitized list.
+	 */
+	private function sanitize_whitelist( $value ) {
+		if ( is_string( $value ) ) {
+			$value = preg_split( '/[\r\n,]+/', $value );
+		}
+
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$output = array();
+		foreach ( $value as $item ) {
+			$item = trim( sanitize_text_field( (string) $item ) );
+			if ( '' === $item ) {
+				continue;
+			}
+			$output[] = $item;
+		}
+
+		return array_values( array_unique( $output ) );
 	}
 }

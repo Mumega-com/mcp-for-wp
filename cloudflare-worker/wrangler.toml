@@ -22,6 +22,7 @@ database_id = "1528167f-8617-4a6b-aed8-fe50343d7b8a"
 
 [vars]
 ENVIRONMENT = "production"
+MCP_TRANSPORT_MODE = "auto" # auto | json | sse
 
 # Secrets (set via wrangler secret put)
 # - AUTHORIZED_TOKENS: Comma-separated API tokens (for REST API routes)
@@ -30,6 +31,7 @@ ENVIRONMENT = "production"
 #
 # MCP Endpoint:
 # - POST /mcp - MCP Streamable HTTP endpoint (JSON-RPC 2.0)
+# - Response mode controlled by MCP_TRANSPORT_MODE (auto/json/sse)
 # - No auth required (follows MCP protocol)
 # - Uses 'default' site from SITE_CONFIGS or first configured site
 # - Connect from Claude Desktop or other MCP clients

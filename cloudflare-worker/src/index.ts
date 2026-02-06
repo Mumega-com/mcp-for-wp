@@ -13,6 +13,7 @@ interface Env {
   AUTHORIZED_TOKENS: string;
   SITE_CONFIGS: string;
   ENVIRONMENT: string;
+  MCP_TRANSPORT_MODE?: string;
 }
 
 interface SiteConfig {
@@ -83,6 +84,8 @@ export default {
       return handleMcp(request, {
         url: defaultSite.url,
         apiKey: defaultSite.apiKey,
+      }, {
+        responseMode: env.MCP_TRANSPORT_MODE,
       });
     }
 
