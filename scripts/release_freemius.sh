@@ -127,6 +127,8 @@ PRO_MAIN_FILE="site-pilot-ai-pro/site-pilot-ai-pro.php"
 PRO_README_FILE="site-pilot-ai-pro/readme.txt"
 PRO_WOO_FILE="site-pilot-ai-pro/includes/api/class-spai-rest-woocommerce.php"
 
+PREMIUM_DIR_NAME="site-pilot-ai-premium"
+
 if [[ "$SKIP_BUMP" -eq 0 ]]; then
 	echo "Bumping plugin versions to $VERSION"
 
@@ -162,22 +164,35 @@ if [[ "$SKIP_BUMP" -eq 0 ]]; then
 fi
 
 FREE_ZIP="site-pilot-ai-$VERSION.zip"
-PRO_ZIP="site-pilot-ai-pro-$VERSION.zip"
+PREMIUM_ZIP="site-pilot-ai-premium-$VERSION.zip"
+PRO_ADDON_ZIP="site-pilot-ai-pro-$VERSION.zip"
 
 echo "Building zip packages"
 (
-	cd site-pilot-ai
-	zip -qr "../$FREE_ZIP" .
+	cd "$ROOT_DIR"
+	zip -qr "$FREE_ZIP" "site-pilot-ai"
 )
+
+TMP_BUILD_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_BUILD_DIR"' EXIT
+
+echo "Building premium package directory"
+cp -R "site-pilot-ai" "$TMP_BUILD_DIR/$PREMIUM_DIR_NAME"
 (
-	cd site-pilot-ai-pro
-	zip -qr "../$PRO_ZIP" .
+	cd "$TMP_BUILD_DIR"
+	zip -qr "$ROOT_DIR/$PREMIUM_ZIP" "$PREMIUM_DIR_NAME"
+)
+
+(
+	cd "$ROOT_DIR"
+	zip -qr "$PRO_ADDON_ZIP" "site-pilot-ai-pro"
 )
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
 	echo "Dry run complete."
 	echo "- Free zip: $FREE_ZIP"
-	echo "- Pro zip:  $PRO_ZIP"
+	echo "- Premium zip: $PREMIUM_ZIP"
+	echo "- Pro add-on zip: $PRO_ADDON_ZIP"
 	echo "- API calls skipped"
 	exit 0
 fi
@@ -187,7 +202,7 @@ CREATE_RESPONSE="$(
 	curl -sS -X POST "https://api.freemius.com/v1/products/$PRODUCT_ID/tags.json" \
 		-H "Authorization: Bearer $TOKEN" \
 		-F "file=@$FREE_ZIP;type=application/zip" \
-		-F "premium_file=@$PRO_ZIP;type=application/zip" \
+		-F "premium_file=@$PREMIUM_ZIP;type=application/zip" \
 		-F "add_contributor_to_rel=false"
 )"
 
@@ -237,7 +252,7 @@ echo "- tag_id:       $TAG_ID"
 echo "- release_mode: $FINAL_MODE"
 
 if [[ "$KEEP_ZIPS" -eq 0 ]]; then
-	rm -f "$FREE_ZIP" "$PRO_ZIP"
+	rm -f "$FREE_ZIP" "$PREMIUM_ZIP" "$PRO_ADDON_ZIP"
 	echo "Cleaned local zip artifacts"
 else
 	echo "Kept local zip artifacts"

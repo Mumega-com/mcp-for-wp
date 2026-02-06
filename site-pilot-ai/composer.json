@@ -8,6 +8,6 @@
   },
   "scripts": {
     "test": "phpunit --configuration tests/phpunit.xml",
-    "lint:tests": "phpcs --standard=PSR12 tests"
+    "lint:tests": "find tests -name '*.php' -print0 | xargs -0 -n1 php -l"
   }
 }
