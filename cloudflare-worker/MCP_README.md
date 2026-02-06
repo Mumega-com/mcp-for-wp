@@ -5,14 +5,18 @@ This Cloudflare Worker now supports the **Model Context Protocol (MCP)** via Str
 ## Architecture
 
 ```
-MCP Client (Claude Desktop) → POST /mcp → Cloudflare Worker → REST API → WordPress
+MCP Client (Claude Desktop/ChatGPT) → POST /mcp → Cloudflare Worker → REST API → WordPress
 ```
 
 ## Endpoint
 
-```
-POST https://your-worker.workers.dev/mcp
-```
+`POST https://your-worker.workers.dev/mcp`
+
+Transport behaviors:
+
+- Streamable HTTP JSON response (`application/json`)
+- SSE-framed response (`text/event-stream`) when enabled or requested
+- Notifications return `204` with empty body
 
 The MCP endpoint implements JSON-RPC 2.0 protocol and exposes 36 WordPress management tools across 4 categories:
 
@@ -45,6 +49,21 @@ When prompted, paste JSON:
     "apiKey": "digid_xxx"
   }
 }
+```
+
+### 1b. Set Transport Mode
+
+Set the worker variable `MCP_TRANSPORT_MODE` in `wrangler.toml`:
+
+- `auto` (default): JSON by default; switches to SSE when client sends `Accept: text/event-stream`
+- `json`: always return JSON transport responses
+- `sse`: always return SSE transport responses
+
+Example:
+
+```toml
+[vars]
+MCP_TRANSPORT_MODE = "auto"
 ```
 
 ### 2. Claude Desktop Integration

@@ -161,6 +161,52 @@ else
   echo "$RESPONSE" | jq .
 fi
 
+# Test 8: Notification should return 204 with empty body
+echo -e "\n${YELLOW}Test 8: Notification (no response body)${NC}"
+NOTIFY_STATUS=$(curl -s -o /tmp/mcp_notify_body.txt -w "%{http_code}" -X POST "${MCP_ENDPOINT}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/initialized"
+  }')
+
+if [ "$NOTIFY_STATUS" = "204" ]; then
+  echo -e "${GREEN}✓ Notification handling returns 204${NC}"
+else
+  echo -e "${RED}✗ Notification handling failed. HTTP: ${NOTIFY_STATUS}${NC}"
+  [ -f /tmp/mcp_notify_body.txt ] && cat /tmp/mcp_notify_body.txt
+  exit 1
+fi
+rm -f /tmp/mcp_notify_body.txt
+
+# Test 9: SSE response mode negotiation
+echo -e "\n${YELLOW}Test 9: SSE response negotiation${NC}"
+SSE_FILE=$(mktemp)
+SSE_HEADERS=$(mktemp)
+curl -s -X POST "${MCP_ENDPOINT}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -D "${SSE_HEADERS}" \
+  -o "${SSE_FILE}" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 9,
+    "method": "ping"
+  }'
+
+if grep -iq "content-type: text/event-stream" "${SSE_HEADERS}" && grep -q "^event: message" "${SSE_FILE}"; then
+  echo -e "${GREEN}✓ SSE transport response works${NC}"
+else
+  echo -e "${RED}✗ SSE transport response failed${NC}"
+  echo "Headers:"
+  cat "${SSE_HEADERS}"
+  echo "Body:"
+  cat "${SSE_FILE}"
+  rm -f "${SSE_FILE}" "${SSE_HEADERS}"
+  exit 1
+fi
+rm -f "${SSE_FILE}" "${SSE_HEADERS}"
+
 # Summary
 echo -e "\n${GREEN}========================================${NC}"
 echo -e "${GREEN}All core MCP protocol tests passed!${NC}"
