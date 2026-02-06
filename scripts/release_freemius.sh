@@ -123,10 +123,6 @@ FREE_CHANGELOG_FILE="site-pilot-ai/CHANGELOG.md"
 FREE_FS_INIT_FILE="site-pilot-ai/includes/freemius-init.php"
 FREE_LICENSE_FILE="site-pilot-ai/includes/class-spai-license.php"
 
-PRO_MAIN_FILE="site-pilot-ai-pro/site-pilot-ai-pro.php"
-PRO_README_FILE="site-pilot-ai-pro/readme.txt"
-PRO_WOO_FILE="site-pilot-ai-pro/includes/api/class-spai-rest-woocommerce.php"
-
 PREMIUM_DIR_NAME="site-pilot-ai-premium"
 
 if [[ "$SKIP_BUMP" -eq 0 ]]; then
@@ -140,37 +136,20 @@ if [[ "$SKIP_BUMP" -eq 0 ]]; then
 		DATE_TODAY="$(date +%Y-%m-%d)"
 		sed -i "0,/^## \[/s//## [$VERSION] - $DATE_TODAY\\n\\n### Changed\\n- Release automation update.\\n\\n## [/" "$FREE_CHANGELOG_FILE"
 	fi
-
-	replace_or_fail "$PRO_MAIN_FILE" "^ \\* Version:[[:space:]]+.*$" " * Version:           $VERSION"
-	replace_or_fail "$PRO_MAIN_FILE" "^define\( 'SPAI_PRO_VERSION', '[^']+' \);$" "define( 'SPAI_PRO_VERSION', '$VERSION' );"
-	replace_or_fail "$PRO_README_FILE" "^Stable tag: .*$" "Stable tag: $VERSION"
-
-	if ! grep -q "^= $VERSION =" "$PRO_README_FILE"; then
-		tmp_file="$(mktemp)"
-		awk -v ver="$VERSION" '
-			{
-				print $0
-				if ( $0 == "== Changelog ==" && !done ) {
-					print ""
-					print "= " ver " ="
-					print "* Version sync with base plugin release"
-					print ""
-					done = 1
-				}
-			}
-		' "$PRO_README_FILE" > "$tmp_file"
-		mv "$tmp_file" "$PRO_README_FILE"
-	fi
 fi
 
 FREE_ZIP="site-pilot-ai-$VERSION.zip"
 PREMIUM_ZIP="site-pilot-ai-premium-$VERSION.zip"
-PRO_ADDON_ZIP="site-pilot-ai-pro-$VERSION.zip"
 
 echo "Building zip packages"
 (
-	cd "$ROOT_DIR"
-	zip -qr "$FREE_ZIP" "site-pilot-ai"
+	# Free package must NOT include Pro modules.
+	FREE_BUILD_DIR="$(mktemp -d)"
+	cp -R "site-pilot-ai" "$FREE_BUILD_DIR/site-pilot-ai"
+	rm -rf "$FREE_BUILD_DIR/site-pilot-ai/includes/pro" || true
+	cd "$FREE_BUILD_DIR"
+	zip -qr "$ROOT_DIR/$FREE_ZIP" "site-pilot-ai"
+	rm -rf "$FREE_BUILD_DIR" || true
 )
 
 TMP_BUILD_DIR="$(mktemp -d)"
@@ -183,16 +162,10 @@ cp -R "site-pilot-ai" "$TMP_BUILD_DIR/$PREMIUM_DIR_NAME"
 	zip -qr "$ROOT_DIR/$PREMIUM_ZIP" "$PREMIUM_DIR_NAME"
 )
 
-(
-	cd "$ROOT_DIR"
-	zip -qr "$PRO_ADDON_ZIP" "site-pilot-ai-pro"
-)
-
 if [[ "$DRY_RUN" -eq 1 ]]; then
 	echo "Dry run complete."
 	echo "- Free zip: $FREE_ZIP"
 	echo "- Premium zip: $PREMIUM_ZIP"
-	echo "- Pro add-on zip: $PRO_ADDON_ZIP"
 	echo "- API calls skipped"
 	exit 0
 fi
@@ -252,7 +225,7 @@ echo "- tag_id:       $TAG_ID"
 echo "- release_mode: $FINAL_MODE"
 
 if [[ "$KEEP_ZIPS" -eq 0 ]]; then
-	rm -f "$FREE_ZIP" "$PREMIUM_ZIP" "$PRO_ADDON_ZIP"
+	rm -f "$FREE_ZIP" "$PREMIUM_ZIP"
 	echo "Cleaned local zip artifacts"
 else
 	echo "Kept local zip artifacts"

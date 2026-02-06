@@ -249,7 +249,19 @@ class Spai_License {
 	 */
 	private function freemius_get_plan() {
 		$freemius = $this->get_freemius_instance();
-		if ( ! $freemius || ! method_exists( $freemius, 'is_paying' ) || ! $freemius->is_paying() ) {
+		if ( ! $freemius ) {
+			return 'free';
+		}
+
+		// During trial, Freemius is not "paying", but should still reflect the trial plan.
+		if ( method_exists( $freemius, 'is_trial' ) && $freemius->is_trial() && method_exists( $freemius, 'get_trial_plan' ) ) {
+			$trial_plan = $freemius->get_trial_plan();
+			if ( is_object( $trial_plan ) && isset( $trial_plan->name ) ) {
+				return (string) $trial_plan->name;
+			}
+		}
+
+		if ( ! method_exists( $freemius, 'is_paying' ) || ! $freemius->is_paying() ) {
 			return 'free';
 		}
 

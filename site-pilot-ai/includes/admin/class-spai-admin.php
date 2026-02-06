@@ -253,7 +253,8 @@ class Spai_Admin {
 		array_unshift( $links, $settings_link );
 
 		// Add upgrade link if not Pro
-		if ( ! class_exists( 'Spai_Pro_Loader' ) ) {
+		$is_pro = function_exists( 'spai_license' ) ? spai_license()->is_pro() : false;
+		if ( ! $is_pro ) {
 			$links[] = sprintf(
 				'<a href="%s" style="color:#00a32a;font-weight:bold;" target="_blank">%s</a>',
 				'https://sitepilotai.com/pricing',
