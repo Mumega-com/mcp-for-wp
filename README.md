@@ -198,6 +198,19 @@ Or use a config file for multiple sites:
 
 The skill is pre-installed at `~/.agents/skills/wp-ai-operator/` and symlinked to OpenClaw. It enables keyword-based activation when you mention WordPress, Elementor, SEO, or forms.
 
+## Development Quality Checks
+
+Site Pilot AI now includes CI checks for PHP linting, coding standards (tests), and unit tests.
+
+```bash
+cd site-pilot-ai
+composer install
+composer test
+composer lint:tests
+```
+
+GitHub Actions workflow: `.github/workflows/site-pilot-ai-ci.yml`
+
 ## Tools
 
 ### Core Extension (14 tools)

@@ -1,0 +1,42 @@
+name: Site Pilot AI CI
+
+on:
+  pull_request:
+    paths:
+      - "site-pilot-ai/**"
+      - ".github/workflows/site-pilot-ai-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "site-pilot-ai/**"
+      - ".github/workflows/site-pilot-ai-ci.yml"
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Dev Dependencies
+        run: composer install --working-dir site-pilot-ai --no-interaction --prefer-dist
+
+      - name: PHP Syntax Lint
+        run: |
+          find site-pilot-ai -path 'site-pilot-ai/vendor' -prune -o -name '*.php' -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: Coding Standards (tests)
+        run: site-pilot-ai/vendor/bin/phpcs --standard=PSR12 site-pilot-ai/tests
+
+      - name: Unit Tests
+        run: site-pilot-ai/vendor/bin/phpunit --configuration site-pilot-ai/tests/phpunit.xml

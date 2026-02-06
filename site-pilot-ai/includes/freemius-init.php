@@ -101,6 +101,7 @@ spa_fs()->add_action( 'after_uninstall', 'spa_fs_uninstall_cleanup' );
 function spa_fs_uninstall_cleanup() {
 	// Clean up options.
 	delete_option( 'spai_api_key' );
+	delete_option( 'spai_api_keys' );
 	delete_option( 'spai_settings' );
 	delete_option( 'spai_version' );
 	delete_option( 'spai_rate_limit_settings' );
