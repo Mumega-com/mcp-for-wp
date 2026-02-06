@@ -437,6 +437,63 @@ class Spai_REST_MCP extends Spai_REST_API {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_search',
+			'Search posts and pages by query string with pagination and status filters',
+			array(
+				'query' => array(
+					'type'        => 'string',
+					'description' => 'Search query',
+					'required'    => true,
+				),
+				'type'  => array(
+					'type'        => 'string',
+					'description' => 'Content type filter (post, page, any)',
+					'default'     => 'any',
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Status filter (publish, draft, pending, private, any)',
+					'default'     => 'publish',
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page (1-50)',
+					'default'     => 10,
+				),
+				'page' => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_fetch',
+			'Fetch a single post or page by ID or URL',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID (use id or url)',
+				),
+				'url' => array(
+					'type'        => 'string',
+					'description' => 'Canonical URL (use id or url)',
+				),
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Expected type filter (post, page, any)',
+					'default'     => 'any',
+				),
+				'include_content' => array(
+					'type'        => 'boolean',
+					'description' => 'Include full content in response',
+					'default'     => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_list_posts',
 			'List blog posts with optional filters for status, category, search, and pagination',
 			array(
@@ -1256,6 +1313,14 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_detect_plugins' => array(
 				'method' => 'GET',
 				'route'  => '/plugins',
+			),
+			'wp_search'         => array(
+				'method' => 'GET',
+				'route'  => '/search',
+			),
+			'wp_fetch'          => array(
+				'method' => 'GET',
+				'route'  => '/fetch',
 			),
 
 			// Posts

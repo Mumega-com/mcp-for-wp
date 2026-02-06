@@ -139,6 +139,85 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// Content search (posts/pages)
+		register_rest_route(
+			$this->namespace,
+			'/search',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'search_content' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'query'    => array(
+							'description' => __( 'Search query string.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'q'        => array(
+							'description' => __( 'Alias for query string.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'type'     => array(
+							'description' => __( 'Content type filter (post, page, or any).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'default'     => 'any',
+						),
+						'status'   => array(
+							'description' => __( 'Post status filter.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'default'     => 'publish',
+						),
+						'per_page' => array(
+							'description' => __( 'Results per page.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'default'     => 10,
+							'minimum'     => 1,
+							'maximum'     => 50,
+						),
+						'page'     => array(
+							'description' => __( 'Current page.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'default'     => 1,
+							'minimum'     => 1,
+						),
+					),
+				),
+			)
+		);
+
+		// Content fetch by ID or URL
+		register_rest_route(
+			$this->namespace,
+			'/fetch',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'fetch_content' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'              => array(
+							'description' => __( 'Post or page ID.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'url'             => array(
+							'description' => __( 'Canonical post/page URL.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'type'            => array(
+							'description' => __( 'Expected content type (post, page, or any).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'default'     => 'any',
+						),
+						'include_content' => array(
+							'description' => __( 'Include full content body in response.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+							'default'     => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Rate limit status
 		register_rest_route(
 			$this->namespace,
@@ -298,6 +377,142 @@ class Spai_REST_Site extends Spai_REST_API {
 		return $this->success_response( array(
 			'plugins'      => $plugins,
 			'capabilities' => $this->core->get_capabilities(),
+		) );
+	}
+
+	/**
+	 * Search posts/pages by query string.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function search_content( $request ) {
+		$this->log_activity( 'search_content', $request );
+
+		if ( ! class_exists( 'WP_Query' ) ) {
+			return $this->error_response(
+				'search_unavailable',
+				__( 'Search is not available in this environment.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		$query = (string) $request->get_param( 'query' );
+		if ( '' === trim( $query ) ) {
+			$query = (string) $request->get_param( 'q' );
+		}
+		$query = sanitize_text_field( $query );
+
+		if ( '' === $query ) {
+			return $this->error_response(
+				'missing_query',
+				__( 'Search query is required.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$type = sanitize_key( (string) $request->get_param( 'type' ) );
+		if ( ! in_array( $type, array( 'post', 'page', 'any' ), true ) ) {
+			$type = 'any';
+		}
+
+		$status = sanitize_key( (string) $request->get_param( 'status' ) );
+		if ( '' === $status ) {
+			$status = 'publish';
+		}
+
+		$per_page = min( 50, max( 1, absint( $request->get_param( 'per_page' ) ?: 10 ) ) );
+		$page     = max( 1, absint( $request->get_param( 'page' ) ?: 1 ) );
+
+		$post_types = 'any' === $type ? array( 'post', 'page' ) : array( $type );
+
+		$search_query = new WP_Query( array(
+			'post_type'           => $post_types,
+			'post_status'         => $status,
+			's'                   => $query,
+			'posts_per_page'      => $per_page,
+			'paged'               => $page,
+			'ignore_sticky_posts' => true,
+			'no_found_rows'       => false,
+		) );
+
+		$items = array();
+		foreach ( $search_query->posts as $post ) {
+			if ( $post instanceof WP_Post ) {
+				$items[] = $this->format_content_item( $post, false );
+			}
+		}
+
+		return $this->success_response( array(
+			'query'      => $query,
+			'type'       => $type,
+			'status'     => $status,
+			'items'      => $items,
+			'pagination' => array(
+				'page'        => $page,
+				'per_page'    => $per_page,
+				'total'       => (int) $search_query->found_posts,
+				'total_pages' => (int) $search_query->max_num_pages,
+			),
+		) );
+	}
+
+	/**
+	 * Fetch a single post/page by ID or URL.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function fetch_content( $request ) {
+		$this->log_activity( 'fetch_content', $request );
+
+		$id  = absint( $request->get_param( 'id' ) );
+		$url = esc_url_raw( (string) $request->get_param( 'url' ) );
+
+		if ( 0 === $id && '' === $url ) {
+			return $this->error_response(
+				'missing_identifier',
+				__( 'Provide either id or url to fetch content.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$type = sanitize_key( (string) $request->get_param( 'type' ) );
+		if ( ! in_array( $type, array( 'post', 'page', 'any' ), true ) ) {
+			$type = 'any';
+		}
+
+		$post = null;
+		if ( $id > 0 ) {
+			$post = get_post( $id );
+		} elseif ( '' !== $url ) {
+			$resolved_id = $this->resolve_content_id_from_url( $url, $type );
+			if ( $resolved_id > 0 ) {
+				$post = get_post( $resolved_id );
+			}
+		}
+
+		if ( ! $post instanceof WP_Post ) {
+			return $this->error_response(
+				'not_found',
+				__( 'Content not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		if ( 'any' !== $type && $type !== $post->post_type ) {
+			return $this->error_response(
+				'not_found',
+				__( 'Content not found for the requested type.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$include_content = $request->get_param( 'include_content' );
+		$include_content = null === $include_content ? true : (bool) $include_content;
+
+		return $this->success_response( array(
+			'item' => $this->format_content_item( $post, $include_content ),
 		) );
 	}
 
@@ -902,6 +1117,76 @@ class Spai_REST_Site extends Spai_REST_API {
 			'revoked' => true,
 			'id'      => sanitize_key( $key_id ),
 		) );
+	}
+
+	/**
+	 * Resolve a content ID from a canonical URL.
+	 *
+	 * @param string $url  Canonical URL.
+	 * @param string $type Expected content type (post|page|any).
+	 * @return int Resolved content ID or 0.
+	 */
+	private function resolve_content_id_from_url( $url, $type ) {
+		$post_id = function_exists( 'url_to_postid' ) ? absint( url_to_postid( $url ) ) : 0;
+		if ( $post_id > 0 ) {
+			return $post_id;
+		}
+
+		$path = function_exists( 'wp_parse_url' )
+			? wp_parse_url( $url, PHP_URL_PATH )
+			: parse_url( $url, PHP_URL_PATH );
+
+		if ( ! is_string( $path ) || '' === trim( $path ) ) {
+			return 0;
+		}
+
+		$path = trim( $path, '/' );
+		if ( '' === $path || ! function_exists( 'get_page_by_path' ) ) {
+			return 0;
+		}
+
+		$post_types = 'any' === $type ? array( 'post', 'page' ) : array( $type );
+		$post       = get_page_by_path( $path, OBJECT, $post_types );
+
+		return $post instanceof WP_Post ? (int) $post->ID : 0;
+	}
+
+	/**
+	 * Format a post/page record for search/fetch responses.
+	 *
+	 * @param WP_Post $post            Post object.
+	 * @param bool    $include_content Whether to include full content payload.
+	 * @return array Formatted record.
+	 */
+	private function format_content_item( $post, $include_content ) {
+		$excerpt = (string) $post->post_excerpt;
+		if ( '' === trim( $excerpt ) ) {
+			$excerpt = function_exists( 'wp_trim_words' )
+				? wp_trim_words( wp_strip_all_tags( (string) $post->post_content ), 40, '...' )
+				: '';
+		}
+
+		$item = array(
+			'id'           => (int) $post->ID,
+			'type'         => (string) $post->post_type,
+			'status'       => (string) $post->post_status,
+			'slug'         => (string) $post->post_name,
+			'title'        => get_the_title( $post ),
+			'url'          => (string) get_permalink( $post ),
+			'excerpt'      => $excerpt,
+			'date_gmt'     => (string) $post->post_date_gmt,
+			'modified_gmt' => (string) $post->post_modified_gmt,
+		);
+
+		if ( $include_content ) {
+			$raw_content = (string) $post->post_content;
+			$item['content'] = array(
+				'raw'      => $raw_content,
+				'rendered' => apply_filters( 'the_content', $raw_content ),
+			);
+		}
+
+		return $item;
 	}
 
 	/**

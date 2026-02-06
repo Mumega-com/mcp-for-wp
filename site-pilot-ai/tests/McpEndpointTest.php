@@ -93,5 +93,10 @@ final class McpEndpointTest extends TestCase {
 		$this->assertArrayHasKey( 'wp_delete_post', $by_name );
 		$this->assertTrue( $by_name['wp_delete_post']['annotations']['destructiveHint'] );
 		$this->assertFalse( $by_name['wp_delete_post']['annotations']['readOnlyHint'] );
+
+		$this->assertArrayHasKey( 'wp_search', $by_name );
+		$this->assertTrue( $by_name['wp_search']['annotations']['readOnlyHint'] );
+		$this->assertArrayHasKey( 'wp_fetch', $by_name );
+		$this->assertTrue( $by_name['wp_fetch']['annotations']['readOnlyHint'] );
 	}
 }
