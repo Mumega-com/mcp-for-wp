@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.16
+Stable tag: 1.0.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,20 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.17 =
+* Security: Identity-aware rate limiting (separate buckets per API key vs IP)
+* Security: Removed admin fallback in API user context (principle of least privilege)
+* Security: Removed query parameter API key auth (prevents key leakage in URLs/logs)
+* Security: SSRF protection on media upload-by-URL endpoint
+* Security: Webhook re-validates URL at send time (DNS rebinding defense)
+* Security: Webhook timeout reduced to 15s, redirects disabled, SSL enforced
+* Fix: Rate limiter sliding window bug — transient TTL now uses remaining window time
+* Fix: Rate limiter negative remaining counts prevented
+* New: Rate-limit headers (X-RateLimit-*) on all SPAI REST responses
+* New: Retry-After header on 429 responses
+* New: MCP resources/list and resources/read handlers (spec compliance)
+* New: MCP resources capability advertised in initialize response
 
 = 1.0.16 =
 * Fix: Freemius premium activation fatal error (switched to add-on architecture)

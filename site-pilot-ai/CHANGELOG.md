@@ -5,6 +5,29 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.17] - 2026-02-06
+
+### Security
+- Identity-aware rate limiting: valid keys get `key:<hash>` bucket, invalid attempts get `invalid:<IP>` bucket
+- Removed admin user fallback in `set_api_user_context()` — returns 500 if `spai_api_agent` user missing instead of silently operating as admin
+- Removed `?api_key=` query parameter authentication — prevents key leakage in URLs, server logs, and Referer headers
+- SSRF protection added to media upload-by-URL endpoint via `Spai_Security::validate_external_url()`
+- Webhook URLs re-validated at send time to defend against DNS rebinding attacks
+- Webhook delivery: timeout reduced to 15s, redirects disabled (`redirection => 0`), SSL enforced
+
+### Fixed
+- Rate limiter sliding window bug: `set_transient()` TTL now uses remaining window time instead of full 60/3600s (was extending window on every request)
+- Rate limiter `remaining` count prevented from going negative with `max(0, ...)`
+- Rate limiter window data properly validated and reset when expired or malformed
+
+### Added
+- `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers on all SPAI REST responses
+- `Retry-After` header on 429 rate-limit responses
+- MCP `resources/list` handler (returns empty resources array)
+- MCP `resources/read` handler (returns resource-not-found error)
+- MCP `resources` capability advertised in `initialize` response
+- `is_api_key_match()` extracted method for cleaner auth validation
+
 ## [1.0.16] - 2026-02-06
 
 ### Fixed
