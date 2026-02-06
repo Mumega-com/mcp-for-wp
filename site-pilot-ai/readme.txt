@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.17
+Stable tag: 1.0.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,15 @@ Each site needs its own plugin installation and API key. The Pro version include
 
 == Changelog ==
 
+= 1.0.18 =
+* New: Scoped API key lifecycle management (create, list, revoke) with key metadata
+* New: API key scope enforcement (read/write/admin) across REST and MCP tool calls
+* New: MCP tools for API key operations (wp_list_api_keys, wp_create_api_key, wp_revoke_api_key)
+* New: CI workflow for PHP syntax lint, coding standards (tests), and PHPUnit
+* New: PHPUnit test scaffolding and baseline coverage for auth/rate-limit/MCP critical flows
+* Security: Legacy plaintext API keys are force-hashed during scoped-key migration
+* Security: API key regeneration now revokes prior active scoped keys before rotating
+
 = 1.0.17 =
 * Security: Identity-aware rate limiting (separate buckets per API key vs IP)
 * Security: Removed admin fallback in API user context (principle of least privilege)
@@ -194,6 +203,9 @@ Each site needs its own plugin installation and API key. The Pro version include
 * Admin settings page
 
 == Upgrade Notice ==
+
+= 1.0.18 =
+Recommended update: introduces scoped API key management with enforced permissions and improved release quality checks.
 
 = 1.0.15 =
 Major security hardening and new features: native MCP endpoint, redesigned admin UI, SSRF protection, and cryptographic API keys. Recommended for all users.

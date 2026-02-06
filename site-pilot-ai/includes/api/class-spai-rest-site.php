@@ -151,6 +151,56 @@ class Spai_REST_Site extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Scoped API keys (admin scope/capability required)
+		register_rest_route(
+			$this->namespace,
+			'/api-keys',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_api_keys' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'include_revoked' => array(
+							'description' => __( 'Include revoked keys.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_api_key' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'label'  => array(
+							'description' => __( 'Key label.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'scopes' => array(
+							'description' => __( 'Scopes for key (read, write, admin).', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'items'       => array(
+								'type' => 'string',
+							),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/api-keys/(?P<id>[a-z0-9\\-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'revoke_api_key' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -606,5 +656,102 @@ class Spai_REST_Site extends Spai_REST_API {
 			),
 			'usage'    => $usage,
 		) );
+	}
+
+	/**
+	 * List scoped API keys.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function list_api_keys( $request ) {
+		$this->log_activity( 'list_api_keys', $request );
+
+		if ( ! $this->can_manage_api_keys() ) {
+			return $this->error_response(
+				'forbidden',
+				__( 'You do not have permission to manage API keys.', 'site-pilot-ai' ),
+				403
+			);
+		}
+
+		$include_revoked = (bool) $request->get_param( 'include_revoked' );
+		$keys            = $this->list_scoped_api_keys( $include_revoked );
+
+		return $this->success_response( array(
+			'keys'  => $keys,
+			'total' => count( $keys ),
+		) );
+	}
+
+	/**
+	 * Create scoped API key.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function create_api_key( $request ) {
+		$this->log_activity( 'create_api_key', $request );
+
+		if ( ! $this->can_manage_api_keys() ) {
+			return $this->error_response(
+				'forbidden',
+				__( 'You do not have permission to manage API keys.', 'site-pilot-ai' ),
+				403
+			);
+		}
+
+		$label  = (string) $request->get_param( 'label' );
+		$scopes = $request->get_param( 'scopes' );
+		$scopes = is_array( $scopes ) ? $scopes : array();
+
+		$created = $this->create_scoped_api_key( $label, $scopes );
+
+		return $this->success_response( array(
+			'api_key' => $created,
+		), 201 );
+	}
+
+	/**
+	 * Revoke scoped API key.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function revoke_api_key( $request ) {
+		$this->log_activity( 'revoke_api_key', $request );
+
+		if ( ! $this->can_manage_api_keys() ) {
+			return $this->error_response(
+				'forbidden',
+				__( 'You do not have permission to manage API keys.', 'site-pilot-ai' ),
+				403
+			);
+		}
+
+		$key_id  = (string) $request->get_param( 'id' );
+		$revoked = $this->revoke_scoped_api_key( $key_id );
+
+		if ( ! $revoked ) {
+			return $this->error_response(
+				'not_found',
+				__( 'API key not found or already revoked.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		return $this->success_response( array(
+			'revoked' => true,
+			'id'      => sanitize_key( $key_id ),
+		) );
+	}
+
+	/**
+	 * Check capability for managing scoped API keys.
+	 *
+	 * @return bool True if current user can manage keys.
+	 */
+	private function can_manage_api_keys() {
+		return function_exists( 'current_user_can' ) && current_user_can( 'spai_manage_settings' );
 	}
 }

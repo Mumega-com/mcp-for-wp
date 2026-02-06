@@ -36,58 +36,84 @@ trait Spai_Api_Auth {
 			);
 		}
 
-		$stored_key = get_option( 'spai_api_key' );
+		$matched_key = $this->find_scoped_api_key( $api_key );
+		$legacy_key  = get_option( 'spai_api_key' );
 
-		if ( empty( $stored_key ) ) {
-			$rate_limit_check = $this->check_rate_limit( 'unconfigured:' . $this->get_client_ip() );
+		if ( ! $matched_key && ! empty( $legacy_key ) && $this->is_api_key_match( $api_key, $legacy_key ) ) {
+			// Auto-migrate legacy plain text keys to hashed storage.
+			if ( hash_equals( $legacy_key, $api_key ) ) {
+				$legacy_key = wp_hash_password( $api_key );
+				update_option( 'spai_api_key', $legacy_key );
+			}
+
+			$matched_key = $this->migrate_legacy_key_to_scoped_store( $legacy_key );
+		}
+
+		if ( ! $matched_key ) {
+			$has_configured_keys = $this->has_configured_api_keys( $legacy_key );
+			$rate_identifier     = $has_configured_keys ? 'invalid:' . $this->get_client_ip() : 'unconfigured:' . $this->get_client_ip();
+			$rate_limit_check    = $this->check_rate_limit( $rate_identifier );
+
 			if ( is_wp_error( $rate_limit_check ) ) {
 				return $rate_limit_check;
 			}
 
-			return new WP_Error(
-				'api_not_configured',
-				__( 'API key not configured. Please visit the Site Pilot AI settings.', 'site-pilot-ai' ),
-				array( 'status' => 500 )
-			);
-		}
-
-		$is_valid_key = $this->is_api_key_match( $api_key, $stored_key );
-
-		// Rate limit by verified principal where possible, else by source IP.
-		$identifier = $is_valid_key
-			? 'key:' . hash( 'sha256', $api_key )
-			: 'invalid:' . $this->get_client_ip();
-
-		$rate_limit_check = $this->check_rate_limit( $identifier );
-		if ( is_wp_error( $rate_limit_check ) ) {
-			return $rate_limit_check;
-		}
-
-		if ( $is_valid_key ) {
-			// Auto-migrate legacy plain text keys to hashed storage.
-			if ( hash_equals( $stored_key, $api_key ) ) {
-				update_option( 'spai_api_key', wp_hash_password( $api_key ) );
-			}
-
-			if ( ! $this->set_api_user_context() ) {
+			if ( ! $has_configured_keys ) {
 				return new WP_Error(
-					'api_user_missing',
-					__( 'API user context is not configured. Re-activate Site Pilot AI to provision the service account.', 'site-pilot-ai' ),
+					'api_not_configured',
+					__( 'API key not configured. Please visit the Site Pilot AI settings.', 'site-pilot-ai' ),
 					array( 'status' => 500 )
 				);
 			}
 
-			return true;
+			$this->log_auth_failure( $request );
+
+			return new WP_Error(
+				'invalid_api_key',
+				__( 'Invalid API key.', 'site-pilot-ai' ),
+				array( 'status' => 401 )
+			);
 		}
 
-		// Log failed attempt
-		$this->log_auth_failure( $request );
+		$rate_identifier = ! empty( $matched_key['id'] )
+			? 'key:' . sanitize_key( $matched_key['id'] )
+			: 'key:' . hash( 'sha256', $api_key );
 
-		return new WP_Error(
-			'invalid_api_key',
-			__( 'Invalid API key.', 'site-pilot-ai' ),
-			array( 'status' => 401 )
-		);
+		$rate_limit_check = $this->check_rate_limit( $rate_identifier );
+		if ( is_wp_error( $rate_limit_check ) ) {
+			return $rate_limit_check;
+		}
+
+		$required_scope = $this->get_required_scope_for_request( $request );
+		if ( ! $this->key_has_scope( $matched_key, $required_scope ) ) {
+			return new WP_Error(
+				'insufficient_scope',
+				sprintf(
+					/* translators: %s: scope name */
+					__( 'API key lacks required scope: %s', 'site-pilot-ai' ),
+					$required_scope
+				),
+				array(
+					'status'         => 403,
+					'required_scope' => $required_scope,
+					'granted_scopes' => isset( $matched_key['scopes'] ) ? $matched_key['scopes'] : array(),
+				)
+			);
+		}
+
+		if ( ! empty( $matched_key['id'] ) ) {
+			$this->touch_api_key_last_used( $matched_key['id'] );
+		}
+
+		if ( ! $this->set_api_user_context() ) {
+			return new WP_Error(
+				'api_user_missing',
+				__( 'API user context is not configured. Re-activate Site Pilot AI to provision the service account.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return true;
 	}
 
 	/**
@@ -107,7 +133,7 @@ trait Spai_Api_Auth {
 	/**
 	 * Get API key from request.
 	 *
-	 * Checks header first, then query parameter.
+	 * Checks header first.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 * @return string|null API key or null.
@@ -232,6 +258,465 @@ trait Spai_Api_Auth {
 	}
 
 	/**
+	 * Check whether API keys are configured in any supported store.
+	 *
+	 * @param string $legacy_key Legacy single key option value.
+	 * @return bool True if at least one key is configured.
+	 */
+	protected function has_configured_api_keys( $legacy_key ) {
+		if ( ! empty( $legacy_key ) ) {
+			return true;
+		}
+
+		$keys = $this->get_scoped_api_keys_raw();
+		foreach ( $keys as $key ) {
+			if ( empty( $key['revoked_at'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Find an active scoped API key record matching a plaintext key.
+	 *
+	 * @param string $api_key Incoming plaintext API key.
+	 * @return array|null Matching key record or null.
+	 */
+	protected function find_scoped_api_key( $api_key ) {
+		$keys = $this->get_scoped_api_keys_raw();
+
+		foreach ( $keys as $key ) {
+			if ( ! empty( $key['revoked_at'] ) || empty( $key['hash'] ) ) {
+				continue;
+			}
+
+			if ( $this->is_api_key_match( $api_key, $key['hash'] ) ) {
+				return $this->normalize_api_key_record( $key );
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get required authorization scope for a request.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return string Scope name: read|write|admin.
+	 */
+	protected function get_required_scope_for_request( $request ) {
+		$route  = method_exists( $request, 'get_route' ) ? (string) $request->get_route() : '';
+		$method = method_exists( $request, 'get_method' ) ? strtoupper( (string) $request->get_method() ) : 'GET';
+
+		if ( 0 === strpos( $route, '/site-pilot-ai/v1/mcp' ) ) {
+			return $this->get_required_scope_for_mcp_request( $request );
+		}
+
+		$admin_routes = array(
+			'/site-pilot-ai/v1/settings',
+			'/site-pilot-ai/v1/options',
+			'/site-pilot-ai/v1/webhooks',
+			'/site-pilot-ai/v1/api-keys',
+		);
+
+		foreach ( $admin_routes as $admin_route ) {
+			if ( 0 === strpos( $route, $admin_route ) ) {
+				return 'admin';
+			}
+		}
+
+		if ( in_array( $method, array( 'GET', 'HEAD', 'OPTIONS' ), true ) ) {
+			return 'read';
+		}
+
+		return 'write';
+	}
+
+	/**
+	 * Infer required scope from MCP JSON-RPC payload.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return string Scope.
+	 */
+	protected function get_required_scope_for_mcp_request( $request ) {
+		$payload = method_exists( $request, 'get_json_params' ) ? $request->get_json_params() : null;
+
+		if ( empty( $payload ) ) {
+			return 'read';
+		}
+
+		$messages = isset( $payload[0] ) && is_array( $payload ) ? $payload : array( $payload );
+		$highest  = 'read';
+
+		foreach ( $messages as $message ) {
+			if ( ! is_array( $message ) ) {
+				continue;
+			}
+
+			$method = isset( $message['method'] ) ? (string) $message['method'] : '';
+			$scope  = 'read';
+
+			if ( 'tools/call' === $method ) {
+				$tool_name = isset( $message['params']['name'] ) ? (string) $message['params']['name'] : '';
+				$scope = $this->get_required_scope_for_tool_name( $tool_name );
+			} elseif ( ! in_array( $method, array( 'initialize', 'tools/list', 'resources/list', 'resources/read', 'ping', 'notifications/initialized' ), true ) ) {
+				$scope = 'write';
+			}
+
+			if ( $this->scope_rank( $scope ) > $this->scope_rank( $highest ) ) {
+				$highest = $scope;
+			}
+		}
+
+		return $highest;
+	}
+
+	/**
+	 * Determine required scope for a tool call name.
+	 *
+	 * @param string $tool_name MCP tool name.
+	 * @return string Scope.
+	 */
+	protected function get_required_scope_for_tool_name( $tool_name ) {
+		$admin_tools = array(
+			'wp_delete_all_drafts',
+			'wp_create_webhook',
+			'wp_update_webhook',
+			'wp_delete_webhook',
+			'wp_test_webhook',
+			'wp_list_webhooks',
+			'wp_list_webhook_logs',
+			'wp_create_api_key',
+			'wp_revoke_api_key',
+			'wp_list_api_keys',
+		);
+
+		if ( in_array( $tool_name, $admin_tools, true ) ) {
+			return 'admin';
+		}
+
+		if ( preg_match( '/^wp_(create|update|delete|set|upload|bulk)/', $tool_name ) ) {
+			return 'write';
+		}
+
+		return 'read';
+	}
+
+	/**
+	 * Check if a key grants a required scope.
+	 *
+	 * @param array  $key_record    Key record.
+	 * @param string $required_scope Scope required for request.
+	 * @return bool True if granted.
+	 */
+	protected function key_has_scope( $key_record, $required_scope ) {
+		$scopes = isset( $key_record['scopes'] ) ? (array) $key_record['scopes'] : array();
+		$scopes = $this->sanitize_scopes( $scopes );
+
+		if ( in_array( 'admin', $scopes, true ) ) {
+			return true;
+		}
+
+		if ( 'write' === $required_scope && in_array( 'write', $scopes, true ) ) {
+			return true;
+		}
+
+		if ( 'read' === $required_scope && ( in_array( 'read', $scopes, true ) || in_array( 'write', $scopes, true ) ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Rank scope for comparison.
+	 *
+	 * @param string $scope Scope value.
+	 * @return int Rank value.
+	 */
+	protected function scope_rank( $scope ) {
+		$ranks = array(
+			'read'  => 1,
+			'write' => 2,
+			'admin' => 3,
+		);
+
+		return isset( $ranks[ $scope ] ) ? $ranks[ $scope ] : 1;
+	}
+
+	/**
+	 * Create and store a scoped API key.
+	 *
+	 * @param string $label  Human-readable key label.
+	 * @param array  $scopes Scopes for key.
+	 * @return array Key creation result, including plaintext key once.
+	 */
+	public function create_scoped_api_key( $label = '', $scopes = array() ) {
+		$plain_key = $this->generate_api_key();
+		$key_id    = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'spai_', true );
+		$now       = current_time( 'mysql' );
+		$scopes    = $this->sanitize_scopes( $scopes );
+
+		$record = array(
+			'id'           => sanitize_key( (string) $key_id ),
+			'label'        => '' !== $label ? sanitize_text_field( $label ) : __( 'API Key', 'site-pilot-ai' ),
+			'hash'         => wp_hash_password( $plain_key ),
+			'scopes'       => $scopes,
+			'created_at'   => $now,
+			'last_used_at' => null,
+			'revoked_at'   => null,
+		);
+
+		$keys   = $this->get_scoped_api_keys_raw();
+		$keys[] = $record;
+		update_option( $this->get_scoped_api_keys_option_name(), $keys );
+
+		return array(
+			'id'         => $record['id'],
+			'label'      => $record['label'],
+			'scopes'     => $record['scopes'],
+			'created_at' => $record['created_at'],
+			'key'        => $plain_key,
+		);
+	}
+
+	/**
+	 * List scoped API keys without exposing secrets.
+	 *
+	 * @param bool $include_revoked Whether to include revoked keys.
+	 * @return array Key metadata list.
+	 */
+	public function list_scoped_api_keys( $include_revoked = false ) {
+		$keys   = $this->get_scoped_api_keys_raw();
+		$output = array();
+
+		foreach ( $keys as $key ) {
+			$normalized = $this->normalize_api_key_record( $key );
+			if ( ! $include_revoked && ! empty( $normalized['revoked_at'] ) ) {
+				continue;
+			}
+
+			$output[] = array(
+				'id'           => $normalized['id'],
+				'label'        => $normalized['label'],
+				'scopes'       => $normalized['scopes'],
+				'created_at'   => $normalized['created_at'],
+				'last_used_at' => $normalized['last_used_at'],
+				'revoked_at'   => $normalized['revoked_at'],
+			);
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Revoke a scoped API key.
+	 *
+	 * @param string $key_id Key identifier.
+	 * @return bool True if revoked.
+	 */
+	public function revoke_scoped_api_key( $key_id ) {
+		$key_id = sanitize_key( (string) $key_id );
+		if ( '' === $key_id ) {
+			return false;
+		}
+
+		$keys     = $this->get_scoped_api_keys_raw();
+		$updated  = false;
+
+		foreach ( $keys as &$key ) {
+			$normalized = $this->normalize_api_key_record( $key );
+			if ( $normalized['id'] !== $key_id ) {
+				continue;
+			}
+
+			if ( empty( $normalized['revoked_at'] ) ) {
+				$key['revoked_at'] = current_time( 'mysql' );
+				$updated = true;
+			}
+		}
+		unset( $key );
+
+		if ( $updated ) {
+			update_option( $this->get_scoped_api_keys_option_name(), $keys );
+		}
+
+		return $updated;
+	}
+
+	/**
+	 * Migrate legacy single-key storage to scoped key storage.
+	 *
+	 * @param string $legacy_key Legacy key option value.
+	 * @return array|null Migrated key record.
+	 */
+	protected function migrate_legacy_key_to_scoped_store( $legacy_key ) {
+		if ( empty( $legacy_key ) ) {
+			return null;
+		}
+
+		$legacy_key      = (string) $legacy_key;
+		$legacy_is_hashed = $this->looks_like_password_hash( $legacy_key );
+		$legacy_hash      = $legacy_key;
+
+		if ( ! $legacy_is_hashed ) {
+			$legacy_hash = wp_hash_password( $legacy_key );
+			update_option( 'spai_api_key', $legacy_hash );
+		}
+
+		$keys = $this->get_scoped_api_keys_raw();
+		if ( ! empty( $keys ) ) {
+			foreach ( $keys as $key ) {
+				$normalized = $this->normalize_api_key_record( $key );
+				if ( ! empty( $normalized['revoked_at'] ) ) {
+					continue;
+				}
+				$is_existing_match = $legacy_is_hashed
+					? hash_equals( (string) $normalized['hash'], $legacy_hash )
+					: $this->is_api_key_match( $legacy_key, $normalized['hash'] );
+
+				if ( $is_existing_match ) {
+					return $normalized;
+				}
+			}
+		}
+
+		$migrated = array(
+			'id'           => sanitize_key( function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'spai_', true ) ),
+			'label'        => __( 'Primary API Key (migrated)', 'site-pilot-ai' ),
+			'hash'         => $legacy_hash,
+			'scopes'       => $this->get_default_api_key_scopes(),
+			'created_at'   => current_time( 'mysql' ),
+			'last_used_at' => null,
+			'revoked_at'   => null,
+		);
+
+		$keys[] = $migrated;
+		update_option( $this->get_scoped_api_keys_option_name(), $keys );
+
+		return $this->normalize_api_key_record( $migrated );
+	}
+
+	/**
+	 * Update last_used_at on a scoped API key.
+	 *
+	 * @param string $key_id Key identifier.
+	 */
+	protected function touch_api_key_last_used( $key_id ) {
+		$key_id = sanitize_key( (string) $key_id );
+		if ( '' === $key_id ) {
+			return;
+		}
+
+		$keys = $this->get_scoped_api_keys_raw();
+		$now  = current_time( 'mysql' );
+		$changed = false;
+
+		foreach ( $keys as &$key ) {
+			$normalized = $this->normalize_api_key_record( $key );
+			if ( $normalized['id'] !== $key_id ) {
+				continue;
+			}
+
+			$key['last_used_at'] = $now;
+			$changed = true;
+			break;
+		}
+		unset( $key );
+
+		if ( $changed ) {
+			update_option( $this->get_scoped_api_keys_option_name(), $keys );
+		}
+	}
+
+	/**
+	 * Get raw scoped API key storage.
+	 *
+	 * @return array Raw key records.
+	 */
+	protected function get_scoped_api_keys_raw() {
+		$keys = get_option( $this->get_scoped_api_keys_option_name(), array() );
+		return is_array( $keys ) ? $keys : array();
+	}
+
+	/**
+	 * Normalize key record fields.
+	 *
+	 * @param array $record Key record.
+	 * @return array Normalized key record.
+	 */
+	protected function normalize_api_key_record( $record ) {
+		$record = is_array( $record ) ? $record : array();
+
+		return array(
+			'id'           => isset( $record['id'] ) ? sanitize_key( (string) $record['id'] ) : '',
+			'label'        => isset( $record['label'] ) ? sanitize_text_field( (string) $record['label'] ) : __( 'API Key', 'site-pilot-ai' ),
+			'hash'         => isset( $record['hash'] ) ? (string) $record['hash'] : '',
+			'scopes'       => $this->sanitize_scopes( isset( $record['scopes'] ) ? (array) $record['scopes'] : array() ),
+			'created_at'   => isset( $record['created_at'] ) ? (string) $record['created_at'] : null,
+			'last_used_at' => isset( $record['last_used_at'] ) ? (string) $record['last_used_at'] : null,
+			'revoked_at'   => isset( $record['revoked_at'] ) ? (string) $record['revoked_at'] : null,
+		);
+	}
+
+	/**
+	 * Sanitize and normalize scopes list.
+	 *
+	 * @param array $scopes Scopes input.
+	 * @return array Sanitized scopes.
+	 */
+	protected function sanitize_scopes( $scopes ) {
+		$allowed = array( 'read', 'write', 'admin' );
+		$scopes  = array_map( 'sanitize_key', (array) $scopes );
+		$scopes  = array_values( array_intersect( $scopes, $allowed ) );
+
+		if ( empty( $scopes ) ) {
+			return $this->get_default_api_key_scopes();
+		}
+
+		if ( in_array( 'admin', $scopes, true ) ) {
+			return array( 'read', 'write', 'admin' );
+		}
+
+		if ( in_array( 'write', $scopes, true ) && ! in_array( 'read', $scopes, true ) ) {
+			$scopes[] = 'read';
+		}
+
+		return array_values( array_unique( $scopes ) );
+	}
+
+	/**
+	 * Get default key scopes.
+	 *
+	 * @return array Default scopes.
+	 */
+	protected function get_default_api_key_scopes() {
+		return array( 'read', 'write', 'admin' );
+	}
+
+	/**
+	 * Get scoped key option name.
+	 *
+	 * @return string Option name.
+	 */
+	protected function get_scoped_api_keys_option_name() {
+		return 'spai_api_keys';
+	}
+
+	/**
+	 * Check whether a stored key value appears to be a password hash.
+	 *
+	 * @param string $value Stored key value.
+	 * @return bool True when value looks hashed.
+	 */
+	protected function looks_like_password_hash( $value ) {
+		$value = (string) $value;
+		return '' !== $value && '$' === substr( $value, 0, 1 );
+	}
+
+	/**
 	 * Generate a new API key.
 	 *
 	 * @return string New API key.
@@ -246,8 +731,20 @@ trait Spai_Api_Auth {
 	 * @return string New API key (plain text).
 	 */
 	public function regenerate_api_key() {
-		$new_key = $this->generate_api_key();
-		update_option( 'spai_api_key', wp_hash_password( $new_key ) );
-		return $new_key;
+		$keys = $this->get_scoped_api_keys_raw();
+
+		foreach ( $keys as &$key ) {
+			if ( empty( $key['revoked_at'] ) ) {
+				$key['revoked_at'] = current_time( 'mysql' );
+			}
+		}
+		unset( $key );
+
+		update_option( $this->get_scoped_api_keys_option_name(), $keys );
+
+		$created = $this->create_scoped_api_key( __( 'Primary API Key', 'site-pilot-ai' ), $this->get_default_api_key_scopes() );
+		update_option( 'spai_api_key', wp_hash_password( $created['key'] ) );
+
+		return $created['key'];
 	}
 }

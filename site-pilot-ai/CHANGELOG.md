@@ -5,6 +5,19 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.18] - 2026-02-06
+
+### Added
+- Scoped API key lifecycle management: create, list, and revoke keys with metadata (`created_at`, `last_used_at`, `revoked_at`)
+- API key scope enforcement (`read`, `write`, `admin`) across REST routes and MCP tool calls
+- MCP tools for API key operations: `wp_list_api_keys`, `wp_create_api_key`, `wp_revoke_api_key`
+- Development quality pipeline with CI checks for PHP syntax lint, coding standards (tests), and PHPUnit
+- PHPUnit scaffolding and baseline tests for auth, rate limiter, and MCP endpoint behavior
+
+### Security
+- Legacy plaintext API keys are now force-hashed during migration into scoped key storage
+- API key regeneration now revokes previous active scoped keys before issuing a new primary key
+
 ## [1.0.17] - 2026-02-06
 
 ### Security

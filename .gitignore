@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 mcp-server/node_modules/
+site-pilot-ai/vendor/
 
 # Build output
 mcp-server/dist/

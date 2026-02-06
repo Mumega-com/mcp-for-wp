@@ -703,6 +703,45 @@ class Spai_REST_MCP extends Spai_REST_API {
 			array()
 		);
 
+		$tools[] = $this->define_tool(
+			'wp_list_api_keys',
+			'List scoped API keys (metadata only)',
+			array(
+				'include_revoked' => array(
+					'type'        => 'boolean',
+					'description' => 'Include revoked keys in results',
+					'default'     => false,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_create_api_key',
+			'Create a scoped API key and return plaintext value once',
+			array(
+				'label' => array(
+					'type'        => 'string',
+					'description' => 'Human-readable key label',
+				),
+				'scopes' => array(
+					'type'        => 'array',
+					'description' => 'Key scopes (read, write, admin)',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_revoke_api_key',
+			'Revoke a scoped API key by id',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Scoped API key id',
+					'required'    => true,
+				),
+			)
+		);
+
 		// Add PRO tools if pro version is active
 		if ( $this->is_pro_active() ) {
 			$tools = array_merge( $tools, $this->get_pro_tool_definitions() );
@@ -1034,6 +1073,18 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_elementor_status'      => array(
 				'method' => 'GET',
 				'route'  => '/elementor/status',
+			),
+			'wp_list_api_keys'        => array(
+				'method' => 'GET',
+				'route'  => '/api-keys',
+			),
+			'wp_create_api_key'       => array(
+				'method' => 'POST',
+				'route'  => '/api-keys',
+			),
+			'wp_revoke_api_key'       => array(
+				'method' => 'DELETE',
+				'route'  => '/api-keys/{id}',
 			),
 		);
 

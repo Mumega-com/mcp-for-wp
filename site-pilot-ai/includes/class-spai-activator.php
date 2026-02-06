@@ -33,6 +33,9 @@ class Spai_Activator {
 			update_option( 'spai_first_activation', true );
 		}
 
+		// Ensure scoped API key store exists for key-level revocation/scopes.
+		self::ensure_scoped_api_keys();
+
 		// Set default options
 		if ( false === get_option( 'spai_settings' ) ) {
 			$defaults = array(
@@ -108,6 +111,50 @@ class Spai_Activator {
 	 */
 	private static function generate_api_key() {
 		return 'spai_' . bin2hex( random_bytes( 24 ) );
+	}
+
+	/**
+	 * Ensure scoped API key option exists and migrate legacy single-key storage.
+	 */
+	private static function ensure_scoped_api_keys() {
+		$existing = get_option( 'spai_api_keys', array() );
+		if ( is_array( $existing ) && ! empty( $existing ) ) {
+			return;
+		}
+
+		$legacy_key = get_option( 'spai_api_key' );
+		if ( empty( $legacy_key ) ) {
+			return;
+		}
+
+		$legacy_hash = self::looks_like_password_hash( $legacy_key ) ? (string) $legacy_key : wp_hash_password( (string) $legacy_key );
+		if ( $legacy_hash !== $legacy_key ) {
+			update_option( 'spai_api_key', $legacy_hash );
+		}
+
+		$key_id = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'spai_', true );
+		$record = array(
+			'id'           => sanitize_key( (string) $key_id ),
+			'label'        => __( 'Primary API Key', 'site-pilot-ai' ),
+			'hash'         => $legacy_hash,
+			'scopes'       => array( 'read', 'write', 'admin' ),
+			'created_at'   => current_time( 'mysql' ),
+			'last_used_at' => null,
+			'revoked_at'   => null,
+		);
+
+		update_option( 'spai_api_keys', array( $record ) );
+	}
+
+	/**
+	 * Check whether a stored key value appears to be a password hash.
+	 *
+	 * @param string $value Stored key value.
+	 * @return bool True when value looks hashed.
+	 */
+	private static function looks_like_password_hash( $value ) {
+		$value = (string) $value;
+		return '' !== $value && '$' === substr( $value, 0, 1 );
 	}
 
 	/**
