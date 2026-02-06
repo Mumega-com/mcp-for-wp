@@ -36,6 +36,10 @@ trait Spai_Api_Auth {
 			);
 		}
 
+		if ( $this->looks_like_oauth_access_token( $api_key ) ) {
+			return $this->authenticate_oauth_access_token( $api_key, $request );
+		}
+
 		$matched_key = $this->find_scoped_api_key( $api_key );
 		$legacy_key  = get_option( 'spai_api_key' );
 
@@ -153,6 +157,80 @@ trait Spai_Api_Auth {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Check whether a token looks like a generated OAuth access token.
+	 *
+	 * @param string $token Access token.
+	 * @return bool True when token has OAuth prefix.
+	 */
+	protected function looks_like_oauth_access_token( $token ) {
+		return 0 === strpos( (string) $token, 'spai_at_' );
+	}
+
+	/**
+	 * Validate and authenticate OAuth bearer access token.
+	 *
+	 * @param string          $token   Access token.
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool|WP_Error True when valid, error otherwise.
+	 */
+	protected function authenticate_oauth_access_token( $token, $request ) {
+		$oauth_settings = $this->get_oauth_settings();
+		if ( empty( $oauth_settings['oauth_enabled'] ) ) {
+			return new WP_Error(
+				'invalid_api_key',
+				__( 'Invalid API key.', 'site-pilot-ai' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		$record = get_transient( $this->get_oauth_token_transient_key( $token ) );
+		if ( ! is_array( $record ) || empty( $record['scopes'] ) ) {
+			$this->log_auth_failure( $request );
+			return new WP_Error(
+				'invalid_api_key',
+				__( 'Invalid API key.', 'site-pilot-ai' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		$rate_limit_check = $this->check_rate_limit( 'oauth:' . substr( hash( 'sha256', (string) $token ), 0, 16 ) );
+		if ( is_wp_error( $rate_limit_check ) ) {
+			return $rate_limit_check;
+		}
+
+		$key_record = array(
+			'scopes' => $this->sanitize_scopes( (array) $record['scopes'] ),
+		);
+		$required_scope = $this->get_required_scope_for_request( $request );
+
+		if ( ! $this->key_has_scope( $key_record, $required_scope ) ) {
+			return new WP_Error(
+				'insufficient_scope',
+				sprintf(
+					/* translators: %s: scope name */
+					__( 'API key lacks required scope: %s', 'site-pilot-ai' ),
+					$required_scope
+				),
+				array(
+					'status'         => 403,
+					'required_scope' => $required_scope,
+					'granted_scopes' => $key_record['scopes'],
+				)
+			);
+		}
+
+		if ( ! $this->set_api_user_context() ) {
+			return new WP_Error(
+				'api_user_missing',
+				__( 'API user context is not configured. Re-activate Site Pilot AI to provision the service account.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return true;
 	}
 
 	/**
@@ -704,6 +782,82 @@ trait Spai_Api_Auth {
 	 */
 	protected function get_default_api_key_scopes() {
 		return array( 'read', 'write', 'admin' );
+	}
+
+	/**
+	 * Get OAuth settings.
+	 *
+	 * @return array OAuth settings.
+	 */
+	protected function get_oauth_settings() {
+		$settings = get_option( 'spai_settings', array() );
+		$settings = is_array( $settings ) ? $settings : array();
+
+		return array(
+			'oauth_enabled'            => ! empty( $settings['oauth_enabled'] ),
+			'oauth_client_id'          => isset( $settings['oauth_client_id'] ) ? sanitize_key( (string) $settings['oauth_client_id'] ) : 'site_pilot_ai',
+			'oauth_client_secret_hash' => isset( $settings['oauth_client_secret_hash'] ) ? (string) $settings['oauth_client_secret_hash'] : '',
+			'oauth_token_ttl'          => isset( $settings['oauth_token_ttl'] ) ? max( 300, min( 86400, absint( $settings['oauth_token_ttl'] ) ) ) : 3600,
+		);
+	}
+
+	/**
+	 * Verify OAuth client credentials.
+	 *
+	 * @param string $client_id     Client ID.
+	 * @param string $client_secret Client secret.
+	 * @return bool True when credentials are valid.
+	 */
+	protected function verify_oauth_client_credentials( $client_id, $client_secret ) {
+		$oauth_settings = $this->get_oauth_settings();
+
+		if ( empty( $oauth_settings['oauth_enabled'] ) || empty( $oauth_settings['oauth_client_secret_hash'] ) ) {
+			return false;
+		}
+
+		if ( sanitize_key( (string) $client_id ) !== $oauth_settings['oauth_client_id'] ) {
+			return false;
+		}
+
+		return wp_check_password( (string) $client_secret, $oauth_settings['oauth_client_secret_hash'] );
+	}
+
+	/**
+	 * Issue an OAuth bearer access token.
+	 *
+	 * @param array $scopes Scopes to grant.
+	 * @param int   $ttl    Token TTL in seconds.
+	 * @return array Token response payload.
+	 */
+	public function issue_oauth_access_token( $scopes, $ttl ) {
+		$ttl    = max( 300, min( 86400, absint( $ttl ) ) );
+		$scopes = $this->sanitize_scopes( $scopes );
+		$token  = 'spai_at_' . bin2hex( random_bytes( 24 ) );
+
+		$payload = array(
+			'scopes'     => $scopes,
+			'created_at' => time(),
+			'expires_at' => time() + $ttl,
+		);
+
+		set_transient( $this->get_oauth_token_transient_key( $token ), $payload, $ttl );
+
+		return array(
+			'access_token' => $token,
+			'token_type'   => 'Bearer',
+			'expires_in'   => $ttl,
+			'scope'        => implode( ' ', $scopes ),
+		);
+	}
+
+	/**
+	 * Get transient key for an OAuth access token.
+	 *
+	 * @param string $token Access token.
+	 * @return string Transient key.
+	 */
+	protected function get_oauth_token_transient_key( $token ) {
+		return 'spai_oauth_token_' . md5( (string) $token );
 	}
 
 	/**

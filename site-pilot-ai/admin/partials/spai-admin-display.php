@@ -736,6 +736,7 @@ if ( isset( $new_key ) && $new_key ) {
 					<tr><td>GET</td><td>/analytics</td><td><?php esc_html_e( 'API analytics', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>GET</td><td>/plugins</td><td><?php esc_html_e( 'Detected plugins', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>POST</td><td>/mcp</td><td><?php esc_html_e( 'MCP protocol endpoint', 'site-pilot-ai' ); ?></td></tr>
+					<tr><td>POST</td><td>/oauth/token</td><td><?php esc_html_e( 'OAuth client credentials token endpoint', 'site-pilot-ai' ); ?></td></tr>
 
 					<tr class="spai-endpoint-section"><td colspan="3"><strong><?php esc_html_e( 'Content', 'site-pilot-ai' ); ?></strong></td></tr>
 					<tr><td>GET/POST</td><td>/posts</td><td><?php esc_html_e( 'List/create posts', 'site-pilot-ai' ); ?></td></tr>

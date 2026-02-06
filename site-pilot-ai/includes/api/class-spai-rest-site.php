@@ -218,6 +218,40 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// OAuth token issuance (client credentials)
+		register_rest_route(
+			$this->namespace,
+			'/oauth/token',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'issue_oauth_token' ),
+					'permission_callback' => '__return_true',
+					'args'                => array(
+						'grant_type'    => array(
+							'description' => __( 'OAuth grant type.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'default'     => 'client_credentials',
+						),
+						'client_id'     => array(
+							'description' => __( 'OAuth client ID.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'client_secret' => array(
+							'description' => __( 'OAuth client secret.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'scope'         => array(
+							'description' => __( 'Space-separated scopes (read write admin).', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
+				),
+			)
+		);
+
 		// Rate limit status
 		register_rest_route(
 			$this->namespace,
@@ -514,6 +548,56 @@ class Spai_REST_Site extends Spai_REST_API {
 		return $this->success_response( array(
 			'item' => $this->format_content_item( $post, $include_content ),
 		) );
+	}
+
+	/**
+	 * Issue OAuth access token via client credentials grant.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function issue_oauth_token( $request ) {
+		$this->log_activity( 'oauth_token', $request );
+
+		$rate_limit_check = $this->check_rate_limit( 'oauth-client:' . $this->get_client_ip() );
+		if ( is_wp_error( $rate_limit_check ) ) {
+			return $rate_limit_check;
+		}
+
+		$oauth_settings = $this->get_oauth_settings();
+		if ( empty( $oauth_settings['oauth_enabled'] ) ) {
+			return $this->error_response(
+				'oauth_disabled',
+				__( 'OAuth token endpoint is disabled.', 'site-pilot-ai' ),
+				503
+			);
+		}
+
+		$grant_type = sanitize_key( (string) $request->get_param( 'grant_type' ) );
+		if ( 'client_credentials' !== $grant_type ) {
+			return $this->error_response(
+				'unsupported_grant_type',
+				__( 'Only client_credentials grant type is supported.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$client_id     = sanitize_key( (string) $request->get_param( 'client_id' ) );
+		$client_secret = (string) $request->get_param( 'client_secret' );
+
+		if ( ! $this->verify_oauth_client_credentials( $client_id, $client_secret ) ) {
+			return $this->error_response(
+				'invalid_client',
+				__( 'Invalid OAuth client credentials.', 'site-pilot-ai' ),
+				401
+			);
+		}
+
+		$scope_string = (string) $request->get_param( 'scope' );
+		$scopes       = $this->parse_requested_oauth_scopes( $scope_string );
+		$token_data   = $this->issue_oauth_access_token( $scopes, $oauth_settings['oauth_token_ttl'] );
+
+		return $this->success_response( $token_data, 200 );
 	}
 
 	/**
@@ -1187,6 +1271,37 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		return $item;
+	}
+
+	/**
+	 * Parse requested OAuth scope string.
+	 *
+	 * @param string $scope_string Space-separated scope string.
+	 * @return array Sanitized scope list.
+	 */
+	private function parse_requested_oauth_scopes( $scope_string ) {
+		$scope_string = trim( (string) $scope_string );
+		if ( '' === $scope_string ) {
+			return array( 'read' );
+		}
+
+		$requested = preg_split( '/\s+/', $scope_string );
+		$requested = array_map( 'sanitize_key', (array) $requested );
+		$requested = array_values( array_intersect( $requested, array( 'read', 'write', 'admin' ) ) );
+
+		if ( empty( $requested ) ) {
+			return array( 'read' );
+		}
+
+		if ( in_array( 'admin', $requested, true ) ) {
+			return array( 'read', 'write', 'admin' );
+		}
+
+		if ( in_array( 'write', $requested, true ) && ! in_array( 'read', $requested, true ) ) {
+			$requested[] = 'read';
+		}
+
+		return array_values( array_unique( $requested ) );
 	}
 
 	/**

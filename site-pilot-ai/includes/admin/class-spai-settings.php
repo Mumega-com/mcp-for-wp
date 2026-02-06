@@ -103,6 +103,58 @@ class Spai_Settings {
 			)
 		);
 
+		add_settings_field(
+			'oauth_enabled',
+			__( 'OAuth Token Endpoint', 'site-pilot-ai' ),
+			array( $this, 'render_checkbox_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'oauth_enabled',
+				'description' => __( 'Enable OAuth2 client credentials at /wp-json/site-pilot-ai/v1/oauth/token.', 'site-pilot-ai' ),
+			)
+		);
+
+		add_settings_field(
+			'oauth_client_id',
+			__( 'OAuth Client ID', 'site-pilot-ai' ),
+			array( $this, 'render_text_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'oauth_client_id',
+				'description' => __( 'Client ID used for token requests.', 'site-pilot-ai' ),
+				'placeholder' => 'site_pilot_ai',
+			)
+		);
+
+		add_settings_field(
+			'oauth_client_secret',
+			__( 'OAuth Client Secret', 'site-pilot-ai' ),
+			array( $this, 'render_secret_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'oauth_client_secret',
+				'description' => __( 'Set a new secret. Leave empty to keep the existing value.', 'site-pilot-ai' ),
+			)
+		);
+
+		add_settings_field(
+			'oauth_token_ttl',
+			__( 'OAuth Token TTL', 'site-pilot-ai' ),
+			array( $this, 'render_number_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'oauth_token_ttl',
+				'description' => __( 'Token lifetime in seconds.', 'site-pilot-ai' ),
+				'min'         => 300,
+				'max'         => 86400,
+				'suffix'      => __( 'seconds', 'site-pilot-ai' ),
+			)
+		);
+
 		// Rate-limiting section.
 		add_settings_section(
 			'spai_rate_limit_section',
@@ -194,6 +246,10 @@ class Spai_Settings {
 			'enable_logging'     => true,
 			'log_retention_days' => 30,
 			'allowed_origins'    => '',
+			'oauth_enabled'      => false,
+			'oauth_client_id'    => 'site_pilot_ai',
+			'oauth_client_secret_hash' => '',
+			'oauth_token_ttl'    => 3600,
 		);
 	}
 
@@ -244,6 +300,7 @@ class Spai_Settings {
 	 */
 	public function sanitize_settings( $input ) {
 		$sanitized = array();
+		$current   = $this->get_settings();
 
 		$sanitized['enable_logging'] = ! empty( $input['enable_logging'] );
 
@@ -254,6 +311,21 @@ class Spai_Settings {
 		$sanitized['allowed_origins'] = isset( $input['allowed_origins'] )
 			? sanitize_textarea_field( $input['allowed_origins'] )
 			: '';
+
+		$sanitized['oauth_enabled'] = ! empty( $input['oauth_enabled'] );
+		$sanitized['oauth_client_id'] = isset( $input['oauth_client_id'] ) && '' !== $input['oauth_client_id']
+			? sanitize_key( $input['oauth_client_id'] )
+			: 'site_pilot_ai';
+		$sanitized['oauth_token_ttl'] = isset( $input['oauth_token_ttl'] )
+			? min( 86400, max( 300, absint( $input['oauth_token_ttl'] ) ) )
+			: 3600;
+
+		$new_secret = isset( $input['oauth_client_secret'] ) ? trim( (string) $input['oauth_client_secret'] ) : '';
+		if ( '' !== $new_secret ) {
+			$sanitized['oauth_client_secret_hash'] = wp_hash_password( $new_secret );
+		} else {
+			$sanitized['oauth_client_secret_hash'] = isset( $current['oauth_client_secret_hash'] ) ? (string) $current['oauth_client_secret_hash'] : '';
+		}
 
 		return $sanitized;
 	}
@@ -386,6 +458,54 @@ class Spai_Settings {
 
 		if ( ! empty( $args['description'] ) ) {
 			printf( '<p class="description">%s</p>', esc_html( $args['description'] ) );
+		}
+	}
+
+	/**
+	 * Render text field.
+	 *
+	 * @param array $args Field arguments.
+	 */
+	public function render_text_field( $args ) {
+		$settings = $this->get_option_settings( $args );
+		$value = isset( $settings[ $args['id'] ] ) ? $settings[ $args['id'] ] : '';
+		$option_name = isset( $args['option_name'] ) ? $args['option_name'] : self::OPTION_NAME;
+
+		printf(
+			'<input type="text" name="%s[%s]" value="%s" class="regular-text" placeholder="%s" />',
+			esc_attr( $option_name ),
+			esc_attr( $args['id'] ),
+			esc_attr( $value ),
+			esc_attr( $args['placeholder'] ?? '' )
+		);
+
+		if ( ! empty( $args['description'] ) ) {
+			printf( '<p class="description">%s</p>', esc_html( $args['description'] ) );
+		}
+	}
+
+	/**
+	 * Render secret field.
+	 *
+	 * @param array $args Field arguments.
+	 */
+	public function render_secret_field( $args ) {
+		$settings = $this->get_option_settings( $args );
+		$option_name = isset( $args['option_name'] ) ? $args['option_name'] : self::OPTION_NAME;
+		$has_secret = ! empty( $settings['oauth_client_secret_hash'] );
+
+		printf(
+			'<input type="password" name="%s[%s]" value="" class="regular-text" autocomplete="new-password" />',
+			esc_attr( $option_name ),
+			esc_attr( $args['id'] )
+		);
+
+		if ( ! empty( $args['description'] ) ) {
+			printf( '<p class="description">%s</p>', esc_html( $args['description'] ) );
+		}
+
+		if ( $has_secret ) {
+			printf( '<p class="description">%s</p>', esc_html__( 'A client secret is already configured.', 'site-pilot-ai' ) );
 		}
 	}
 
