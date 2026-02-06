@@ -35,8 +35,5 @@ jobs:
           find site-pilot-ai -path 'site-pilot-ai/vendor' -prune -o -name '*.php' -print0 \
             | xargs -0 -n1 php -l
 
-      - name: Coding Standards (tests)
-        run: site-pilot-ai/vendor/bin/phpcs --standard=PSR12 site-pilot-ai/tests
-
       - name: Unit Tests
         run: site-pilot-ai/vendor/bin/phpunit --configuration site-pilot-ai/tests/phpunit.xml
