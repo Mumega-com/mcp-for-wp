@@ -143,10 +143,14 @@ PREMIUM_ZIP="site-pilot-ai-premium-$VERSION.zip"
 
 echo "Building zip packages"
 (
-	# Free package must NOT include Pro modules.
+	# Note: Freemius premium-version packaging expects free + premium zips to have
+	# compatible file layouts. If the premium zip contains files/directories that
+	# are missing from the free zip, Freemius may strip them from premium updates.
+	#
+	# Because of that, we ship the Pro module files in BOTH zips, but gate loading
+	# behind `spai_license()->is_pro()`.
 	FREE_BUILD_DIR="$(mktemp -d)"
 	cp -R "site-pilot-ai" "$FREE_BUILD_DIR/site-pilot-ai"
-	rm -rf "$FREE_BUILD_DIR/site-pilot-ai/includes/pro" || true
 	cd "$FREE_BUILD_DIR"
 	zip -qr "$ROOT_DIR/$FREE_ZIP" "site-pilot-ai"
 	rm -rf "$FREE_BUILD_DIR" || true
