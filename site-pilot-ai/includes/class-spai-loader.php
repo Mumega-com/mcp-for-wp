@@ -89,6 +89,47 @@ class Spai_Loader {
 		$this->add_action( 'rest_api_init', $this, 'register_rest_routes' );
 		// Attach rate-limit headers to both success and error responses.
 		$this->add_filter( 'rest_post_dispatch', $this, 'add_spai_rate_limit_headers', 10, 3 );
+		// Ensure log cleanup cron is scheduled and executed.
+		$this->add_action( 'init', $this, 'maybe_schedule_log_cleanup' );
+		$this->add_action( 'spai_cleanup_logs', $this, 'cleanup_old_logs' );
+	}
+
+	/**
+	 * Ensure periodic activity-log cleanup is scheduled.
+	 */
+	public function maybe_schedule_log_cleanup() {
+		if ( ! function_exists( 'wp_next_scheduled' ) || ! function_exists( 'wp_schedule_event' ) ) {
+			return;
+		}
+
+		if ( wp_next_scheduled( 'spai_cleanup_logs' ) ) {
+			return;
+		}
+
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'spai_cleanup_logs' );
+	}
+
+	/**
+	 * Cleanup old activity logs using configured retention days.
+	 */
+	public function cleanup_old_logs() {
+		global $wpdb;
+		if ( ! isset( $wpdb->prefix ) ) {
+			return;
+		}
+
+		$settings = get_option( 'spai_settings', array() );
+		$days     = isset( $settings['log_retention_days'] ) ? max( 1, absint( $settings['log_retention_days'] ) ) : 30;
+		$table    = $wpdb->prefix . 'spai_activity_log';
+		$cutoff   = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$table} WHERE created_at < %s",
+				$cutoff
+			)
+		);
 	}
 
 	/**

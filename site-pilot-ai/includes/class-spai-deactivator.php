@@ -24,6 +24,7 @@ class Spai_Deactivator {
 	public static function deactivate() {
 		// Clear any transients
 		delete_transient( 'spai_capabilities_cache' );
+		wp_clear_scheduled_hook( 'spai_cleanup_logs' );
 
 		// Flush rewrite rules
 		flush_rewrite_rules();

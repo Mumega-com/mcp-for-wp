@@ -155,6 +155,10 @@ function sanitize_email( $value ) {
 	return filter_var( $value, FILTER_SANITIZE_EMAIL );
 }
 
+function absint( $value ) {
+	return abs( (int) $value );
+}
+
 function esc_url_raw( $value ) {
 	return filter_var( (string) $value, FILTER_SANITIZE_URL );
 }

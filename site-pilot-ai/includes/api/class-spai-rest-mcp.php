@@ -742,6 +742,182 @@ class Spai_REST_MCP extends Spai_REST_API {
 			)
 		);
 
+		$tools[] = $this->define_tool(
+			'wp_rate_limit_status',
+			'Get current rate-limit settings and usage for the calling identifier',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_rate_limit',
+			'Update rate-limit settings (admin only)',
+			array(
+				'enabled'             => array(
+					'type'        => 'boolean',
+					'description' => 'Enable or disable rate limiting',
+				),
+				'requests_per_minute' => array(
+					'type'        => 'number',
+					'description' => 'Requests allowed per minute',
+				),
+				'requests_per_hour'   => array(
+					'type'        => 'number',
+					'description' => 'Requests allowed per hour',
+				),
+				'burst_limit'         => array(
+					'type'        => 'number',
+					'description' => 'Requests allowed in short burst window',
+				),
+				'whitelist'           => array(
+					'type'        => 'array',
+					'description' => 'Identifiers to bypass rate limiting',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_reset_rate_limit',
+			'Reset rate-limit counters for an identifier (admin only)',
+			array(
+				'identifier' => array(
+					'type'        => 'string',
+					'description' => 'Identifier to reset (for example key:<id> or IP)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_webhook_events',
+			'List available webhook event names',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_webhooks',
+			'List webhooks with optional filters',
+			array(
+				'status'   => array(
+					'type'        => 'string',
+					'description' => 'Status filter (active, disabled, all)',
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page',
+					'default'     => 50,
+				),
+				'page'     => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_create_webhook',
+			'Create a webhook endpoint subscription',
+			array(
+				'name'   => array(
+					'type'        => 'string',
+					'description' => 'Webhook display name',
+					'required'    => true,
+				),
+				'url'    => array(
+					'type'        => 'string',
+					'description' => 'Webhook target URL',
+					'required'    => true,
+				),
+				'events' => array(
+					'type'        => 'array',
+					'description' => 'Events to subscribe to',
+					'required'    => true,
+				),
+				'secret' => array(
+					'type'        => 'string',
+					'description' => 'Optional signing secret',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_webhook',
+			'Update an existing webhook',
+			array(
+				'id'     => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+				'name'   => array(
+					'type'        => 'string',
+					'description' => 'Webhook display name',
+				),
+				'url'    => array(
+					'type'        => 'string',
+					'description' => 'Webhook target URL',
+				),
+				'events' => array(
+					'type'        => 'array',
+					'description' => 'Updated event list',
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Webhook status (active or disabled)',
+				),
+				'secret' => array(
+					'type'        => 'string',
+					'description' => 'Webhook signing secret',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_delete_webhook',
+			'Delete a webhook',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_test_webhook',
+			'Send a test delivery for a webhook',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_webhook_logs',
+			'List delivery logs for a webhook',
+			array(
+				'id'       => array(
+					'type'        => 'number',
+					'description' => 'Webhook ID',
+					'required'    => true,
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page',
+					'default'     => 50,
+				),
+				'page'     => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+			)
+		);
+
 		// Add PRO tools if pro version is active
 		if ( $this->is_pro_active() ) {
 			$tools = array_merge( $tools, $this->get_pro_tool_definitions() );
@@ -1085,6 +1261,46 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_revoke_api_key'       => array(
 				'method' => 'DELETE',
 				'route'  => '/api-keys/{id}',
+			),
+			'wp_rate_limit_status'    => array(
+				'method' => 'GET',
+				'route'  => '/rate-limit',
+			),
+			'wp_update_rate_limit'    => array(
+				'method' => 'POST',
+				'route'  => '/rate-limit',
+			),
+			'wp_reset_rate_limit'     => array(
+				'method' => 'POST',
+				'route'  => '/rate-limit/reset',
+			),
+			'wp_list_webhook_events'  => array(
+				'method' => 'GET',
+				'route'  => '/webhooks/events',
+			),
+			'wp_list_webhooks'        => array(
+				'method' => 'GET',
+				'route'  => '/webhooks',
+			),
+			'wp_create_webhook'       => array(
+				'method' => 'POST',
+				'route'  => '/webhooks',
+			),
+			'wp_update_webhook'       => array(
+				'method' => 'POST',
+				'route'  => '/webhooks/{id}',
+			),
+			'wp_delete_webhook'       => array(
+				'method' => 'DELETE',
+				'route'  => '/webhooks/{id}',
+			),
+			'wp_test_webhook'         => array(
+				'method' => 'POST',
+				'route'  => '/webhooks/{id}/test',
+			),
+			'wp_list_webhook_logs'    => array(
+				'method' => 'GET',
+				'route'  => '/webhooks/{id}/logs',
 			),
 		);
 

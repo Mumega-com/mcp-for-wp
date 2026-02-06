@@ -200,6 +200,88 @@ if ( isset( $new_key ) && $new_key ) {
 					<?php esc_html_e( 'The old key will stop working immediately.', 'site-pilot-ai' ); ?>
 				</span>
 			</form>
+
+			<h3><?php esc_html_e( 'Scoped API Keys', 'site-pilot-ai' ); ?></h3>
+			<p class="description">
+				<?php esc_html_e( 'Create additional keys with limited scopes. New keys are shown once only.', 'site-pilot-ai' ); ?>
+			</p>
+
+			<?php if ( ! empty( $new_scoped_key['key'] ) ) : ?>
+			<div class="spai-api-key-wrapper spai-api-key-wrapper--highlight">
+				<input
+					type="text"
+					class="spai-api-key-input"
+					value="<?php echo esc_attr( $new_scoped_key['key'] ); ?>"
+					readonly
+				/>
+				<button type="button" class="button button-primary spai-copy-btn" data-copy="<?php echo esc_attr( $new_scoped_key['key'] ); ?>">
+					<span class="dashicons dashicons-clipboard"></span>
+					<?php esc_html_e( 'Copy Key', 'site-pilot-ai' ); ?>
+				</button>
+			</div>
+			<?php endif; ?>
+
+			<form method="post" class="spai-regenerate-form">
+				<?php wp_nonce_field( 'spai_manage_scoped_keys', 'spai_scoped_keys_nonce' ); ?>
+				<p>
+					<label for="spai_scoped_key_label"><strong><?php esc_html_e( 'Label', 'site-pilot-ai' ); ?></strong></label><br />
+					<input type="text" id="spai_scoped_key_label" name="spai_scoped_key_label" class="regular-text" placeholder="<?php esc_attr_e( 'Example: Read-only CI bot', 'site-pilot-ai' ); ?>" />
+				</p>
+				<p>
+					<strong><?php esc_html_e( 'Scopes', 'site-pilot-ai' ); ?></strong><br />
+					<label><input type="checkbox" name="spai_scoped_key_scopes[]" value="read" checked /> <?php esc_html_e( 'Read', 'site-pilot-ai' ); ?></label>
+					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="write" /> <?php esc_html_e( 'Write', 'site-pilot-ai' ); ?></label>
+					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="admin" /> <?php esc_html_e( 'Admin', 'site-pilot-ai' ); ?></label>
+				</p>
+				<button type="submit" name="spai_create_scoped_key" class="button">
+					<?php esc_html_e( 'Create Scoped Key', 'site-pilot-ai' ); ?>
+				</button>
+			</form>
+
+			<?php if ( ! empty( $scoped_keys ) ) : ?>
+			<table class="widefat striped" style="margin-top:12px;">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Label', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Scopes', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Created', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Last Used', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Status', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Action', 'site-pilot-ai' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $scoped_keys as $key ) : ?>
+					<tr>
+						<td><?php echo esc_html( $key['label'] ); ?></td>
+						<td><?php echo esc_html( implode( ', ', array_map( 'strtoupper', (array) $key['scopes'] ) ) ); ?></td>
+						<td><?php echo ! empty( $key['created_at'] ) ? esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $key['created_at'] ) ) ) : '&mdash;'; ?></td>
+						<td><?php echo ! empty( $key['last_used_at'] ) ? esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $key['last_used_at'] ) ) ) : '&mdash;'; ?></td>
+						<td>
+							<?php if ( ! empty( $key['revoked_at'] ) ) : ?>
+								<span class="spai-status spai-status-inactive"><?php esc_html_e( 'Revoked', 'site-pilot-ai' ); ?></span>
+							<?php else : ?>
+								<span class="spai-status spai-status-active"><?php esc_html_e( 'Active', 'site-pilot-ai' ); ?></span>
+							<?php endif; ?>
+						</td>
+						<td>
+							<?php if ( empty( $key['revoked_at'] ) ) : ?>
+							<form method="post" style="display:inline;">
+								<?php wp_nonce_field( 'spai_manage_scoped_keys', 'spai_scoped_keys_nonce' ); ?>
+								<input type="hidden" name="spai_scoped_key_id" value="<?php echo esc_attr( $key['id'] ); ?>" />
+								<button type="submit" name="spai_revoke_scoped_key" class="button button-link-delete" onclick="return confirm('<?php echo esc_js( __( 'Revoke this key?', 'site-pilot-ai' ) ); ?>');">
+									<?php esc_html_e( 'Revoke', 'site-pilot-ai' ); ?>
+								</button>
+							</form>
+							<?php else : ?>
+								&mdash;
+							<?php endif; ?>
+						</td>
+					</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+			<?php endif; ?>
 		</div>
 
 		<!-- Test Connection Card -->
@@ -576,6 +658,17 @@ if ( isset( $new_key ) && $new_key ) {
 				settings_fields( 'spai_settings_group' );
 				do_settings_sections( 'spai_settings' );
 				submit_button();
+				?>
+			</form>
+		</div>
+
+		<div class="spai-card">
+			<h2><?php esc_html_e( 'Rate Limiting', 'site-pilot-ai' ); ?></h2>
+			<form method="post" action="options.php">
+				<?php
+				settings_fields( 'spai_rate_limit_group' );
+				do_settings_sections( 'spai_rate_limit_settings' );
+				submit_button( __( 'Save Rate Limits', 'site-pilot-ai' ) );
 				?>
 			</form>
 		</div>

@@ -55,6 +55,45 @@ final class RateLimiterTest extends TestCase {
 		$this->assertGreaterThanOrEqual( 0, (int) $error->get_error_data()['retry_after'] );
 	}
 
+	public function test_burst_limit_is_enforced(): void {
+		update_option(
+			'spai_rate_limit_settings',
+			array(
+				'enabled'             => true,
+				'requests_per_minute' => 100,
+				'requests_per_hour'   => 1000,
+				'burst_limit'         => 2,
+				'whitelist'           => array(),
+			)
+		);
+
+		$limiter = Spai_Rate_Limiter::get_instance();
+		$this->assertTrue( $limiter->check_limit( 'burst-client' ) );
+		$this->assertTrue( $limiter->check_limit( 'burst-client' ) );
+
+		$error = $limiter->check_limit( 'burst-client' );
+		$this->assertInstanceOf( WP_Error::class, $error );
+		$this->assertSame( 'rate_limit_exceeded', $error->get_error_code() );
+	}
+
+	public function test_update_settings_sanitizes_values(): void {
+		$limiter = Spai_Rate_Limiter::get_instance();
+		$limiter->update_settings(
+			array(
+				'requests_per_minute' => -5,
+				'requests_per_hour'   => 0,
+				'burst_limit'         => 999999,
+				'whitelist'           => "127.0.0.1\nkey:test\n",
+			)
+		);
+
+		$settings = $limiter->get_settings();
+		$this->assertSame( 1, (int) $settings['requests_per_minute'] );
+		$this->assertSame( 1, (int) $settings['requests_per_hour'] );
+		$this->assertSame( 1, (int) $settings['burst_limit'] );
+		$this->assertSame( array( '127.0.0.1', 'key:test' ), $settings['whitelist'] );
+	}
+
 	private function resetLimiterSingleton(): void {
 		$ref  = new ReflectionClass( Spai_Rate_Limiter::class );
 		$prop = $ref->getProperty( 'instance' );

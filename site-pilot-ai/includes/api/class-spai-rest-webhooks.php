@@ -292,6 +292,10 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 
 		$id = (int) $request->get_param( 'id' );
 		$data = $request->get_json_params();
+		if ( ! is_array( $data ) || empty( $data ) ) {
+			$data = $request->get_params();
+		}
+		unset( $data['id'] );
 
 		$result = $this->webhooks->update( $id, $data );
 

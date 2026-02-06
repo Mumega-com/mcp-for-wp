@@ -314,6 +314,13 @@ trait Spai_Api_Auth {
 			return $this->get_required_scope_for_mcp_request( $request );
 		}
 
+		if ( 0 === strpos( $route, '/site-pilot-ai/v1/rate-limit' ) ) {
+			if ( in_array( $method, array( 'GET', 'HEAD', 'OPTIONS' ), true ) ) {
+				return 'read';
+			}
+			return 'admin';
+		}
+
 		$admin_routes = array(
 			'/site-pilot-ai/v1/settings',
 			'/site-pilot-ai/v1/options',
@@ -388,9 +395,12 @@ trait Spai_Api_Auth {
 			'wp_test_webhook',
 			'wp_list_webhooks',
 			'wp_list_webhook_logs',
+			'wp_list_webhook_events',
 			'wp_create_api_key',
 			'wp_revoke_api_key',
 			'wp_list_api_keys',
+			'wp_update_rate_limit',
+			'wp_reset_rate_limit',
 		);
 
 		if ( in_array( $tool_name, $admin_tools, true ) ) {

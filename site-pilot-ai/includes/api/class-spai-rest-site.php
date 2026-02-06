@@ -149,6 +149,58 @@ class Spai_REST_Site extends Spai_REST_API {
 					'callback'            => array( $this, 'get_rate_limit_status' ),
 					'permission_callback' => array( $this, 'check_permission' ),
 				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_rate_limit_settings' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'enabled'             => array(
+							'description' => __( 'Enable or disable rate limiting.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+						),
+						'requests_per_minute' => array(
+							'description' => __( 'Requests allowed per minute.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'minimum'     => 1,
+						),
+						'requests_per_hour'   => array(
+							'description' => __( 'Requests allowed per hour.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'minimum'     => 1,
+						),
+						'burst_limit'         => array(
+							'description' => __( 'Requests allowed in short burst window.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'minimum'     => 1,
+						),
+						'whitelist'           => array(
+							'description' => __( 'Identifiers to bypass rate limiting.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'items'       => array(
+								'type' => 'string',
+							),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/rate-limit/reset',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'reset_rate_limit' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'identifier' => array(
+							'description' => __( 'Rate-limit identifier to reset (for example: key:<id> or IP).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
 			)
 		);
 
@@ -651,10 +703,116 @@ class Spai_REST_Site extends Spai_REST_API {
 		return $this->success_response( array(
 			'enabled'  => $settings['enabled'],
 			'limits'   => array(
+				'burst'      => $settings['burst_limit'],
 				'per_minute' => $settings['requests_per_minute'],
 				'per_hour'   => $settings['requests_per_hour'],
 			),
 			'usage'    => $usage,
+		) );
+	}
+
+	/**
+	 * Update rate limit settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function update_rate_limit_settings( $request ) {
+		$this->log_activity( 'update_rate_limit_settings', $request );
+
+		if ( ! $this->can_manage_api_keys() ) {
+			return $this->error_response(
+				'forbidden',
+				__( 'You do not have permission to manage rate limiting.', 'site-pilot-ai' ),
+				403
+			);
+		}
+
+		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
+			return $this->error_response(
+				'rate_limiter_unavailable',
+				__( 'Rate limiting is not available.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		$params = $request->get_json_params();
+		if ( ! is_array( $params ) || empty( $params ) ) {
+			$params = $request->get_params();
+		}
+
+		$allowed  = array( 'enabled', 'requests_per_minute', 'requests_per_hour', 'burst_limit', 'whitelist' );
+		$settings = array();
+		foreach ( $allowed as $key ) {
+			if ( array_key_exists( $key, $params ) ) {
+				$settings[ $key ] = $params[ $key ];
+			}
+		}
+
+		if ( empty( $settings ) ) {
+			return $this->error_response(
+				'missing_settings',
+				__( 'No rate-limit settings provided.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$limiter = Spai_Rate_Limiter::get_instance();
+		$updated = $limiter->update_settings( $settings );
+
+		if ( ! $updated ) {
+			return $this->error_response(
+				'update_failed',
+				__( 'Failed to update rate-limit settings.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		return $this->success_response( array(
+			'updated'  => true,
+			'settings' => $limiter->get_settings(),
+		) );
+	}
+
+	/**
+	 * Reset rate-limit counters for an identifier.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function reset_rate_limit( $request ) {
+		$this->log_activity( 'reset_rate_limit', $request );
+
+		if ( ! $this->can_manage_api_keys() ) {
+			return $this->error_response(
+				'forbidden',
+				__( 'You do not have permission to reset rate limits.', 'site-pilot-ai' ),
+				403
+			);
+		}
+
+		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
+			return $this->error_response(
+				'rate_limiter_unavailable',
+				__( 'Rate limiting is not available.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		$identifier = sanitize_text_field( (string) $request->get_param( 'identifier' ) );
+		if ( '' === $identifier ) {
+			return $this->error_response(
+				'missing_identifier',
+				__( 'Identifier is required.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		Spai_Rate_Limiter::get_instance()->reset_limit( $identifier );
+
+		return $this->success_response( array(
+			'reset'      => true,
+			'identifier' => $identifier,
 		) );
 	}
 

@@ -174,6 +174,49 @@ class Spai_Admin {
 			);
 		}
 
+		$new_scoped_key = null;
+		if ( isset( $_POST['spai_create_scoped_key'] ) ) {
+			check_admin_referer( 'spai_manage_scoped_keys', 'spai_scoped_keys_nonce' );
+
+			$label  = isset( $_POST['spai_scoped_key_label'] ) ? sanitize_text_field( wp_unslash( $_POST['spai_scoped_key_label'] ) ) : '';
+			$scopes = isset( $_POST['spai_scoped_key_scopes'] ) ? (array) wp_unslash( $_POST['spai_scoped_key_scopes'] ) : array();
+			if ( empty( $scopes ) ) {
+				$scopes = array( 'read' );
+			}
+
+			$new_scoped_key = $this->create_scoped_api_key( $label, $scopes );
+			add_settings_error(
+				'spai_messages',
+				'spai_scoped_key_created',
+				__( 'Scoped API key created. Copy it now — it will not be shown again.', 'site-pilot-ai' ),
+				'updated'
+			);
+		}
+
+		if ( isset( $_POST['spai_revoke_scoped_key'] ) ) {
+			check_admin_referer( 'spai_manage_scoped_keys', 'spai_scoped_keys_nonce' );
+
+			$key_id = isset( $_POST['spai_scoped_key_id'] ) ? sanitize_key( wp_unslash( $_POST['spai_scoped_key_id'] ) ) : '';
+			if ( '' !== $key_id ) {
+				$revoked = $this->revoke_scoped_api_key( $key_id );
+				if ( $revoked ) {
+					add_settings_error(
+						'spai_messages',
+						'spai_scoped_key_revoked',
+						__( 'Scoped API key revoked.', 'site-pilot-ai' ),
+						'updated'
+					);
+				} else {
+					add_settings_error(
+						'spai_messages',
+						'spai_scoped_key_revoke_failed',
+						__( 'Unable to revoke key (it may already be revoked).', 'site-pilot-ai' ),
+						'error'
+					);
+				}
+			}
+		}
+
 		// Check for first-activation key
 		if ( ! $new_key ) {
 			$first_key = get_transient( 'spai_new_api_key' );
@@ -181,6 +224,8 @@ class Spai_Admin {
 				$new_key = $first_key;
 			}
 		}
+
+		$scoped_keys = $this->list_scoped_api_keys( true );
 
 		include SPAI_PLUGIN_DIR . 'admin/partials/spai-admin-display.php';
 	}
