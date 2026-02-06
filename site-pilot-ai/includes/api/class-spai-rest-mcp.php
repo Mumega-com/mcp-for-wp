@@ -1161,7 +1161,80 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'name'        => $name,
 			'description' => $description,
 			'inputSchema' => $schema,
+			'annotations' => $this->get_tool_annotations( $name ),
 		);
+	}
+
+	/**
+	 * Get tool annotations for MCP compatibility.
+	 *
+	 * @param string $name Tool name.
+	 * @return array<string,bool> Tool annotation hints.
+	 */
+	private function get_tool_annotations( $name ) {
+		return array(
+			'readOnlyHint'    => $this->is_read_only_tool( $name ),
+			'openWorldHint'   => $this->is_open_world_tool( $name ),
+			'destructiveHint' => $this->is_destructive_tool( $name ),
+		);
+	}
+
+	/**
+	 * Determine whether a tool is read-only.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool does not modify data.
+	 */
+	private function is_read_only_tool( $name ) {
+		$tool_map = $this->get_tool_map();
+		if ( empty( $tool_map[ $name ]['method'] ) ) {
+			return false;
+		}
+
+		$method = strtoupper( (string) $tool_map[ $name ]['method'] );
+		return in_array( $method, array( 'GET', 'HEAD', 'OPTIONS' ), true );
+	}
+
+	/**
+	 * Determine whether a tool can access external systems.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool may interact with external services.
+	 */
+	private function is_open_world_tool( $name ) {
+		$open_world_tools = array(
+			'wp_upload_media_from_url',
+			'wp_test_webhook',
+		);
+
+		return in_array( $name, $open_world_tools, true );
+	}
+
+	/**
+	 * Determine whether a tool performs destructive actions.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool can delete/revoke/reset data.
+	 */
+	private function is_destructive_tool( $name ) {
+		$destructive_tools = array(
+			'wp_delete_post',
+			'wp_delete_all_drafts',
+			'wp_revoke_api_key',
+			'wp_reset_rate_limit',
+			'wp_delete_webhook',
+		);
+
+		if ( in_array( $name, $destructive_tools, true ) ) {
+			return true;
+		}
+
+		$tool_map = $this->get_tool_map();
+		if ( empty( $tool_map[ $name ]['method'] ) ) {
+			return false;
+		}
+
+		return 'DELETE' === strtoupper( (string) $tool_map[ $name ]['method'] );
 	}
 
 	/**

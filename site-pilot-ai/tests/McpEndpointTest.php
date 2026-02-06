@@ -56,4 +56,42 @@ final class McpEndpointTest extends TestCase {
 
 		$this->assertSame( array(), $data['result']['resources'] );
 	}
+
+	public function test_tools_list_includes_annotations_hints(): void {
+		$controller = new Spai_REST_MCP();
+		$request    = new WP_REST_Request(
+			'POST',
+			'/site-pilot-ai/v1/mcp',
+			array(),
+			array(),
+			array(
+				'jsonrpc' => '2.0',
+				'id'      => 3,
+				'method'  => 'tools/list',
+				'params'  => array(),
+			)
+		);
+
+		$response = $controller->handle_mcp( $request );
+		$data     = $response->get_data();
+		$tools    = $data['result']['tools'];
+
+		$by_name = array();
+		foreach ( $tools as $tool ) {
+			$by_name[ $tool['name'] ] = $tool;
+		}
+
+		$this->assertArrayHasKey( 'wp_site_info', $by_name );
+		$this->assertArrayHasKey( 'annotations', $by_name['wp_site_info'] );
+		$this->assertArrayHasKey( 'readOnlyHint', $by_name['wp_site_info']['annotations'] );
+		$this->assertArrayHasKey( 'openWorldHint', $by_name['wp_site_info']['annotations'] );
+		$this->assertArrayHasKey( 'destructiveHint', $by_name['wp_site_info']['annotations'] );
+		$this->assertTrue( $by_name['wp_site_info']['annotations']['readOnlyHint'] );
+		$this->assertFalse( $by_name['wp_site_info']['annotations']['openWorldHint'] );
+		$this->assertFalse( $by_name['wp_site_info']['annotations']['destructiveHint'] );
+
+		$this->assertArrayHasKey( 'wp_delete_post', $by_name );
+		$this->assertTrue( $by_name['wp_delete_post']['annotations']['destructiveHint'] );
+		$this->assertFalse( $by_name['wp_delete_post']['annotations']['readOnlyHint'] );
+	}
 }
