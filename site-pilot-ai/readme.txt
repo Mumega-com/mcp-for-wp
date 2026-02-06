@@ -3,9 +3,9 @@ Contributors: digidinc
 Donate link: https://sitepilotai.com
 Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
-Tested up to: 6.8
+Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.15
+Stable tag: 1.0.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.16 =
+* Fix: Freemius premium activation fatal error (switched to add-on architecture)
+* Fix: Test Connection button now works reliably (bypasses internal REST dispatch)
+* Fix: Pro plugin admin hook corrected for top-level menu
+* Tested up to: WordPress 6.9.1
 
 = 1.0.15 =
 * Security: Removed manage_options from API agent role (principle of least privilege)
