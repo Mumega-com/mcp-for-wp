@@ -87,6 +87,8 @@ class Spai_Loader {
 	private function define_api_hooks() {
 		// Initialize REST API
 		$this->add_action( 'rest_api_init', $this, 'register_rest_routes' );
+		// Attach rate-limit headers to both success and error responses.
+		$this->add_filter( 'rest_post_dispatch', $this, 'add_spai_rate_limit_headers', 10, 3 );
 	}
 
 	/**
@@ -127,6 +129,68 @@ class Spai_Loader {
 		 * Used by Pro add-on to register additional endpoints.
 		 */
 		do_action( 'spai_register_rest_routes' );
+	}
+
+	/**
+	 * Add SPAI rate-limit headers to REST responses.
+	 *
+	 * @param WP_HTTP_Response $response Result to send to the client.
+	 * @param WP_REST_Server   $server   Server instance.
+	 * @param WP_REST_Request  $request  Request used to generate the response.
+	 * @return WP_HTTP_Response Filtered response.
+	 */
+	public function add_spai_rate_limit_headers( $response, $server, $request ) {
+		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
+			return $response;
+		}
+
+		if ( ! $request instanceof WP_REST_Request ) {
+			return $response;
+		}
+
+		if ( ! method_exists( $request, 'get_route' ) || ! method_exists( $response, 'header' ) ) {
+			return $response;
+		}
+
+		$route = (string) $request->get_route();
+		if ( 0 !== strpos( $route, '/site-pilot-ai/v1/' ) ) {
+			return $response;
+		}
+
+		$limiter = Spai_Rate_Limiter::get_instance();
+		$headers = $limiter->get_headers();
+
+		foreach ( $headers as $key => $value ) {
+			$response->header( $key, $value );
+		}
+
+		$status = method_exists( $response, 'get_status' ) ? (int) $response->get_status() : 200;
+		if ( 429 !== $status ) {
+			return $response;
+		}
+
+		$data = method_exists( $response, 'get_data' ) ? $response->get_data() : null;
+		if ( ! is_array( $data ) || empty( $data['data'] ) || ! is_array( $data['data'] ) ) {
+			return $response;
+		}
+
+		if ( isset( $data['data']['retry_after'] ) ) {
+			$response->header( 'Retry-After', max( 0, (int) $data['data']['retry_after'] ) );
+		}
+
+		if ( isset( $data['data']['limit'] ) ) {
+			$response->header( 'X-RateLimit-Limit', (int) $data['data']['limit'] );
+		}
+
+		if ( isset( $data['data']['remaining'] ) ) {
+			$response->header( 'X-RateLimit-Remaining', max( 0, (int) $data['data']['remaining'] ) );
+		}
+
+		if ( isset( $data['data']['reset'] ) ) {
+			$response->header( 'X-RateLimit-Reset', (int) $data['data']['reset'] );
+		}
+
+		return $response;
 	}
 
 	/**

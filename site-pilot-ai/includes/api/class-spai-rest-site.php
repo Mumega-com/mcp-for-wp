@@ -501,6 +501,14 @@ class Spai_REST_Site extends Spai_REST_API {
 
 			$url = esc_url_raw( $params['url'] );
 
+			// SSRF protection: block internal/private URLs.
+			if ( class_exists( 'Spai_Security' ) ) {
+				$ssrf_check = Spai_Security::validate_external_url( $url );
+				if ( is_wp_error( $ssrf_check ) ) {
+					return $ssrf_check;
+				}
+			}
+
 			// Download and sideload the image
 			$tmp = download_url( $url );
 
