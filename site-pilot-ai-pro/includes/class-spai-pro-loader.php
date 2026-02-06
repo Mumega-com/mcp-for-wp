@@ -243,7 +243,7 @@ class Spai_Pro_Loader {
 	 * @param string $hook Current admin page.
 	 */
 	public function enqueue_admin_scripts( $hook ) {
-		if ( 'tools_page_site-pilot-ai' !== $hook ) {
+		if ( 'toplevel_page_site-pilot-ai' !== $hook ) {
 			return;
 		}
 
