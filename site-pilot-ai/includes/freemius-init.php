@@ -65,6 +65,19 @@ if ( ! function_exists( 'spa_fs' ) ) {
 }
 
 /**
+ * Get Freemius instance safely.
+ *
+ * @return object|null
+ */
+function spai_get_fs_instance() {
+	if ( ! function_exists( 'spa_fs' ) ) {
+		return null;
+	}
+	$instance = spa_fs();
+	return is_object( $instance ) ? $instance : null;
+}
+
+/**
  * Freemius customizations.
  */
 
@@ -72,7 +85,10 @@ if ( ! function_exists( 'spa_fs' ) ) {
 function spa_fs_custom_icon() {
 	return SPAI_PLUGIN_DIR . 'assets/icon-128x128.png';
 }
-spa_fs()->add_filter( 'plugin_icon', 'spa_fs_custom_icon' );
+$spai_fs_instance = spai_get_fs_instance();
+if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_filter' ) ) {
+	$spai_fs_instance->add_filter( 'plugin_icon', 'spa_fs_custom_icon' );
+}
 
 // Custom connect message.
 function spa_fs_custom_connect_message(
@@ -90,10 +106,14 @@ function spa_fs_custom_connect_message(
 		'<b>' . $product_title . '</b>'
 	);
 }
-spa_fs()->add_filter( 'connect_message', 'spa_fs_custom_connect_message', 10, 6 );
+if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_filter' ) ) {
+	$spai_fs_instance->add_filter( 'connect_message', 'spa_fs_custom_connect_message', 10, 6 );
+}
 
 // Uninstall hook.
-spa_fs()->add_action( 'after_uninstall', 'spa_fs_uninstall_cleanup' );
+if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_action' ) ) {
+	$spai_fs_instance->add_action( 'after_uninstall', 'spa_fs_uninstall_cleanup' );
+}
 
 /**
  * Cleanup on uninstall.

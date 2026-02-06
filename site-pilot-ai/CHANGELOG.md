@@ -5,6 +5,20 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.22] - 2026-02-06
+
+### Fixed
+- Prevented activation/deletion fatals when `spa_fs()` exists but does not return a valid Freemius instance.
+- Guarded Freemius SDK hook registration (`add_filter`/`add_action`) behind runtime instance checks.
+- Hardened license helper methods to safely handle unavailable Freemius instance methods.
+
+## [1.0.21] - 2026-02-06
+
+### Fixed
+- Prevented activation/deletion fatals when `spa_fs()` exists but does not return a valid Freemius instance.
+- Guarded Freemius SDK hook registration (`add_filter`/`add_action`) behind runtime instance checks.
+- Hardened license helper methods to safely handle unavailable Freemius instance methods.
+
 ## [1.0.20] - 2026-02-06
 
 ### Added

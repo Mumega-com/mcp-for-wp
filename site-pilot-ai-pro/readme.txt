@@ -2,9 +2,9 @@
 Contributors: digidinc
 Tags: ai, api, rest-api, elementor, seo, forms, woocommerce, multilang
 Requires at least: 5.0
-Tested up to: 6.8
+Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.14
+Stable tag: 1.0.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -66,6 +66,14 @@ Site Pilot AI Pro extends the free Site Pilot AI plugin with advanced features:
 4. Pro features will be automatically available via the REST API
 
 == Changelog ==
+
+= 1.0.22 =
+* Version sync with base plugin hotfix release
+* Freemius/activation stability update compatibility
+
+= 1.0.21 =
+* Version sync with base plugin
+* Fixed WooCommerce REST controller inheritance for permission callbacks
 
 = 1.0.14 =
 * Version sync with base plugin

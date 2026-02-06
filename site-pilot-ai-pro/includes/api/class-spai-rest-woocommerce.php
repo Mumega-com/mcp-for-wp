@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * WooCommerce REST controller class.
  */
-class Spai_REST_WooCommerce {
+class Spai_REST_WooCommerce extends Spai_REST_API {
 
 	use Spai_API_Auth;
 

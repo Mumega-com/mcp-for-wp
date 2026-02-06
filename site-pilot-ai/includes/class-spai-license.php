@@ -39,6 +39,13 @@ class Spai_License {
 	private $license_data = null;
 
 	/**
+	 * Cached Freemius instance.
+	 *
+	 * @var object|null
+	 */
+	private $freemius_instance = null;
+
+	/**
 	 * Get singleton instance.
 	 *
 	 * @return Spai_License
@@ -58,6 +65,26 @@ class Spai_License {
 		if ( defined( 'SPAI_LICENSE_PROVIDER' ) ) {
 			$this->provider = SPAI_LICENSE_PROVIDER;
 		}
+	}
+
+	/**
+	 * Get Freemius instance safely.
+	 *
+	 * @return object|null
+	 */
+	private function get_freemius_instance() {
+		if ( null !== $this->freemius_instance ) {
+			return $this->freemius_instance;
+		}
+		if ( ! function_exists( 'spa_fs' ) ) {
+			return null;
+		}
+		$instance = spa_fs();
+		if ( ! is_object( $instance ) ) {
+			return null;
+		}
+		$this->freemius_instance = $instance;
+		return $this->freemius_instance;
 	}
 
 	/**
@@ -159,8 +186,9 @@ class Spai_License {
 	 * @return string
 	 */
 	public function get_upgrade_url() {
-		if ( 'freemius' === $this->provider && function_exists( 'spa_fs' ) ) {
-			return spa_fs()->get_upgrade_url();
+		$freemius = $this->get_freemius_instance();
+		if ( 'freemius' === $this->provider && $freemius && method_exists( $freemius, 'get_upgrade_url' ) ) {
+			return $freemius->get_upgrade_url();
 		}
 		return 'https://sitepilot.ai/pricing/';
 	}
@@ -171,8 +199,9 @@ class Spai_License {
 	 * @return string
 	 */
 	public function get_account_url() {
-		if ( 'freemius' === $this->provider && function_exists( 'spa_fs' ) ) {
-			return spa_fs()->get_account_url();
+		$freemius = $this->get_freemius_instance();
+		if ( 'freemius' === $this->provider && $freemius && method_exists( $freemius, 'get_account_url' ) ) {
+			return $freemius->get_account_url();
 		}
 		return 'https://sitepilot.ai/account/';
 	}
@@ -206,10 +235,11 @@ class Spai_License {
 	 * @return bool
 	 */
 	private function freemius_is_paying() {
-		if ( ! function_exists( 'spa_fs' ) ) {
+		$freemius = $this->get_freemius_instance();
+		if ( ! $freemius || ! method_exists( $freemius, 'is_paying' ) ) {
 			return false;
 		}
-		return spa_fs()->is_paying();
+		return (bool) $freemius->is_paying();
 	}
 
 	/**
@@ -218,11 +248,12 @@ class Spai_License {
 	 * @return string
 	 */
 	private function freemius_get_plan() {
-		if ( ! function_exists( 'spa_fs' ) || ! spa_fs()->is_paying() ) {
+		$freemius = $this->get_freemius_instance();
+		if ( ! $freemius || ! method_exists( $freemius, 'is_paying' ) || ! $freemius->is_paying() ) {
 			return 'free';
 		}
 
-		$plan = spa_fs()->get_plan();
+		$plan = method_exists( $freemius, 'get_plan' ) ? $freemius->get_plan() : null;
 		return $plan ? $plan->name : 'free';
 	}
 
@@ -232,12 +263,13 @@ class Spai_License {
 	 * @return string|null
 	 */
 	private function freemius_get_license_key() {
-		if ( ! function_exists( 'spa_fs' ) ) {
+		$freemius = $this->get_freemius_instance();
+		if ( ! $freemius || ! method_exists( $freemius, '_get_license' ) ) {
 			return null;
 		}
 
 		try {
-			$license = spa_fs()->_get_license();
+			$license = $freemius->_get_license();
 		} catch ( Exception $e ) {
 			return null;
 		}
@@ -255,12 +287,13 @@ class Spai_License {
 	 * @return string|null
 	 */
 	private function freemius_get_expiration() {
-		if ( ! function_exists( 'spa_fs' ) ) {
+		$freemius = $this->get_freemius_instance();
+		if ( ! $freemius || ! method_exists( $freemius, '_get_license' ) ) {
 			return null;
 		}
 
 		try {
-			$license = spa_fs()->_get_license();
+			$license = $freemius->_get_license();
 		} catch ( Exception $e ) {
 			return null;
 		}
@@ -277,12 +310,13 @@ class Spai_License {
 	 * @return int|null
 	 */
 	private function freemius_get_site_limit() {
-		if ( ! function_exists( 'spa_fs' ) ) {
+		$freemius = $this->get_freemius_instance();
+		if ( ! $freemius || ! method_exists( $freemius, '_get_license' ) ) {
 			return null;
 		}
 
 		try {
-			$license = spa_fs()->_get_license();
+			$license = $freemius->_get_license();
 		} catch ( Exception $e ) {
 			return null;
 		}
