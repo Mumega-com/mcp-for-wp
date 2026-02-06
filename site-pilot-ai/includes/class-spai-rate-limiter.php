@@ -69,9 +69,9 @@ class Spai_Rate_Limiter {
 		$saved = get_option( 'spai_rate_limit_settings', array() );
 		$this->settings = wp_parse_args( $saved, $defaults );
 		$this->settings['enabled'] = (bool) $this->settings['enabled'];
-		$this->settings['requests_per_minute'] = max( 1, min( 100000, absint( $this->settings['requests_per_minute'] ) ) );
-		$this->settings['requests_per_hour'] = max( 1, min( 100000, absint( $this->settings['requests_per_hour'] ) ) );
-		$this->settings['burst_limit'] = max( 1, min( 100000, absint( $this->settings['burst_limit'] ) ) );
+		$this->settings['requests_per_minute'] = max( 1, min( 100000, (int) $this->settings['requests_per_minute'] ) );
+		$this->settings['requests_per_hour'] = max( 1, min( 100000, (int) $this->settings['requests_per_hour'] ) );
+		$this->settings['burst_limit'] = max( 1, min( 100000, (int) $this->settings['burst_limit'] ) );
 		$this->settings['whitelist'] = $this->sanitize_whitelist( $this->settings['whitelist'] );
 		if ( $this->settings['burst_limit'] > $this->settings['requests_per_minute'] ) {
 			$this->settings['burst_limit'] = $this->settings['requests_per_minute'];
@@ -326,7 +326,7 @@ class Spai_Rate_Limiter {
 					case 'requests_per_minute':
 					case 'requests_per_hour':
 					case 'burst_limit':
-						$this->settings[ $key ] = max( 1, min( 100000, absint( $value ) ) );
+						$this->settings[ $key ] = max( 1, min( 100000, (int) $value ) );
 						break;
 					case 'whitelist':
 						$this->settings['whitelist'] = $this->sanitize_whitelist( $value );
