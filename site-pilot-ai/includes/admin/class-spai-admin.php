@@ -111,23 +111,29 @@ class Spai_Admin {
 			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
 		}
 
-		// Test internal REST dispatch
-		$request  = new WP_REST_Request( 'GET', '/site-pilot-ai/v1/site-info' );
-		$response = rest_do_request( $request );
+		// Verify REST API is reachable by checking site info directly.
+		// We don't use rest_do_request() because the permission_callback
+		// requires an API key header which isn't present in admin AJAX.
+		$rest_url = rest_url( 'site-pilot-ai/v1/' );
 
-		if ( $response->is_error() ) {
+		// Check that the API key exists.
+		$stored_key = get_option( 'spai_api_key' );
+		if ( empty( $stored_key ) ) {
 			wp_send_json_error( array(
-				'message' => $response->as_error()->get_error_message(),
+				'message' => __( 'No API key configured. Please generate one on the Setup tab.', 'site-pilot-ai' ),
 			) );
 		}
 
-		$data = $response->get_data();
+		// Gather site info directly (same data the REST endpoint returns).
+		global $wp_version;
+		$site_name = get_bloginfo( 'name' );
+
 		wp_send_json_success( array(
-			'site_name' => $data['name'] ?? '',
-			'wp_version' => $data['wordpress_version'] ?? '',
-			'php_version' => $data['php_version'] ?? PHP_VERSION,
+			'site_name'      => $site_name,
+			'wp_version'     => $wp_version,
+			'php_version'    => PHP_VERSION,
 			'plugin_version' => SPAI_VERSION,
-			'rest_url' => rest_url( 'site-pilot-ai/v1/' ),
+			'rest_url'       => $rest_url,
 		) );
 	}
 

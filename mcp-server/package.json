@@ -14,9 +14,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nickalot/site-pilot-ai"
+    "url": "https://github.com/Digidinc/wp-ai-operator"
   },
-  "homepage": "https://github.com/nickalot/site-pilot-ai#readme",
+  "homepage": "https://github.com/Digidinc/wp-ai-operator#readme",
   "engines": {
     "node": ">=18"
   },

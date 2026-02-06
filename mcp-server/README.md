@@ -24,9 +24,9 @@ This will:
 ### 2. Install WordPress Plugin
 
 Install the **Site Pilot AI** plugin on your WordPress site:
-1. Download from [GitHub releases](https://github.com/nickalot/site-pilot-ai/releases)
+1. Download from [GitHub releases](https://github.com/Digidinc/wp-ai-operator/releases)
 2. Upload to WordPress: **WP Admin > Plugins > Add New > Upload Plugin**
-3. Activate and copy your API key from **Settings > Site Pilot AI**
+3. Activate and copy your API key from **Site Pilot AI** (top-level admin menu)
 
 ### 3. Configure Claude Desktop
 
@@ -53,7 +53,7 @@ Tools will appear automatically. Try: "Show me my site info"
 
 ## Features
 
-36 tools across 4 extensions:
+30 tools across 4 extensions:
 
 ### Core (14 tools)
 - `wp_site_info` - Site information (theme, plugins, stats)
@@ -224,7 +224,7 @@ site-pilot-ai --test
 
 ### Invalid API Key
 
-- Check **WP Admin > Settings > Site Pilot AI**
+- Check **WP Admin > Site Pilot AI**
 - Regenerate key if needed
 - Update config: `site-pilot-ai --setup`
 
@@ -265,8 +265,8 @@ Extensions are loaded dynamically and can be enabled/disabled in config.
 ## Development
 
 ```bash
-git clone https://github.com/nickalot/site-pilot-ai.git
-cd site-pilot-ai/mcp-server
+git clone https://github.com/Digidinc/wp-ai-operator.git
+cd wp-ai-operator/mcp-server
 npm install
 npm run build
 
@@ -280,6 +280,6 @@ MIT © DigID
 
 ---
 
-**Documentation:** https://github.com/nickalot/site-pilot-ai
-**Issues:** https://github.com/nickalot/site-pilot-ai/issues
-**WordPress Plugin:** https://github.com/nickalot/site-pilot-ai/releases
+**Documentation:** https://github.com/Digidinc/wp-ai-operator
+**Issues:** https://github.com/Digidinc/wp-ai-operator/issues
+**WordPress Plugin:** https://github.com/Digidinc/wp-ai-operator/releases

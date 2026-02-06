@@ -49,7 +49,7 @@ Config File:
   ~/.wp-ai-operator/config.json
 
 Documentation:
-  https://github.com/nickalot/site-pilot-ai
+  https://github.com/Digidinc/wp-ai-operator
 `);
   process.exit(0);
 }
@@ -111,7 +111,7 @@ if (args.includes('--test')) {
 // Initialize MCP server
 const server = new Server(
   {
-    name: "wp-ai-operator",
+    name: "site-pilot-ai",
     version: "2.0.0",
   },
   {
@@ -261,7 +261,7 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
-    kernel.log("info", "WP AI Operator MCP Server v2.0 running");
+    kernel.log("info", "Site Pilot AI MCP Server v2.0 running");
     kernel.log("info", `Tools available: ${kernel.getAllTools().length}`);
   } catch (error: any) {
     console.error("Failed to start server:", error.message);
