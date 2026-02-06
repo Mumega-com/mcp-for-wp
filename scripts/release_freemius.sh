@@ -10,7 +10,7 @@ Usage:
   scripts/release_freemius.sh --version X.Y.Z [options]
 
 Required:
-  --version X.Y.Z                Release version for both free/pro plugins
+  --version X.Y.Z                Release version for the plugin
 
 Options:
   --token TOKEN                  Freemius bearer token (or FREEMIUS_BEARER_TOKEN)
@@ -123,8 +123,6 @@ FREE_CHANGELOG_FILE="site-pilot-ai/CHANGELOG.md"
 FREE_FS_INIT_FILE="site-pilot-ai/includes/freemius-init.php"
 FREE_LICENSE_FILE="site-pilot-ai/includes/class-spai-license.php"
 
-PREMIUM_DIR_NAME="site-pilot-ai-premium"
-
 if [[ "$SKIP_BUMP" -eq 0 ]]; then
 	echo "Bumping plugin versions to $VERSION"
 
@@ -139,37 +137,19 @@ if [[ "$SKIP_BUMP" -eq 0 ]]; then
 fi
 
 FREE_ZIP="site-pilot-ai-$VERSION.zip"
-PREMIUM_ZIP="site-pilot-ai-premium-$VERSION.zip"
 
-echo "Building zip packages"
+echo "Building zip package"
 (
-	# Note: Freemius premium-version packaging expects free + premium zips to have
-	# compatible file layouts. If the premium zip contains files/directories that
-	# are missing from the free zip, Freemius may strip them from premium updates.
-	#
-	# Because of that, we ship the Pro module files in BOTH zips, but gate loading
-	# behind `spai_license()->is_pro()`.
-	FREE_BUILD_DIR="$(mktemp -d)"
-	cp -R "site-pilot-ai" "$FREE_BUILD_DIR/site-pilot-ai"
-	cd "$FREE_BUILD_DIR"
+	BUILD_DIR="$(mktemp -d)"
+	cp -R "site-pilot-ai" "$BUILD_DIR/site-pilot-ai"
+	cd "$BUILD_DIR"
 	zip -qr "$ROOT_DIR/$FREE_ZIP" "site-pilot-ai"
-	rm -rf "$FREE_BUILD_DIR" || true
-)
-
-TMP_BUILD_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_BUILD_DIR"' EXIT
-
-echo "Building premium package directory"
-cp -R "site-pilot-ai" "$TMP_BUILD_DIR/$PREMIUM_DIR_NAME"
-(
-	cd "$TMP_BUILD_DIR"
-	zip -qr "$ROOT_DIR/$PREMIUM_ZIP" "$PREMIUM_DIR_NAME"
+	rm -rf "$BUILD_DIR" || true
 )
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
 	echo "Dry run complete."
 	echo "- Free zip: $FREE_ZIP"
-	echo "- Premium zip: $PREMIUM_ZIP"
 	echo "- API calls skipped"
 	exit 0
 fi
@@ -179,7 +159,6 @@ CREATE_RESPONSE="$(
 	curl -sS -X POST "https://api.freemius.com/v1/products/$PRODUCT_ID/tags.json" \
 		-H "Authorization: Bearer $TOKEN" \
 		-F "file=@$FREE_ZIP;type=application/zip" \
-		-F "premium_file=@$PREMIUM_ZIP;type=application/zip" \
 		-F "add_contributor_to_rel=false"
 )"
 
@@ -229,7 +208,7 @@ echo "- tag_id:       $TAG_ID"
 echo "- release_mode: $FINAL_MODE"
 
 if [[ "$KEEP_ZIPS" -eq 0 ]]; then
-	rm -f "$FREE_ZIP" "$PREMIUM_ZIP"
+	rm -f "$FREE_ZIP"
 	echo "Cleaned local zip artifacts"
 else
 	echo "Kept local zip artifacts"
