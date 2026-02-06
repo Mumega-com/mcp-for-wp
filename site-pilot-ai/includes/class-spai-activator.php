@@ -123,7 +123,7 @@ class Spai_Activator {
 
 		// Webhooks table
 		$webhooks_table = $wpdb->prefix . 'spai_webhooks';
-		$sql_webhooks = "CREATE TABLE $webhooks_table (
+		$sql_webhooks = "CREATE TABLE IF NOT EXISTS $webhooks_table (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL,
 			url varchar(2048) NOT NULL,
@@ -142,7 +142,7 @@ class Spai_Activator {
 
 		// Webhook logs table
 		$logs_table = $wpdb->prefix . 'spai_webhook_logs';
-		$sql_logs = "CREATE TABLE $logs_table (
+		$sql_logs = "CREATE TABLE IF NOT EXISTS $logs_table (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			webhook_id bigint(20) unsigned NOT NULL,
 			event varchar(100) NOT NULL,

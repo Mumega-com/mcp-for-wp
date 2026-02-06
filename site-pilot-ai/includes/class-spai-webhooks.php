@@ -70,7 +70,24 @@ class Spai_Webhooks {
 	private function __construct() {
 		global $wpdb;
 		$this->table = $wpdb->prefix . 'spai_webhooks';
+
+		// Ensure table exists
+		$this->ensure_table();
+
 		$this->init_hooks();
+	}
+
+	/**
+	 * Ensure the webhooks table exists, creating it if necessary.
+	 */
+	private function ensure_table() {
+		global $wpdb;
+		$table_exists = $wpdb->get_var(
+			$wpdb->prepare( "SHOW TABLES LIKE %s", $this->table )
+		);
+		if ( $table_exists !== $this->table ) {
+			self::create_table();
+		}
 	}
 
 	/**

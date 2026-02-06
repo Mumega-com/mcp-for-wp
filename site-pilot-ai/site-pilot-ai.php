@@ -182,6 +182,14 @@ function spai_load_plugin() {
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-admin.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-settings.php';
 
+	// Check if database needs updating
+	$installed_db_version = get_option( 'spai_db_version', '0' );
+	if ( version_compare( $installed_db_version, SPAI_VERSION, '<' ) ) {
+		require_once SPAI_PLUGIN_DIR . 'includes/class-spai-activator.php';
+		Spai_Activator::activate();
+		update_option( 'spai_db_version', SPAI_VERSION );
+	}
+
 	// Initialize the plugin
 	$loader = new Spai_Loader();
 	$loader->run();
