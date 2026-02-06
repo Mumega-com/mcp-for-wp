@@ -11,7 +11,7 @@
  * Plugin Name:       Site Pilot AI Pro
  * Plugin URI:        https://sitepilot.ai/pro
  * Description:       Pro add-on for Site Pilot AI. Adds advanced Elementor integration, SEO tools, and forms support.
- * Version:           1.0.17
+ * Version:           1.0.18
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'SPAI_PRO_VERSION', '1.0.17' );
+define( 'SPAI_PRO_VERSION', '1.0.18' );
 define( 'SPAI_PRO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAI_PRO_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -95,9 +95,14 @@ function spai_pro_license_required_notice() {
  * Initialize the Pro plugin.
  */
 function spai_pro_init() {
-	// Check if base plugin is active.
+	// Check if base plugin is active and fully loaded.
 	if ( ! spai_pro_is_base_active() ) {
 		add_action( 'admin_notices', 'spai_pro_base_required_notice' );
+		return;
+	}
+
+	// Verify the base REST API class is available (required for Pro controllers).
+	if ( ! class_exists( 'Spai_REST_API' ) ) {
 		return;
 	}
 
@@ -151,7 +156,9 @@ add_action( 'plugins_loaded', 'spai_pro_init', 20 );
  */
 function spai_pro_activate() {
 	// Check if base plugin is active.
-	if ( ! spai_pro_is_base_active() ) {
+	// During activation, plugins_loaded may not have fired yet,
+	// so check for the constant (defined at file level) rather than classes.
+	if ( ! defined( 'SPAI_VERSION' ) ) {
 		deactivate_plugins( plugin_basename( __FILE__ ) );
 		wp_die(
 			esc_html__( 'Site Pilot AI Pro requires the free Site Pilot AI plugin to be installed and activated.', 'site-pilot-ai-pro' ),
