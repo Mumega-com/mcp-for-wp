@@ -32,10 +32,10 @@ export class SEOExtension extends BaseExtension {
         inputSchema: {
           type: "object",
           properties: {
-            post_id: { type: "number", description: "Post or page ID" },
+            id: { type: "number", description: "Post or page ID" },
             site: { type: "string" },
           },
-          required: ["post_id"],
+          required: ["id"],
         },
       },
       {
@@ -44,19 +44,19 @@ export class SEOExtension extends BaseExtension {
         inputSchema: {
           type: "object",
           properties: {
-            post_id: { type: "number", description: "Post or page ID" },
+            id: { type: "number", description: "Post or page ID" },
             title: { type: "string", description: "SEO title (appears in search results)" },
             description: { type: "string", description: "Meta description (155 chars recommended)" },
             focus_keyword: { type: "string", description: "Primary keyword to optimize for" },
-            canonical_url: { type: "string", description: "Canonical URL" },
+            canonical: { type: "string", description: "Canonical URL" },
             og_title: { type: "string", description: "Open Graph title (for social sharing)" },
             og_description: { type: "string", description: "Open Graph description" },
             og_image: { type: "number", description: "Open Graph image (media ID)" },
-            noindex: { type: "boolean", description: "Prevent search engines from indexing" },
-            nofollow: { type: "boolean", description: "Prevent following links" },
+            robots_noindex: { type: "boolean", description: "Prevent search engines from indexing" },
+            robots_nofollow: { type: "boolean", description: "Prevent following links" },
             site: { type: "string" },
           },
-          required: ["post_id"],
+          required: ["id"],
         },
       },
       {
@@ -65,11 +65,11 @@ export class SEOExtension extends BaseExtension {
         inputSchema: {
           type: "object",
           properties: {
-            post_id: { type: "number", description: "Post or page ID" },
+            id: { type: "number", description: "Post or page ID" },
             keyword: { type: "string", description: "Focus keyword to analyze against" },
             site: { type: "string" },
           },
-          required: ["post_id"],
+          required: ["id"],
         },
       },
       {
@@ -112,36 +112,36 @@ export class SEOExtension extends BaseExtension {
 
   // ==================== Tool Handlers ====================
 
-  private async getSEO(args: { post_id: number; site?: string }) {
-    return this.request("GET", `seo/${args.post_id}`, null, { site: args.site });
+  private async getSEO(args: { id: number; site?: string }) {
+    return this.request("GET", `seo/${args.id}`, null, { site: args.site });
   }
 
   private async setSEO(args: {
-    post_id: number;
+    id: number;
     title?: string;
     description?: string;
     focus_keyword?: string;
-    canonical_url?: string;
+    canonical?: string;
     og_title?: string;
     og_description?: string;
     og_image?: number;
-    noindex?: boolean;
-    nofollow?: boolean;
+    robots_noindex?: boolean;
+    robots_nofollow?: boolean;
     site?: string;
   }) {
-    const { post_id, site, ...data } = args;
-    return this.request("POST", `seo/${post_id}`, data, { site });
+    const { id, site, ...data } = args;
+    return this.request("POST", `seo/${id}`, data, { site });
   }
 
-  private async analyzeSEO(args: { post_id: number; keyword?: string; site?: string }) {
+  private async analyzeSEO(args: { id: number; keyword?: string; site?: string }) {
     const params = new URLSearchParams();
     if (args.keyword) params.set("keyword", args.keyword);
-    return this.request("GET", `seo/${args.post_id}/analyze?${params}`, null, { site: args.site });
+    return this.request("GET", `seo/${args.id}/analyze?${params}`, null, { site: args.site });
   }
 
   private async bulkSEO(args: {
     updates: Array<{
-      post_id: number;
+      id: number;
       title?: string;
       description?: string;
       focus_keyword?: string;
@@ -152,7 +152,7 @@ export class SEOExtension extends BaseExtension {
   }
 
   private async getSEOPlugin(args: { site?: string }) {
-    return this.request("GET", "seo/plugin", null, { site: args.site });
+    return this.request("GET", "seo/status", null, { site: args.site });
   }
 }
 

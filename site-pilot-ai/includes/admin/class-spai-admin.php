@@ -24,15 +24,24 @@ class Spai_Admin {
 	const PAGE_SLUG = 'site-pilot-ai';
 
 	/**
-	 * Add admin menu.
+	 * SVG icon for menu (base64 encoded).
+	 *
+	 * @var string
+	 */
+	const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0iIzljYTJhNyI+PHBhdGggZD0iTTEwIDJjLTQuNCAwLTggMy42LTggOHMzLjYgOCA4IDggOC0zLjYgOC04LTMuNi04LTgtOHptMCAyYzEuNyAwIDMuMi43IDQuMyAxLjhMNy41IDE0LjZDNS42IDEzLjIgNC41IDExIDQuNSAxMCA0LjUgNi45IDcgNC41IDEwIDQuNXptMCAxMWMtMS43IDAtMy4yLS43LTQuMy0xLjhsNi44LTguOGMxLjkgMS40IDMgMy42IDMgNS42IDAgMy4xLTIuNSA1LjUtNS41IDUuNXoiLz48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSIyIi8+PC9zdmc+';
+
+	/**
+	 * Add admin menu - top-level with icon.
 	 */
 	public function add_admin_menu() {
-		add_management_page(
+		add_menu_page(
 			__( 'Site Pilot AI', 'site-pilot-ai' ),
 			__( 'Site Pilot AI', 'site-pilot-ai' ),
 			'manage_options',
 			self::PAGE_SLUG,
-			array( $this, 'render_admin_page' )
+			array( $this, 'render_admin_page' ),
+			self::MENU_ICON,
+			80
 		);
 	}
 
@@ -42,7 +51,7 @@ class Spai_Admin {
 	 * @param string $hook Current admin page.
 	 */
 	public function enqueue_styles( $hook ) {
-		if ( 'tools_page_' . self::PAGE_SLUG !== $hook ) {
+		if ( 'toplevel_page_' . self::PAGE_SLUG !== $hook ) {
 			return;
 		}
 
@@ -60,7 +69,7 @@ class Spai_Admin {
 	 * @param string $hook Current admin page.
 	 */
 	public function enqueue_scripts( $hook ) {
-		if ( 'tools_page_' . self::PAGE_SLUG !== $hook ) {
+		if ( 'toplevel_page_' . self::PAGE_SLUG !== $hook ) {
 			return;
 		}
 
@@ -78,13 +87,63 @@ class Spai_Admin {
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'spai_admin_nonce' ),
+				'restUrl' => rest_url( 'site-pilot-ai/v1/' ),
+				'siteUrl' => site_url(),
 				'strings' => array(
-					'copied'     => __( 'Copied!', 'site-pilot-ai' ),
-					'copyFailed' => __( 'Copy failed', 'site-pilot-ai' ),
-					'confirm'    => __( 'Are you sure you want to regenerate the API key? The old key will stop working immediately.', 'site-pilot-ai' ),
+					'copied'      => __( 'Copied!', 'site-pilot-ai' ),
+					'copyFailed'  => __( 'Copy failed', 'site-pilot-ai' ),
+					'confirm'     => __( 'Are you sure you want to regenerate the API key? The old key will stop working immediately.', 'site-pilot-ai' ),
+					'testing'     => __( 'Testing...', 'site-pilot-ai' ),
+					'connected'   => __( 'Connected!', 'site-pilot-ai' ),
+					'testFailed'  => __( 'Connection failed', 'site-pilot-ai' ),
 				),
 			)
 		);
+	}
+
+	/**
+	 * Handle AJAX test connection.
+	 */
+	public function ajax_test_connection() {
+		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+		}
+
+		// Test internal REST dispatch
+		$request  = new WP_REST_Request( 'GET', '/site-pilot-ai/v1/site-info' );
+		$response = rest_do_request( $request );
+
+		if ( $response->is_error() ) {
+			wp_send_json_error( array(
+				'message' => $response->as_error()->get_error_message(),
+			) );
+		}
+
+		$data = $response->get_data();
+		wp_send_json_success( array(
+			'site_name' => $data['name'] ?? '',
+			'wp_version' => $data['wordpress_version'] ?? '',
+			'php_version' => $data['php_version'] ?? PHP_VERSION,
+			'plugin_version' => SPAI_VERSION,
+			'rest_url' => rest_url( 'site-pilot-ai/v1/' ),
+		) );
+	}
+
+	/**
+	 * Handle AJAX dismiss welcome.
+	 */
+	public function ajax_dismiss_welcome() {
+		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+		}
+
+		delete_option( 'spai_first_activation' );
+		delete_transient( 'spai_new_api_key' );
+		wp_send_json_success();
 	}
 
 	/**
@@ -104,9 +163,17 @@ class Spai_Admin {
 			add_settings_error(
 				'spai_messages',
 				'spai_key_regenerated',
-				__( 'API key has been regenerated. Please copy it now as it will not be shown again.', 'site-pilot-ai' ),
+				__( 'API key has been regenerated. Copy it now — it will not be shown again.', 'site-pilot-ai' ),
 				'updated'
 			);
+		}
+
+		// Check for first-activation key
+		if ( ! $new_key ) {
+			$first_key = get_transient( 'spai_new_api_key' );
+			if ( $first_key ) {
+				$new_key = $first_key;
+			}
 		}
 
 		include SPAI_PLUGIN_DIR . 'admin/partials/spai-admin-display.php';
@@ -128,7 +195,7 @@ class Spai_Admin {
 	public function add_action_links( $links ) {
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
-			admin_url( 'tools.php?page=' . self::PAGE_SLUG ),
+			admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
 			__( 'Settings', 'site-pilot-ai' )
 		);
 

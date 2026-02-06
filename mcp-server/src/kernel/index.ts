@@ -73,7 +73,7 @@ export class WPKernel implements Kernel {
     options?: { site?: string; isFormData?: boolean }
   ): Promise<WPResponse> {
     const site = this.getSite(options?.site);
-    const url = `${site.url.replace(/\/$/, "")}/wp-json/wp-ai-operator/v1/${endpoint.replace(/^\//, "")}`;
+    const url = `${site.url.replace(/\/$/, "")}/wp-json/site-pilot-ai/v1/${endpoint.replace(/^\//, "")}`;
 
     this.emit("request:start", { method, endpoint, site: options?.site || this.currentSite });
 

@@ -157,6 +157,14 @@ class Spai_Elementor_Basic {
 			$elementor_json = $data['elementor_json'];
 		}
 
+		// Validate JSON size and nesting depth (prevent DoS).
+		if ( ! empty( $elementor_json ) && class_exists( 'Spai_Security' ) ) {
+			$size_check = Spai_Security::validate_json_payload( $elementor_json, 5 * 1024 * 1024, 30 );
+			if ( is_wp_error( $size_check ) ) {
+				return $size_check;
+			}
+		}
+
 		if ( empty( $elementor_json ) ) {
 			return new WP_Error(
 				'no_data',

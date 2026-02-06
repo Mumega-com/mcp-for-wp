@@ -237,7 +237,7 @@ export class CoreExtension extends BaseExtension {
   }
 
   private async detectPlugins(args: { site?: string }) {
-    return this.request("GET", "detect-plugins", null, { site: args.site });
+    return this.request("GET", "plugins", null, { site: args.site });
   }
 
   private async listPosts(args: { per_page?: number; page?: number; status?: string; site?: string }) {

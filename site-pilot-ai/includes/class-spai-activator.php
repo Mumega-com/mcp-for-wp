@@ -27,6 +27,10 @@ class Spai_Activator {
 		if ( ! get_option( 'spai_api_key' ) ) {
 			$api_key = self::generate_api_key();
 			update_option( 'spai_api_key', wp_hash_password( $api_key ) );
+			// Store plain text temporarily so admin can see it on first visit
+			set_transient( 'spai_new_api_key', $api_key, HOUR_IN_SECONDS );
+			// Flag first activation for welcome flow
+			update_option( 'spai_first_activation', true );
 		}
 
 		// Set default options
@@ -53,7 +57,7 @@ class Spai_Activator {
 	 * Create API role and user.
 	 */
 	private static function create_api_role_and_user() {
-		// Add Role
+		// Add Role — principle of least privilege: no manage_options or edit_theme_options.
 		add_role( 'spai_api_agent', 'Site Pilot API Agent', array(
 			'read'               => true,
 			'edit_posts'         => true,
@@ -64,11 +68,25 @@ class Spai_Activator {
 			'publish_pages'      => true,
 			'delete_posts'       => true,
 			'delete_pages'       => true,
-			'manage_options'     => true,
+			'delete_others_posts' => true,
+			'delete_others_pages' => true,
 			'upload_files'       => true,
 			'list_users'         => true,
-			'edit_theme_options' => true,
+			// Custom SPAI capabilities (NOT admin-level).
+			'spai_manage_settings' => true,
+			'spai_manage_webhooks' => true,
 		) );
+
+		// Update existing role if it already has manage_options (migration).
+		$role = get_role( 'spai_api_agent' );
+		if ( $role && $role->has_cap( 'manage_options' ) ) {
+			$role->remove_cap( 'manage_options' );
+			$role->remove_cap( 'edit_theme_options' );
+			$role->add_cap( 'delete_others_posts' );
+			$role->add_cap( 'delete_others_pages' );
+			$role->add_cap( 'spai_manage_settings' );
+			$role->add_cap( 'spai_manage_webhooks' );
+		}
 
 		// Create User
 		$user = get_user_by( 'login', 'spai_bot' );
@@ -89,7 +107,7 @@ class Spai_Activator {
 	 * @return string API key.
 	 */
 	private static function generate_api_key() {
-		return 'spai_' . wp_generate_password( 32, false );
+		return 'spai_' . bin2hex( random_bytes( 24 ) );
 	}
 
 	/**

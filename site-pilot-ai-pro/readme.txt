@@ -1,10 +1,10 @@
 === Site Pilot AI Pro ===
 Contributors: digidinc
-Tags: ai, api, rest-api, elementor, seo, forms
+Tags: ai, api, rest-api, elementor, seo, forms, woocommerce, multilang
 Requires at least: 5.0
-Tested up to: 6.4
+Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,6 +38,26 @@ Site Pilot AI Pro extends the free Site Pilot AI plugin with advanced features:
 * Form entries retrieval
 * Unified forms API
 
+= WooCommerce Integration =
+* Product management (CRUD)
+* Order management and status updates
+* Customer data access
+* Sales analytics and reports
+* Category and tag management
+
+= Multilanguage Support =
+* WPML integration
+* Polylang support
+* TranslatePress support
+* Language switching
+* Translation status
+
+= Site Management =
+* Theme management
+* Widget management
+* User management
+* Site-wide settings
+
 == Installation ==
 
 1. Ensure Site Pilot AI (free) is installed and activated
@@ -46,6 +66,22 @@ Site Pilot AI Pro extends the free Site Pilot AI plugin with advanced features:
 4. Pro features will be automatically available via the REST API
 
 == Changelog ==
+
+= 1.0.14 =
+* Version sync with base plugin
+* Security improvements inherited from base plugin
+
+= 1.0.13 =
+* Switched to Freemius updates (via base plugin)
+* Removed custom updater
+
+= 1.0.12 =
+* Added WooCommerce module (products, orders, customers, analytics)
+* Added Multilanguage module (WPML, Polylang, TranslatePress)
+* Added Theme management
+* Added Widget management
+* Added User management
+* Added Site Manager module
 
 = 1.0.0 =
 * Initial release

@@ -5,6 +5,8 @@
  * Part of wp-ai-operator by DigID Inc
  */
 
+import { handleMcp } from './mcp-handler.js';
+
 interface Env {
   WP_CACHE: KVNamespace;
   WP_DB: D1Database;
@@ -56,7 +58,7 @@ export default {
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Site-ID',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Site-ID, Mcp-Session-Id',
     };
 
     // Handle preflight
@@ -64,7 +66,27 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Auth check
+    // MCP endpoint - no auth required (handles its own protocol)
+    if (url.pathname === '/mcp') {
+      // Get default site config for MCP
+      const siteConfigs = getSiteConfigs(env);
+      const defaultSite = siteConfigs['default'] || Object.values(siteConfigs)[0];
+
+      if (!defaultSite) {
+        return jsonResponse(
+          { error: 'No site configured. Set SITE_CONFIGS environment variable.' },
+          503,
+          corsHeaders
+        );
+      }
+
+      return handleMcp(request, {
+        url: defaultSite.url,
+        apiKey: defaultSite.apiKey,
+      });
+    }
+
+    // Auth check for all other routes
     const authHeader = request.headers.get('Authorization');
     const authorizedTokens = (env.AUTHORIZED_TOKENS || '').split(',').map(t => t.trim());
 
@@ -199,7 +221,7 @@ async function handleProxy(
   }
 
   // Build WordPress request
-  const wpUrl = `${siteConfig.url}/wp-json/wp-ai-operator/v1${wpEndpoint}${url.search}`;
+  const wpUrl = `${siteConfig.url}/wp-json/site-pilot-ai/v1${wpEndpoint}${url.search}`;
 
   const wpHeaders: HeadersInit = {
     'X-API-Key': siteConfig.apiKey,
@@ -288,7 +310,7 @@ async function handleBatch(
           return { index, success: false, error: `Site not found: ${op.site}` };
         }
 
-        const wpUrl = `${siteConfig.url}/wp-json/wp-ai-operator/v1${op.endpoint}`;
+        const wpUrl = `${siteConfig.url}/wp-json/site-pilot-ai/v1${op.endpoint}`;
         const response = await fetch(wpUrl, {
           method: op.method || 'GET',
           headers: {

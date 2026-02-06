@@ -116,6 +116,14 @@ class Spai_Media {
 			);
 		}
 
+		// SSRF protection: block internal/private URLs.
+		if ( class_exists( 'Spai_Security' ) ) {
+			$ssrf_check = Spai_Security::validate_external_url( $url );
+			if ( is_wp_error( $ssrf_check ) ) {
+				return $ssrf_check;
+			}
+		}
+
 		// Download the file
 		$tmp = download_url( $url );
 

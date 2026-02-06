@@ -20,6 +20,93 @@ import {
 
 import { createKernel, WPKernel } from "./kernel/index.js";
 import { createAllExtensions } from "./extensions/index.js";
+import { runSetup } from './setup.js';
+
+// CLI argument handling
+const args = process.argv.slice(2);
+
+if (args.includes('--version') || args.includes('-v')) {
+  console.log('site-pilot-ai v2.0.0');
+  process.exit(0);
+}
+
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(`
+site-pilot-ai - MCP Server for WordPress
+
+Usage:
+  site-pilot-ai              Start MCP server (stdio transport)
+  site-pilot-ai --setup      Interactive setup wizard
+  site-pilot-ai --test       Test WordPress connection
+  site-pilot-ai --version    Show version
+
+Environment Variables:
+  WP_URL        WordPress site URL
+  WP_API_KEY    Site Pilot AI API key
+  WP_SITE_NAME  Site name (for multi-site configs)
+
+Config File:
+  ~/.wp-ai-operator/config.json
+
+Documentation:
+  https://github.com/nickalot/site-pilot-ai
+`);
+  process.exit(0);
+}
+
+if (args.includes('--setup')) {
+  await runSetup();
+  process.exit(0);
+}
+
+if (args.includes('--test')) {
+  const url = process.env.WP_URL;
+  const key = process.env.WP_API_KEY;
+
+  if (!url || !key) {
+    // Try loading from config
+    const { readFileSync, existsSync } = await import('fs');
+    const { homedir } = await import('os');
+    const { join } = await import('path');
+    const configPath = join(homedir(), '.wp-ai-operator', 'config.json');
+
+    if (existsSync(configPath)) {
+      const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+      const siteName = process.env.WP_SITE_NAME || config.defaultSite || Object.keys(config.sites)[0];
+      const site = config.sites[siteName];
+      if (site) {
+        process.env.WP_URL = site.url;
+        process.env.WP_API_KEY = site.apiKey;
+      }
+    }
+  }
+
+  const testUrl = process.env.WP_URL;
+  const testKey = process.env.WP_API_KEY;
+
+  if (!testUrl || !testKey) {
+    console.log('❌ No configuration found. Run: site-pilot-ai --setup');
+    process.exit(1);
+  }
+
+  console.log(`🔍 Testing connection to ${testUrl}...`);
+  try {
+    const response = await fetch(`${testUrl}/wp-json/site-pilot-ai/v1/site-info`, {
+      headers: { 'X-API-Key': testKey },
+    });
+    if (response.ok) {
+      const data = await response.json() as any;
+      console.log(`✅ Connected! ${data.site_name} (WordPress ${data.wordpress_version})`);
+      console.log(`   Plugin: Site Pilot AI v${data.plugin_version}`);
+      console.log(`   Posts: ${data.post_count}, Pages: ${data.page_count}`);
+    } else {
+      console.log(`❌ HTTP ${response.status}: Check your API key`);
+    }
+  } catch (e: any) {
+    console.log(`❌ Connection failed: ${e.message}`);
+  }
+  process.exit(0);
+}
 
 // Initialize MCP server
 const server = new Server(

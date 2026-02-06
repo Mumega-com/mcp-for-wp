@@ -3,9 +3,9 @@ Contributors: digidinc
 Donate link: https://sitepilotai.com
 Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
-Tested up to: 6.4
+Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,7 +27,7 @@ Site Pilot AI lets you control your WordPress site using AI assistants like Clau
 = How It Works =
 
 1. Install and activate the plugin
-2. Copy your API key from Tools → Site Pilot AI
+2. Copy your API key from Site Pilot AI in the admin menu
 3. Configure your MCP server with the API key
 4. Start controlling WordPress with natural language
 
@@ -57,7 +57,7 @@ Upgrade to Site Pilot AI Pro for advanced features:
 1. Go to Plugins → Add New
 2. Search for "Site Pilot AI"
 3. Click Install Now, then Activate
-4. Go to Tools → Site Pilot AI to get your API key
+4. Go to Site Pilot AI in the admin menu to get your API key
 
 = Manual Installation =
 
@@ -65,7 +65,7 @@ Upgrade to Site Pilot AI Pro for advanced features:
 2. Go to Plugins → Add New → Upload Plugin
 3. Select the ZIP file and click Install Now
 4. Activate the plugin
-5. Go to Tools → Site Pilot AI to get your API key
+5. Go to Site Pilot AI in the admin menu to get your API key
 
 = MCP Server Setup =
 
@@ -92,7 +92,7 @@ Model Context Protocol (MCP) is an open protocol that enables AI assistants like
 
 = Is this secure? =
 
-Yes. All requests require a unique API key. Keys are securely stored in your WordPress database. Activity logging tracks all API usage for auditing.
+Yes. All requests require a unique API key. Keys are hashed using WordPress password hashing (not stored in plain text). A dedicated service account with limited capabilities handles API requests. Activity logging tracks all API usage for auditing.
 
 = Does it work with any AI? =
 
@@ -120,6 +120,49 @@ Each site needs its own plugin installation and API key. The Pro version include
 
 == Changelog ==
 
+= 1.0.15 =
+* Security: Removed manage_options from API agent role (principle of least privilege)
+* Security: SSRF protection on webhooks and media upload from URL
+* Security: API keys now use cryptographic random_bytes() generation
+* Security: MCP batch requests capped at 10 per call
+* Security: CORS now respects configured allowed_origins
+* Security: Webhook delivery enforces SSL and disables redirect chains
+* Security: Elementor data validated for size (5MB) and nesting depth
+* New: Dedicated Spai_Security utility class
+* New: Native MCP endpoint (/wp-json/site-pilot-ai/v1/mcp) for direct Claude connection
+* New: Top-level admin menu with tabbed interface (Setup, Connect AI, Settings, Advanced)
+* New: One-click Test Connection on Setup tab
+* New: Copy-paste AI config guides for Claude Desktop, Claude Code, and ChatGPT
+* New: First-activation welcome banner with visible API key
+* New: License/Upgrade card on Settings tab for Freemius Pro activation
+* Fixed: Freemius menu config aligned with top-level admin page
+* Fixed: MCP namespace consistency (site-pilot-ai/v1)
+
+= 1.0.14 =
+* Security: API keys now hashed using wp_hash_password()
+* Security: Dedicated spai_api_agent role with limited capabilities
+* Security: New spai_bot service account for API requests
+* Security: API key shown only once after regeneration
+* Security: Freemius SDK calls wrapped in try-catch
+* Fixed: is_premium flag corrected for free version
+
+= 1.0.13 =
+* Switched to Freemius for plugin updates
+* Removed GitHub updater
+* Removed uninstall.php (using Freemius after_uninstall hook)
+* Improved uninstall cleanup
+
+= 1.0.12 =
+* Updated Freemius SDK integration
+* Fixed function naming (spa_fs)
+* Added multisite support
+* Configured 14-day trial
+
+= 1.0.11 =
+* Added Freemius SDK for licensing and updates
+* Added upgrade banner in admin
+* License management abstraction layer
+
 = 1.0.0 =
 * Initial release
 * Posts and pages CRUD operations
@@ -131,6 +174,15 @@ Each site needs its own plugin installation and API key. The Pro version include
 * Admin settings page
 
 == Upgrade Notice ==
+
+= 1.0.15 =
+Major security hardening and new features: native MCP endpoint, redesigned admin UI, SSRF protection, and cryptographic API keys. Recommended for all users.
+
+= 1.0.14 =
+Security update: API keys now hashed, dedicated service account for API requests. Recommended for all users.
+
+= 1.0.13 =
+Plugin updates now handled via Freemius. Automatic updates will work seamlessly.
 
 = 1.0.0 =
 Initial release of Site Pilot AI. Control WordPress with AI assistants!

@@ -42,8 +42,13 @@ if ( ! function_exists( 'spa_fs' ) ) {
 				),
 				'menu'                => array(
 					'slug'       => 'site-pilot-ai',
-					'first-path' => 'wp-admin/tools.php?page=site-pilot-ai',
+					'parent'     => array(
+						'slug' => 'site-pilot-ai',
+					),
+					'first-path' => 'admin.php?page=site-pilot-ai',
 					'support'    => false,
+					'account'    => true,
+					'pricing'    => true,
 				),
 				'is_live'             => true,
 			) );

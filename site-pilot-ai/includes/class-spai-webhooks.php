@@ -184,9 +184,17 @@ class Spai_Webhooks {
 			return new WP_Error( 'missing_required', __( 'Name, URL, and events are required.', 'site-pilot-ai' ) );
 		}
 
-		// Validate URL
+		// Validate URL format.
 		if ( ! filter_var( $data['url'], FILTER_VALIDATE_URL ) ) {
 			return new WP_Error( 'invalid_url', __( 'Invalid webhook URL.', 'site-pilot-ai' ) );
+		}
+
+		// SSRF protection: block internal/private URLs.
+		if ( class_exists( 'Spai_Security' ) ) {
+			$ssrf_check = Spai_Security::validate_external_url( $data['url'] );
+			if ( is_wp_error( $ssrf_check ) ) {
+				return $ssrf_check;
+			}
 		}
 
 		// Validate events
@@ -315,6 +323,13 @@ class Spai_Webhooks {
 			if ( ! filter_var( $data['url'], FILTER_VALIDATE_URL ) ) {
 				return new WP_Error( 'invalid_url', __( 'Invalid webhook URL.', 'site-pilot-ai' ) );
 			}
+			// SSRF protection.
+			if ( class_exists( 'Spai_Security' ) ) {
+				$ssrf_check = Spai_Security::validate_external_url( $data['url'] );
+				if ( is_wp_error( $ssrf_check ) ) {
+					return $ssrf_check;
+				}
+			}
 			$update['url'] = esc_url_raw( $data['url'] );
 			$format[] = '%s';
 		}
@@ -424,10 +439,11 @@ class Spai_Webhooks {
 		$response = wp_remote_post(
 			$webhook['url'],
 			array(
-				'timeout'     => 30,
-				'redirection' => 5,
+				'timeout'     => 15,
+				'redirection' => 0, // Disable redirects to prevent SSRF via redirect chains.
 				'httpversion' => '1.1',
 				'blocking'    => true,
+				'sslverify'   => true,
 				'headers'     => array(
 					'Content-Type'           => 'application/json',
 					'X-SPAI-Event'           => $event,

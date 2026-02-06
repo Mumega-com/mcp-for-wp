@@ -1,0 +1,1179 @@
+openapi: 3.1.0
+info:
+  title: Site Pilot AI - WordPress Manager
+  description: |
+    Manage your WordPress site through AI conversation. Create posts, pages, optimize SEO,
+    and build Elementor landing pages - all through natural language.
+
+    This API allows ChatGPT to manage content on your WordPress site. All endpoints require
+    authentication via API key (found in WordPress Admin > Site Pilot AI > Settings).
+  version: 1.0.14
+  contact:
+    name: DigID Inc
+    url: https://digid.ca
+    email: support@digid.ca
+
+servers:
+  - url: https://{site}/wp-json/site-pilot-ai/v1
+    description: Your WordPress site
+    variables:
+      site:
+        default: example.com
+        description: Your WordPress site domain (e.g., musicalunicornfarm.com)
+
+security:
+  - apiKey: []
+
+tags:
+  - name: Site
+    description: Site information and analytics
+  - name: Posts
+    description: Blog posts management
+  - name: Pages
+    description: Page management
+  - name: Content
+    description: Drafts and content overview
+  - name: Media
+    description: Upload and manage images/files
+  - name: SEO
+    description: Search engine optimization
+  - name: Elementor
+    description: Visual page builder
+
+paths:
+  # ============ SITE INFO ============
+  /site-info:
+    get:
+      tags: [Site]
+      operationId: getSiteInfo
+      summary: Get site information
+      description: |
+        Returns basic information about the WordPress site, including name, theme,
+        WordPress version, and available plugins (Elementor, WooCommerce, etc.).
+
+        Use this first to understand what features are available on the site.
+      responses:
+        '200':
+          description: Site information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============ POSTS ============
+  /posts:
+    get:
+      tags: [Posts]
+      operationId: listPosts
+      summary: List blog posts
+      description: |
+        Get a list of blog posts with pagination and filtering. By default returns
+        published posts, but you can filter by draft, pending, or any status.
+
+        Use this when the user asks "what posts do I have?" or wants to see their content.
+      parameters:
+        - name: per_page
+          in: query
+          description: Number of posts per page
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: status
+          in: query
+          description: Filter by post status
+          schema:
+            type: string
+            enum: [publish, draft, pending, private, any]
+            default: publish
+        - name: category
+          in: query
+          description: Filter by category ID
+          schema:
+            type: integer
+        - name: search
+          in: query
+          description: Search posts by keyword
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Posts]
+      operationId: createPost
+      summary: Create a new blog post
+      description: |
+        Create a new blog post. Always create as "draft" status unless the user
+        explicitly says to publish it immediately.
+
+        After creating, show the user the post URL so they can preview it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreate'
+            examples:
+              draft:
+                summary: Create draft post
+                value:
+                  title: "Summer Mountain Biking Adventures"
+                  content: "<p>Join us for epic biking tours...</p>"
+                  status: draft
+              published:
+                summary: Create and publish
+                value:
+                  title: "New Tour Announcement"
+                  content: "<p>We're excited to announce...</p>"
+                  status: publish
+                  categories: [5]
+                  tags: [12, 18]
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /posts/{id}:
+    put:
+      tags: [Posts]
+      operationId: updatePost
+      summary: Update a blog post
+      description: |
+        Update an existing post. You can change title, content, status, or any field.
+        Only include fields you want to change - other fields will remain unchanged.
+
+        Common use: changing status from "draft" to "publish" when user is ready.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostUpdate'
+            examples:
+              publish:
+                summary: Publish a draft
+                value:
+                  status: publish
+              edit_content:
+                summary: Update content
+                value:
+                  title: "Updated Title"
+                  content: "<p>New content...</p>"
+      responses:
+        '200':
+          description: Post updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Posts]
+      operationId: deletePost
+      summary: Delete a blog post
+      description: |
+        Delete a post. By default it moves to trash (can be restored).
+        Use force=true to permanently delete.
+
+        ALWAYS confirm with the user before deleting anything.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+        - name: force
+          in: query
+          description: Permanently delete (bypass trash)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Post deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                  id:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============ PAGES ============
+  /pages:
+    get:
+      tags: [Pages]
+      operationId: listPages
+      summary: List pages
+      description: |
+        Get a list of all pages on the site. Unlike posts, pages are for permanent
+        content like "About", "Contact", "Services", etc.
+      parameters:
+        - name: per_page
+          in: query
+          description: Number of pages per page
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: status
+          in: query
+          description: Filter by page status
+          schema:
+            type: string
+            default: any
+        - name: parent
+          in: query
+          description: Filter by parent page ID (for hierarchical pages)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of pages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Pages]
+      operationId: createPage
+      summary: Create a new page
+      description: |
+        Create a new WordPress page. Pages are for permanent content, not time-based
+        blog posts. Use for landing pages, service pages, about pages, etc.
+
+        Always create as "draft" unless user explicitly says to publish.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageCreate'
+            examples:
+              simple:
+                summary: Simple page
+                value:
+                  title: "About Us"
+                  content: "<p>We are a mountain biking adventure company...</p>"
+                  status: draft
+              with_parent:
+                summary: Child page
+                value:
+                  title: "Bike Rental Rates"
+                  content: "<p>Our rental rates...</p>"
+                  parent: 42
+                  status: draft
+      responses:
+        '201':
+          description: Page created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /pages/{id}:
+    put:
+      tags: [Pages]
+      operationId: updatePage
+      summary: Update a page
+      description: |
+        Update an existing page. Only include fields you want to change.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageUpdate'
+      responses:
+        '200':
+          description: Page updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============ CONTENT MANAGEMENT ============
+  /drafts:
+    get:
+      tags: [Content]
+      operationId: listDrafts
+      summary: List all drafts
+      description: |
+        Get all draft posts and pages in one place. Useful when user asks
+        "what drafts do I have?" or wants to review unpublished content.
+      parameters:
+        - name: type
+          in: query
+          description: Filter by content type
+          schema:
+            type: string
+            enum: [post, page, all]
+            default: all
+      responses:
+        '200':
+          description: List of drafts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  drafts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============ MEDIA ============
+  /media:
+    post:
+      tags: [Media]
+      operationId: uploadMedia
+      summary: Upload media file
+      description: |
+        Upload an image or file to the WordPress media library. After uploading,
+        you'll get back the media ID and URL which can be used in posts/pages.
+
+        For images, WordPress automatically creates multiple sizes (thumbnail, medium, large).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload
+                title:
+                  type: string
+                  description: Media title (optional)
+                alt:
+                  type: string
+                  description: Alt text for images (important for accessibility and SEO)
+      responses:
+        '201':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Media attachment ID
+                  url:
+                    type: string
+                    description: Full URL to the uploaded file
+                  title:
+                    type: string
+                  mime_type:
+                    type: string
+                  sizes:
+                    type: object
+                    description: Available image sizes (for images)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============ SEO ============
+  /seo/{id}:
+    get:
+      tags: [SEO]
+      operationId: getSeoData
+      summary: Get SEO metadata
+      description: |
+        Get SEO metadata for a post or page, including meta title, description,
+        focus keyword, and Open Graph data.
+
+        Works with popular SEO plugins like Yoast SEO and Rank Math.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: SEO data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeoData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [SEO]
+      operationId: updateSeoData
+      summary: Update SEO metadata
+      description: |
+        Update SEO settings for a post or page. You can set custom meta title,
+        description, focus keyword, and social media tags.
+
+        Best practices:
+        - Title: 50-60 characters
+        - Description: 150-160 characters
+        - Focus keyword: primary keyword for this content
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeoUpdate'
+            examples:
+              basic:
+                summary: Basic SEO update
+                value:
+                  title: "Mountain Biking Adventures | Musical Unicorn Farm"
+                  description: "Experience epic mountain biking tours in stunning landscapes. Expert guides, quality equipment, unforgettable adventures."
+                  focus_keyword: "mountain biking adventures"
+      responses:
+        '200':
+          description: SEO data updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeoData'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /seo/{id}/analyze:
+    get:
+      tags: [SEO]
+      operationId: analyzeSeo
+      summary: Analyze SEO quality
+      description: |
+        Analyze the SEO quality of a post or page and get recommendations for improvement.
+        Returns a score and actionable suggestions.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: SEO analysis completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score:
+                    type: integer
+                    description: SEO score (0-100)
+                  issues:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        severity:
+                          type: string
+                          enum: [error, warning, info]
+                        message:
+                          type: string
+                  suggestions:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============ ELEMENTOR ============
+  /elementor/{id}:
+    get:
+      tags: [Elementor]
+      operationId: getElementorData
+      summary: Get Elementor page data
+      description: |
+        Get the raw Elementor JSON data for a page. This is the complete structure
+        of an Elementor-built page including all sections, widgets, and settings.
+
+        Useful for cloning pages or backing up designs.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: Elementor data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post_id:
+                    type: integer
+                  elementor_data:
+                    type: array
+                    description: Elementor JSON structure
+                  edit_url:
+                    type: string
+                    description: URL to edit in Elementor
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Elementor]
+      operationId: setElementorData
+      summary: Update Elementor page data
+      description: |
+        Set or update the Elementor structure for a page. Use this to programmatically
+        build or modify Elementor pages.
+
+        The elementor_data should be a JSON array of sections/elements.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                elementor_data:
+                  type: array
+                  description: Elementor structure as array
+                elementor_json:
+                  type: string
+                  description: Elementor structure as JSON string (alternative)
+      responses:
+        '200':
+          description: Elementor data updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  post_id:
+                    type: integer
+                  edit_url:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /elementor/landing-page:
+    post:
+      tags: [Elementor]
+      operationId: createLandingPage
+      summary: Create Elementor landing page
+      description: |
+        Create a beautiful landing page using Elementor templates. Provide headline,
+        features, call-to-action, and optional customization.
+
+        This automatically creates a professional landing page structure with:
+        - Hero section with headline and CTA
+        - Features section
+        - Footer
+
+        Use this when the user asks to "create a landing page" or "build a sales page".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LandingPageRequest'
+            examples:
+              tour_page:
+                summary: Tour landing page
+                value:
+                  title: "Summer Mountain Biking Tours"
+                  headline: "Epic Mountain Biking Adventures Await"
+                  subheadline: "Experience the thrill of world-class trails with expert guides"
+                  cta_text: "Book Your Adventure"
+                  cta_url: "/contact"
+                  features:
+                    - "Professional guides"
+                    - "Top-quality bikes"
+                    - "Stunning scenery"
+                    - "All skill levels welcome"
+                  status: draft
+      responses:
+        '201':
+          description: Landing page created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  url:
+                    type: string
+                  edit_url:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============ ANALYTICS ============
+  /analytics:
+    get:
+      tags: [Site]
+      operationId: getAnalytics
+      summary: Get site analytics
+      description: |
+        Get overview statistics about the site content: number of posts, pages,
+        media items, categories, and recent activity.
+
+        Use this when user asks "how's my site doing?" or wants a content overview.
+      parameters:
+        - name: days
+          in: query
+          description: Number of days to analyze (for recent activity)
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 365
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      published:
+                        type: integer
+                      draft:
+                        type: integer
+                  pages:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      published:
+                        type: integer
+                  media:
+                    type: integer
+                  categories:
+                    type: integer
+                  recent_activity:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+# ============ COMPONENTS ============
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Site Pilot AI API key. Get this from WordPress Admin > Site Pilot AI > Settings.
+
+        You can also use Authorization: Bearer {api-key} header.
+
+  parameters:
+    PostId:
+      name: id
+      in: path
+      required: true
+      description: Post or page ID
+      schema:
+        type: integer
+      example: 123
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: rest_forbidden
+            message: Invalid or missing API key
+            data:
+              status: 401
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: rest_post_invalid_id
+            message: Post not found
+            data:
+              status: 404
+
+    BadRequest:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: rest_invalid_param
+            message: Invalid parameter(s)
+            data:
+              status: 400
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        data:
+          type: object
+          properties:
+            status:
+              type: integer
+              description: HTTP status code
+
+    SiteInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Site name
+          example: "Musical Unicorn Farm"
+        description:
+          type: string
+          description: Site tagline
+        url:
+          type: string
+          format: uri
+          description: Site URL
+        admin_url:
+          type: string
+          format: uri
+          description: WordPress admin URL
+        wp_version:
+          type: string
+          description: WordPress version
+          example: "6.4.2"
+        php_version:
+          type: string
+          description: PHP version
+        theme:
+          type: object
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+        capabilities:
+          type: object
+          description: Available features (Elementor, WooCommerce, etc.)
+          properties:
+            elementor:
+              type: boolean
+            woocommerce:
+              type: boolean
+            seo_plugin:
+              type: string
+              nullable: true
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Post ID
+        title:
+          type: string
+          description: Post title
+        slug:
+          type: string
+          description: URL slug
+        status:
+          type: string
+          enum: [publish, draft, pending, private]
+          description: Post status
+        content:
+          type: string
+          description: Post content (HTML)
+        excerpt:
+          type: string
+          description: Short excerpt
+        author:
+          type: integer
+          description: Author user ID
+        date:
+          type: string
+          format: date-time
+          description: Publication date
+        modified:
+          type: string
+          format: date-time
+          description: Last modified date
+        link:
+          type: string
+          format: uri
+          description: Public URL
+        featured_image:
+          type: string
+          format: uri
+          nullable: true
+          description: Featured image URL
+        categories:
+          type: array
+          items:
+            type: integer
+          description: Category IDs
+        tags:
+          type: array
+          items:
+            type: integer
+          description: Tag IDs
+
+    PostList:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        total:
+          type: integer
+          description: Total number of posts
+        pages:
+          type: integer
+          description: Total number of pages
+        page:
+          type: integer
+          description: Current page number
+
+    PostCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          description: Post title
+          example: "Summer Mountain Biking Adventures"
+        content:
+          type: string
+          description: Post content (HTML)
+          example: "<p>Join us for epic mountain biking tours...</p>"
+        status:
+          type: string
+          enum: [publish, draft, pending, private]
+          default: draft
+          description: Post status (default to draft for safety)
+        excerpt:
+          type: string
+          description: Short excerpt (optional)
+        categories:
+          type: array
+          items:
+            type: integer
+          description: Category IDs to assign
+        tags:
+          type: array
+          items:
+            type: integer
+          description: Tag IDs to assign
+        featured_image:
+          type: integer
+          description: Featured image attachment ID
+
+    PostUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          description: New post title
+        content:
+          type: string
+          description: New content
+        status:
+          type: string
+          enum: [publish, draft, pending, private]
+          description: New status
+        excerpt:
+          type: string
+          description: New excerpt
+        categories:
+          type: array
+          items:
+            type: integer
+        tags:
+          type: array
+          items:
+            type: integer
+        featured_image:
+          type: integer
+          description: New featured image ID
+
+    Page:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        status:
+          type: string
+        content:
+          type: string
+        parent:
+          type: integer
+          description: Parent page ID (for hierarchical pages)
+        template:
+          type: string
+          description: Page template
+        date:
+          type: string
+          format: date-time
+        link:
+          type: string
+          format: uri
+
+    PageList:
+      type: object
+      properties:
+        pages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Page'
+        total:
+          type: integer
+        pages_count:
+          type: integer
+        page:
+          type: integer
+
+    PageCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          description: Page title
+          example: "About Us"
+        content:
+          type: string
+          description: Page content (HTML)
+          default: ""
+        status:
+          type: string
+          enum: [publish, draft, pending, private]
+          default: draft
+          description: Page status
+        parent:
+          type: integer
+          description: Parent page ID (for child pages)
+        template:
+          type: string
+          description: Page template slug
+
+    PageUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+        parent:
+          type: integer
+        template:
+          type: string
+
+    SeoData:
+      type: object
+      properties:
+        post_id:
+          type: integer
+          description: Associated post/page ID
+        title:
+          type: string
+          description: SEO meta title (50-60 chars recommended)
+          example: "Mountain Biking Adventures | Musical Unicorn Farm"
+        description:
+          type: string
+          description: Meta description (150-160 chars recommended)
+          example: "Experience epic mountain biking tours with expert guides."
+        focus_keyword:
+          type: string
+          description: Primary keyword for this content
+          example: "mountain biking adventures"
+        canonical:
+          type: string
+          format: uri
+          description: Canonical URL (optional)
+        og_title:
+          type: string
+          description: Open Graph title (for social media)
+        og_description:
+          type: string
+          description: Open Graph description
+        og_image:
+          type: string
+          format: uri
+          description: Open Graph image URL
+        robots_noindex:
+          type: boolean
+          description: Prevent search engine indexing
+        robots_nofollow:
+          type: boolean
+          description: Prevent search engines from following links
+
+    SeoUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          description: SEO title (50-60 characters)
+        description:
+          type: string
+          description: Meta description (150-160 characters)
+        focus_keyword:
+          type: string
+          description: Primary keyword
+        canonical:
+          type: string
+          format: uri
+        og_title:
+          type: string
+        og_description:
+          type: string
+        og_image:
+          type: string
+          format: uri
+        robots_noindex:
+          type: boolean
+        robots_nofollow:
+          type: boolean
+
+    LandingPageRequest:
+      type: object
+      required: [title, headline]
+      properties:
+        title:
+          type: string
+          description: Page title (for admin/SEO)
+          example: "Summer Mountain Biking Tours"
+        headline:
+          type: string
+          description: Main headline (H1)
+          example: "Epic Mountain Biking Adventures Await"
+        subheadline:
+          type: string
+          description: Supporting text below headline
+          example: "Experience the thrill of world-class trails"
+        cta_text:
+          type: string
+          description: Call-to-action button text
+          example: "Book Your Adventure"
+          default: "Get Started"
+        cta_url:
+          type: string
+          description: Call-to-action URL
+          example: "/contact"
+          default: "#"
+        features:
+          type: array
+          items:
+            type: string
+          description: List of key features/benefits
+          example: ["Expert guides", "Quality equipment", "Stunning scenery"]
+        colors:
+          type: object
+          description: Optional color customization
+          properties:
+            primary:
+              type: string
+              example: "#3498db"
+            secondary:
+              type: string
+              example: "#2ecc71"
+        status:
+          type: string
+          enum: [publish, draft]
+          default: draft
+          description: Page status

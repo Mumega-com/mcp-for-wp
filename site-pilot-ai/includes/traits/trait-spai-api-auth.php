@@ -218,7 +218,7 @@ trait Spai_Api_Auth {
 	 * @return string New API key.
 	 */
 	public function generate_api_key() {
-		return 'spai_' . wp_generate_password( 32, false );
+		return 'spai_' . bin2hex( random_bytes( 24 ) );
 	}
 
 	/**

@@ -73,6 +73,10 @@ class Spai_Loader {
 		// Admin notices
 		$this->add_action( 'admin_notices', $admin, 'admin_notices' );
 
+		// AJAX handlers
+		$this->add_action( 'wp_ajax_spai_test_connection', $admin, 'ajax_test_connection' );
+		$this->add_action( 'wp_ajax_spai_dismiss_welcome', $admin, 'ajax_dismiss_welcome' );
+
 		// Plugin action links
 		$this->add_filter( 'plugin_action_links_' . SPAI_PLUGIN_BASENAME, $admin, 'add_action_links' );
 	}
@@ -112,6 +116,10 @@ class Spai_Loader {
 		// Webhooks
 		$webhooks_controller = new Spai_REST_Webhooks();
 		$webhooks_controller->register_routes();
+
+		// MCP (Model Context Protocol)
+		$mcp_controller = new Spai_REST_MCP();
+		$mcp_controller->register_routes();
 
 		/**
 		 * Action to register additional REST routes.

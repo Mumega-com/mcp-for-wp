@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://github.com/Digidinc/site-pilot-ai
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.14
+ * Version:           1.0.15
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.14' );
+define( 'SPAI_VERSION', '1.0.15' );
 
 /**
  * Plugin directory path.
@@ -158,6 +158,7 @@ function spai_load_plugin() {
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-activator.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-deactivator.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-rate-limiter.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-security.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-webhooks.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-license.php';
 
@@ -177,6 +178,7 @@ function spai_load_plugin() {
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-site.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-elementor.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-webhooks.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-mcp.php';
 
 	// Load admin
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-admin.php';
