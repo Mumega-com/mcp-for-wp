@@ -33,7 +33,7 @@ if ( ! function_exists( 'spa_fs' ) ) {
 				'type'                => 'plugin',
 				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
 				'is_premium'          => false,
-				'has_premium_version' => true,
+				'has_premium_version' => false,
 				'has_addons'          => false,
 				'has_paid_plans'      => true,
 				'trial'               => array(

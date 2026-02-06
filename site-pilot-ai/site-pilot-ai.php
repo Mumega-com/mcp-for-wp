@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://github.com/Digidinc/site-pilot-ai
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.23
+ * Version:           1.0.24
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.23' );
+define( 'SPAI_VERSION', '1.0.24' );
 
 /**
  * Plugin directory path.
