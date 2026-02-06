@@ -24,3 +24,18 @@ npm-debug.log*
 
 # Plugin zip (built artifact)
 plugin/*.zip
+
+# Local release artifacts (repo root)
+site-pilot-ai-*.zip
+site-pilot-ai-premium-*.zip
+site-pilot-ai-pro-*.zip
+ziQ9IgA7
+
+# Local tooling scratch (keep the real release script)
+scripts/*.py
+scripts/*.php
+scripts/*.sh
+!scripts/release_freemius.sh
+
+# Test caches
+site-pilot-ai/tests/.phpunit.result.cache

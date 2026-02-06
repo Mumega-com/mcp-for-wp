@@ -12,10 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 $stored_key_hash = get_option( 'spai_api_key', '' );
 $admin           = new Spai_Admin();
 $capabilities    = $admin->get_capabilities_display();
-$is_pro          = class_exists( 'Spai_Pro_Loader' );
 $license         = function_exists( 'spai_license' ) ? spai_license() : null;
 $is_paying       = $license ? $license->is_paying() : false;
 $plan            = $license ? $license->get_plan() : 'free';
+$is_pro          = $license ? $license->is_pro() : false;
 $upgrade_url     = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pricing/';
 $is_first        = get_option( 'spai_first_activation', false );
 $rest_base       = rest_url( 'site-pilot-ai/v1/' );
@@ -44,6 +44,11 @@ if ( isset( $new_key ) && $new_key ) {
 		</span>
 		<?php esc_html_e( 'Site Pilot AI', 'site-pilot-ai' ); ?>
 		<span class="spai-version">v<?php echo esc_html( SPAI_VERSION ); ?></span>
+		<?php if ( $is_pro ) : ?>
+		<span class="spai-version" style="margin-left:10px;background:#1d2327;color:#fff;padding:2px 8px;border-radius:999px;font-size:12px;">
+			<?php echo esc_html( strtoupper( $plan ) ); ?>
+		</span>
+		<?php endif; ?>
 	</h1>
 
 	<?php if ( $is_first && isset( $new_key ) && $new_key ) : ?>
@@ -79,7 +84,7 @@ if ( isset( $new_key ) && $new_key ) {
 	</div>
 	<?php endif; ?>
 
-	<?php if ( ! $is_paying ) : ?>
+	<?php if ( ! $is_pro ) : ?>
 	<div class="spai-upgrade-banner">
 		<div class="spai-upgrade-icon">
 			<span class="dashicons dashicons-superhero-alt"></span>

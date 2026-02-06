@@ -74,6 +74,11 @@ class Spai_Core {
 			'ninjaforms'     => class_exists( 'Ninja_Forms' ),
 		);
 
+		// Allow premium package to extend capabilities (e.g., Pro status).
+		if ( function_exists( 'apply_filters' ) ) {
+			$capabilities = apply_filters( 'spai_site_capabilities', $capabilities );
+		}
+
 		// Cache for 1 hour
 		set_transient( 'spai_capabilities_cache', $capabilities, HOUR_IN_SECONDS );
 

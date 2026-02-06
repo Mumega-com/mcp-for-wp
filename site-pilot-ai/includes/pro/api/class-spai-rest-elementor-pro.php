@@ -2,7 +2,7 @@
 /**
  * Elementor Pro REST API Controller
  *
- * @package SitePilotAI
+ * @package SitePilotAI_Pro
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * REST API controller for Elementor Pro features.
  *
- * Provides endpoints for templates, landing pages, cloning, widgets, and globals.
+ * Provides endpoints for templates, landing pages, cloning, and widgets.
  */
 class Spai_REST_Elementor_Pro extends Spai_REST_API {
 
@@ -57,7 +57,7 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		// Single template.
 		register_rest_route(
 			$this->namespace,
-			'/elementor/templates/(?P<id>\\d+)',
+			'/elementor/templates/(?P<id>\d+)',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
@@ -80,7 +80,7 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		// Apply template to page.
 		register_rest_route(
 			$this->namespace,
-			'/elementor/templates/(?P<id>\\d+)/apply',
+			'/elementor/templates/(?P<id>\d+)/apply',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'apply_template' ),
@@ -133,6 +133,12 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		);
 	}
 
+	/**
+	 * Get all templates.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
 	public function get_templates( $request ) {
 		$args = array(
 			'per_page' => $request->get_param( 'per_page' ) ?: 50,
@@ -141,16 +147,21 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		);
 
 		$templates = $this->elementor_pro->get_templates( $args );
+
 		$this->log_activity( 'get_templates', $request, $templates );
 
-		return $this->success_response(
-			array(
-				'templates' => $templates,
-				'total'     => count( $templates ),
-			)
-		);
+		return $this->success_response( array(
+			'templates' => $templates,
+			'total'     => count( $templates ),
+		) );
 	}
 
+	/**
+	 * Get single template.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function get_template( $request ) {
 		$template_id = absint( $request->get_param( 'id' ) );
 		$template    = $this->elementor_pro->get_template( $template_id );
@@ -165,6 +176,12 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		return $this->success_response( $template );
 	}
 
+	/**
+	 * Create a template.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function create_template( $request ) {
 		$data = array(
 			'title'          => $request->get_param( 'title' ),
@@ -184,6 +201,12 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		return $this->success_response( $template, 201 );
 	}
 
+	/**
+	 * Update a template.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function update_template( $request ) {
 		$template_id = absint( $request->get_param( 'id' ) );
 		$data        = array(
@@ -203,6 +226,12 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		return $this->success_response( $template );
 	}
 
+	/**
+	 * Delete a template.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function delete_template( $request ) {
 		$template_id = absint( $request->get_param( 'id' ) );
 		$force       = (bool) $request->get_param( 'force' );
@@ -216,42 +245,63 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 
 		$this->log_activity( 'delete_template', $request );
 
-		return $this->success_response(
-			array(
-				'deleted' => true,
-				'id'      => $template_id,
-			)
-		);
+		return $this->success_response( array(
+			'deleted' => true,
+			'id'      => $template_id,
+		) );
 	}
 
+	/**
+	 * Apply template to page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function apply_template( $request ) {
 		$template_id = absint( $request->get_param( 'id' ) );
 		$page_id     = absint( $request->get_param( 'page_id' ) );
 
-		$result = $this->elementor_pro->apply_template( $template_id, $page_id );
+		if ( ! $page_id ) {
+			return $this->error_response( 'missing_page_id', __( 'Page ID is required.', 'site-pilot-ai' ), 400 );
+		}
+
+		$result = $this->elementor_pro->apply_template_to_page( $page_id, $template_id );
 
 		if ( is_wp_error( $result ) ) {
 			$this->log_activity( 'apply_template', $request, null, 400 );
 			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
 		}
 
-		$this->log_activity( 'apply_template', $request, $result );
+		$this->log_activity( 'apply_template', $request );
 
-		return $this->success_response( $result );
+		return $this->success_response( array(
+			'applied'     => true,
+			'template_id' => $template_id,
+			'page_id'     => $page_id,
+			'edit_url'    => admin_url( 'post.php?post=' . $page_id . '&action=elementor' ),
+		) );
 	}
 
+	/**
+	 * Clone a page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function clone_page( $request ) {
 		$source_id = absint( $request->get_param( 'source_id' ) );
-		$title     = $request->get_param( 'title' );
-		$status    = $request->get_param( 'status' ) ?: 'draft';
 
-		$result = $this->elementor_pro->clone_page(
-			array(
-				'source_id' => $source_id,
-				'title'     => $title,
-				'status'    => $status,
-			)
+		if ( ! $source_id ) {
+			return $this->error_response( 'missing_source_id', __( 'Source ID is required.', 'site-pilot-ai' ), 400 );
+		}
+
+		$args = array(
+			'title'  => $request->get_param( 'title' ),
+			'status' => $request->get_param( 'status' ),
+			'parent' => $request->get_param( 'parent' ),
 		);
+
+		$result = $this->elementor_pro->clone_page( $source_id, $args );
 
 		if ( is_wp_error( $result ) ) {
 			$this->log_activity( 'clone_page', $request, null, 400 );
@@ -263,12 +313,19 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		return $this->success_response( $result, 201 );
 	}
 
+	/**
+	 * Create a landing page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function create_landing_page( $request ) {
 		$data = array(
-			'title'    => $request->get_param( 'title' ),
-			'content'  => $request->get_param( 'content' ),
-			'status'   => $request->get_param( 'status' ) ?: 'draft',
-			'template' => $request->get_param( 'template' ),
+			'title'          => $request->get_param( 'title' ),
+			'status'         => $request->get_param( 'status' ),
+			'template_id'    => $request->get_param( 'template_id' ),
+			'sections'       => $request->get_param( 'sections' ),
+			'elementor_data' => $request->get_param( 'elementor_data' ),
 		);
 
 		$result = $this->elementor_pro->create_landing_page( $data );
@@ -283,16 +340,39 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		return $this->success_response( $result, 201 );
 	}
 
+	/**
+	 * Get available widgets.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
 	public function get_widgets( $request ) {
 		$widgets = $this->elementor_pro->get_available_widgets();
-		$this->log_activity( 'get_widgets', $request, $widgets );
-		return $this->success_response( array( 'widgets' => $widgets ) );
+
+		$this->log_activity( 'get_widgets', $request );
+
+		return $this->success_response( array(
+			'widgets' => $widgets,
+			'total'   => count( $widgets ),
+		) );
 	}
 
+	/**
+	 * Get global settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
 	public function get_globals( $request ) {
 		$globals = $this->elementor_pro->get_globals();
+
+		if ( is_wp_error( $globals ) ) {
+			$this->log_activity( 'get_globals', $request, null, 400 );
+			return $this->error_response( $globals->get_error_code(), $globals->get_error_message(), 400 );
+		}
+
 		$this->log_activity( 'get_globals', $request, $globals );
+
 		return $this->success_response( $globals );
 	}
 }
-
