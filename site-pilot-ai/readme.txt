@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.18
+Stable tag: 1.0.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,17 @@ Each site needs its own plugin installation and API key. The Pro version include
 
 == Changelog ==
 
+= 1.0.20 =
+* New: MCP tool annotations (`readOnlyHint`, `openWorldHint`, `destructiveHint`) for safer AI tool usage
+* New: MCP tools `wp_search` and `wp_fetch` for content discovery and retrieval
+* New: REST endpoints `/search` and `/fetch`
+* New: OAuth token endpoint `/oauth/token` (client credentials grant)
+* New: OAuth admin settings (enable, client ID, client secret, token TTL)
+* New: ChatGPT conformance and submission runbooks
+* New: ChatGPT/MCP conformance test script
+* Improved: Cloudflare MCP transport adapter supports configurable `auto/json/sse` response mode
+* Improved: Notification requests now return HTTP 204 with empty body in worker transport
+
 = 1.0.18 =
 * New: Scoped API key lifecycle management (create, list, revoke) with key metadata
 * New: API key scope enforcement (read/write/admin) across REST and MCP tool calls
@@ -203,6 +214,9 @@ Each site needs its own plugin installation and API key. The Pro version include
 * Admin settings page
 
 == Upgrade Notice ==
+
+= 1.0.20 =
+Recommended update: adds ChatGPT-readiness improvements (search/fetch tools, safety annotations, OAuth client-credentials mode, transport compatibility, and conformance checks).
 
 = 1.0.18 =
 Recommended update: introduces scoped API key management with enforced permissions and improved release quality checks.

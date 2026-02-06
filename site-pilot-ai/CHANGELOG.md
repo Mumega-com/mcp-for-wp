@@ -5,6 +5,25 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.20] - 2026-02-06
+
+### Added
+- MCP tool annotations for safety hints: `readOnlyHint`, `openWorldHint`, `destructiveHint`
+- New MCP tools: `wp_search` and `wp_fetch`
+- New REST endpoints: `/search`, `/fetch`, and `/oauth/token` (client credentials grant)
+- OAuth settings in admin: enable toggle, client ID, client secret (hashed), token TTL
+- ChatGPT readiness documentation:
+  - `docs/CHATGPT_CONFORMANCE.md`
+  - `docs/CHATGPT_APP_SUBMISSION.md`
+- ChatGPT/MCP conformance script: `tests/test-chatgpt-conformance.sh`
+
+### Changed
+- Cloudflare MCP transport adapter now supports configurable response mode (`auto`, `json`, `sse`)
+- MCP notification handling in worker transport now returns `204` with empty body
+
+### Security
+- OAuth bearer tokens now enforce existing read/write/admin scope checks through API auth flow
+
 ## [1.0.18] - 2026-02-06
 
 ### Added
