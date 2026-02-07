@@ -79,12 +79,17 @@ class Spai_Admin {
 			return;
 		}
 
+		// Use a slightly less strict capability than manage_options so all administrators
+		// (including ones without manage_options due to host restrictions) can access
+		// licensing/checkout flows.
+		$capability = current_user_can( 'manage_options' ) ? 'manage_options' : 'activate_plugins';
+
 		// Account.
 		add_submenu_page(
 			self::PAGE_SLUG,
 			__( 'Account', 'site-pilot-ai' ),
 			__( 'Account', 'site-pilot-ai' ),
-			'manage_options',
+			$capability,
 			'site-pilot-ai-account',
 			array( $this, 'render_freemius_account_page' ),
 			100
@@ -95,7 +100,7 @@ class Spai_Admin {
 			self::PAGE_SLUG,
 			__( 'Pricing', 'site-pilot-ai' ),
 			__( 'Pricing', 'site-pilot-ai' ),
-			'manage_options',
+			$capability,
 			'site-pilot-ai-pricing',
 			array( $this, 'render_freemius_pricing_page' ),
 			101
@@ -106,7 +111,7 @@ class Spai_Admin {
 	 * Render Freemius account page.
 	 */
 	public function render_freemius_account_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'activate_plugins' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
 		}
 		if ( ! function_exists( 'spa_fs' ) ) {
@@ -123,7 +128,7 @@ class Spai_Admin {
 	 * Render Freemius pricing/checkout page.
 	 */
 	public function render_freemius_pricing_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'activate_plugins' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
 		}
 		if ( ! function_exists( 'spa_fs' ) ) {

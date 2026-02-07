@@ -32,9 +32,10 @@ if ( ! function_exists( 'spa_fs' ) ) {
 				'slug'                => 'site-pilot-ai',
 				'type'                => 'plugin',
 				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
-				// Freemius premium package support (auto-install upgrade flow).
-				'is_premium'          => ( 'site-pilot-ai-premium' === basename( untrailingslashit( SPAI_PLUGIN_DIR ) ) ),
-				'has_premium_version' => true,
+				// Single-plugin distribution: paid plans unlock features via license gates.
+				// This avoids the "download premium zip" step after checkout.
+				'is_premium'          => false,
+				'has_premium_version' => false,
 				'has_addons'          => false,
 				'has_paid_plans'      => true,
 				'trial'               => array(

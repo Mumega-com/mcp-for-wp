@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Ensure Freemius `Account` and `Pricing` admin pages are registered under the plugin menu to prevent "Sorry, you are not allowed to access this page." on managed hosts.
 
+## [1.0.39] - 2026-02-07
+
+### Changed
+- Switch Freemius integration to single-plugin distribution (no premium zip required after checkout).
+- Allow Freemius `Account`/`Pricing` pages for administrators even if `manage_options` is restricted by the host.
+
 ## [1.0.35] - 2026-02-07
 
 ### Added
