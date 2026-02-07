@@ -144,7 +144,43 @@ async function initializeKernel(): Promise<void> {
 
 // List all available tools from all extensions
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  const tools = kernel.getAllTools();
+  // Default to "not pro" to avoid advertising tools that will 404.
+  let proActive = false;
+  try {
+    const plugins = await kernel.request("GET", "plugins");
+    const caps = (plugins as any)?.capabilities;
+    proActive = Boolean(caps?.pro_active);
+  } catch (error: any) {
+    kernel.log("warn", "Failed to detect pro status via /plugins; hiding PRO-only tools by default", error?.message);
+  }
+
+  const proOnlyTools = new Set<string>([
+    // SEO (Pro)
+    "wp_get_seo",
+    "wp_set_seo",
+    "wp_analyze_seo",
+    "wp_bulk_seo",
+    "wp_get_seo_plugin",
+
+    // Forms (Pro)
+    "wp_list_forms",
+    "wp_get_form",
+    "wp_get_form_submissions",
+    "wp_get_form_plugin",
+
+    // Elementor advanced (Pro)
+    "wp_list_elementor_templates",
+    "wp_apply_elementor_template",
+    "wp_create_landing_page",
+    "wp_get_elementor_globals",
+    "wp_clone_elementor_page",
+  ]);
+
+  const tools = kernel.getAllTools().filter((tool) => {
+    if (proActive) return true;
+    return !proOnlyTools.has(tool.name);
+  });
+
   return { tools };
 });
 

@@ -678,3 +678,41 @@ export const TOOL_MAP: Record<string, ToolMapping> = {
   wp_get_elementor_globals: { method: "GET", endpoint: "elementor/globals" },
   wp_clone_elementor_page: { method: "POST", endpoint: "elementor/clone", bodyParams: ["source_id", "title", "status"] },
 };
+
+// Tools that require Site Pilot AI Pro (license must be active on the WordPress site).
+export const PRO_TOOL_NAMES = new Set<string>([
+  // SEO
+  "wp_get_seo",
+  "wp_set_seo",
+  "wp_analyze_seo",
+  "wp_bulk_seo",
+  "wp_get_seo_plugin",
+
+  // Forms
+  "wp_list_forms",
+  "wp_get_form",
+  "wp_create_form",
+  "wp_update_form",
+  "wp_delete_form",
+  "wp_get_form_submissions",
+  "wp_submit_form",
+  "wp_get_form_plugin",
+
+  // Elementor Pro
+  "wp_list_elementor_templates",
+  "wp_apply_elementor_template",
+  "wp_create_landing_page",
+  "wp_clone_elementor_page",
+  "wp_get_elementor_globals",
+  "wp_get_elementor_widgets",
+
+  // WooCommerce
+  "wp_list_products",
+  "wp_get_product",
+  "wp_create_product",
+  "wp_update_product",
+  "wp_delete_product",
+  "wp_list_orders",
+  "wp_get_order",
+  "wp_update_order_status",
+]);

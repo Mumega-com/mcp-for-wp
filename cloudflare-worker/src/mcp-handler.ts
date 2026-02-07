@@ -8,7 +8,7 @@
  * Methods: initialize, tools/list, tools/call, notifications/initialized, ping
  */
 
-import { TOOLS, TOOL_MAP, type ToolDefinition } from './tools.js';
+import { TOOLS, TOOL_MAP, PRO_TOOL_NAMES, type ToolDefinition } from './tools.js';
 
 // JSON-RPC 2.0 request structure
 interface JsonRpcRequest {
@@ -170,7 +170,7 @@ async function handleSingleRequest(
         return {
           jsonrpc: '2.0',
           id,
-          result: handleToolsList(),
+          result: await handleToolsList(siteConfig),
         };
 
       case 'tools/call':
@@ -235,10 +235,21 @@ function handleInitialize(params: any) {
 /**
  * Handle tools/list method
  */
-function handleToolsList() {
-  return {
-    tools: TOOLS,
-  };
+async function handleToolsList(siteConfig: SiteConfig) {
+  let proActive = false;
+  try {
+    const url = `${siteConfig.url}/wp-json/site-pilot-ai/v1/plugins`;
+    const resp = await fetch(url, { headers: { 'X-API-Key': siteConfig.apiKey } });
+    if (resp.ok) {
+      const data: any = await resp.json();
+      proActive = Boolean(data?.capabilities?.pro_active);
+    }
+  } catch (e) {
+    // Ignore; fall back to non-pro to avoid advertising tools that will 404.
+  }
+
+  const tools = proActive ? TOOLS : TOOLS.filter((tool) => !PRO_TOOL_NAMES.has(tool.name));
+  return { tools };
 }
 
 /**
