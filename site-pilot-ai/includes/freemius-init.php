@@ -32,9 +32,9 @@ if ( ! function_exists( 'spa_fs' ) ) {
 				'slug'                => 'site-pilot-ai',
 				'type'                => 'plugin',
 				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
-				// Single plugin distribution: Pro features are license-gated.
-				'is_premium'          => false,
-				'has_premium_version' => false,
+				// Freemius premium package support (auto-install upgrade flow).
+				'is_premium'          => ( 'site-pilot-ai-premium' === basename( untrailingslashit( SPAI_PLUGIN_DIR ) ) ),
+				'has_premium_version' => true,
 				'has_addons'          => false,
 				'has_paid_plans'      => true,
 				'trial'               => array(
@@ -109,6 +109,19 @@ function spa_fs_custom_connect_message(
 }
 if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_filter' ) ) {
 	$spai_fs_instance->add_filter( 'connect_message', 'spa_fs_custom_connect_message', 10, 6 );
+}
+
+// Make "Download latest" links trigger Freemius auto-install (one-click upgrade).
+function spa_fs_download_latest_url_auto_install( $url ) {
+	if ( ! is_string( $url ) || '' === $url ) {
+		return $url;
+	}
+
+	$separator = ( strpos( $url, '?' ) === false ) ? '?' : '&';
+	return $url . $separator . 'auto_install=true';
+}
+if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_filter' ) ) {
+	$spai_fs_instance->add_filter( 'download_latest_url', 'spa_fs_download_latest_url_auto_install' );
 }
 
 // Uninstall hook.

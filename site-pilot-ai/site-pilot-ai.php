@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://github.com/Digidinc/site-pilot-ai
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.31
+ * Version:           1.0.32
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -31,13 +31,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Legacy: Prevent fatals if an old premium-version install exists.
+ * Handle free vs premium package coexistence.
  *
- * We used to distribute a separate premium zip (`site-pilot-ai-premium`). The
- * long-term approach is a single plugin zip with license-gated Pro features.
+ * Freemius can distribute a separate premium zip (`site-pilot-ai-premium`).
+ * When both are installed, we prefer the premium package and ensure only one
+ * instance is active to avoid double-loading and fatals.
  *
- * If the legacy premium plugin is still installed/active, disable it and ensure
- * only the main `site-pilot-ai` plugin runs.
+ * - If the premium package is active, the free package should not run.
+ * - If the premium package is being activated, deactivate the free package.
  */
 $spai_free_plugin_file    = 'site-pilot-ai/site-pilot-ai.php';
 $spai_premium_plugin_file = 'site-pilot-ai-premium/site-pilot-ai.php';
@@ -68,25 +69,24 @@ $spai_remove_from_active_plugins = static function ( $plugin_file ) {
 	return true;
 };
 
-// If this is the legacy premium plugin, deactivate it and stop.
+// If this is the premium plugin, deactivate the free plugin (if active) and continue loading.
 if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
-	$spai_remove_from_active_plugins( $spai_premium_plugin_file );
+	$spai_remove_from_active_plugins( $spai_free_plugin_file );
 	if ( function_exists( 'update_option' ) ) {
-		update_option( 'spai_legacy_premium_deactivated', 1 );
+		update_option( 'spai_premium_preferred', 1 );
 	}
-	return;
-}
-
-// If the legacy premium plugin is active, deactivate it and continue with the main plugin.
-$active_plugins = function_exists( 'get_option' ) ? get_option( 'active_plugins', array() ) : array();
-if ( is_array( $active_plugins ) && in_array( $spai_premium_plugin_file, $active_plugins, true ) ) {
-	$spai_remove_from_active_plugins( $spai_premium_plugin_file );
+} else {
+	// Free plugin: if premium is active, stop early so only premium runs.
+	$active_plugins = function_exists( 'get_option' ) ? get_option( 'active_plugins', array() ) : array();
+	if ( is_array( $active_plugins ) && in_array( $spai_premium_plugin_file, $active_plugins, true ) ) {
+		return;
+	}
 }
 
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.31' );
+define( 'SPAI_VERSION', '1.0.32' );
 
 /**
  * Plugin directory path.

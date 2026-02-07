@@ -148,6 +148,7 @@ if [[ "$SKIP_BUMP" -eq 0 ]]; then
 fi
 
 FREE_ZIP="site-pilot-ai-$VERSION.zip"
+PREMIUM_ZIP="site-pilot-ai-premium-$VERSION.zip"
 
 echo "Building zip package"
 (
@@ -158,9 +159,19 @@ echo "Building zip package"
 	rm -rf "$BUILD_DIR" || true
 )
 
+echo "Building premium zip package"
+(
+	BUILD_DIR="$(mktemp -d)"
+	cp -R "site-pilot-ai" "$BUILD_DIR/site-pilot-ai-premium"
+	cd "$BUILD_DIR"
+	zip -qr "$ROOT_DIR/$PREMIUM_ZIP" "site-pilot-ai-premium"
+	rm -rf "$BUILD_DIR" || true
+)
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
 	echo "Dry run complete."
 	echo "- Free zip: $FREE_ZIP"
+	echo "- Premium zip: $PREMIUM_ZIP"
 	echo "- API calls skipped"
 	exit 0
 fi
@@ -189,6 +200,30 @@ if [[ -z "$TAG_ID" ]]; then
 fi
 
 echo "Uploaded tag id: $TAG_ID"
+
+echo "Uploading premium package for tag $TAG_ID"
+PREMIUM_RESPONSE="$(
+	curl -sS -X PUT "https://api.freemius.com/v1/products/$PRODUCT_ID/tags/$TAG_ID.json" \
+		-H "Authorization: Bearer $TOKEN" \
+		-F "file=@$PREMIUM_ZIP;type=application/zip" \
+		-F "is_premium=true"
+)"
+
+# Best-effort sanity check.
+PREMIUM_OK="$(printf '%s' "$PREMIUM_RESPONSE" | python3 -c 'import json,sys
+try:
+    data=json.load(sys.stdin)
+except Exception:
+    print("")
+    sys.exit(0)
+print(data.get("version",""))')"
+if [[ "$PREMIUM_OK" != "$VERSION" ]]; then
+	echo "Premium upload response:"
+	printf '%s\n' "$PREMIUM_RESPONSE"
+	echo "Premium upload failed or returned unexpected version" >&2
+	exit 1
+fi
+
 echo "Setting release_mode=$RELEASE_MODE"
 RELEASE_RESPONSE="$(
 	curl -sS -X PUT "https://api.freemius.com/v1/products/$PRODUCT_ID/tags/$TAG_ID.json" \
@@ -220,6 +255,7 @@ echo "- release_mode: $FINAL_MODE"
 
 if [[ "$KEEP_ZIPS" -eq 0 ]]; then
 	rm -f "$FREE_ZIP"
+	rm -f "$PREMIUM_ZIP"
 	echo "Cleaned local zip artifacts"
 else
 	echo "Kept local zip artifacts"
