@@ -389,6 +389,24 @@ class Spai_Activity_Log_Page {
 			'private_key',
 		);
 
+		$settings = get_option( 'spai_settings', array() );
+		if ( isset( $settings['log_redaction_keys'] ) ) {
+			$custom = $settings['log_redaction_keys'];
+			if ( is_string( $custom ) ) {
+				$custom = preg_split( '/[\r\n,]+/', $custom );
+			}
+			if ( is_array( $custom ) ) {
+				foreach ( $custom as $item ) {
+					$item = strtolower( trim( sanitize_text_field( (string) $item ) ) );
+					if ( '' === $item ) {
+						continue;
+					}
+					$sensitive_keys[] = $item;
+				}
+				$sensitive_keys = array_values( array_unique( $sensitive_keys ) );
+			}
+		}
+
 		if ( is_array( $data ) ) {
 			$out = array();
 			foreach ( $data as $key => $value ) {

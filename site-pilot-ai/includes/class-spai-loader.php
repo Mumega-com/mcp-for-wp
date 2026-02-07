@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Spai_Loader {
 
+	use Spai_Logging;
+
 	/**
 	 * Array of actions to register.
 	 *
@@ -92,6 +94,55 @@ class Spai_Loader {
 		// Ensure log cleanup cron is scheduled and executed.
 		$this->add_action( 'init', $this, 'maybe_schedule_log_cleanup' );
 		$this->add_action( 'spai_cleanup_logs', $this, 'cleanup_old_logs' );
+
+		// Alert checks (cron).
+		$this->add_filter( 'cron_schedules', $this, 'register_cron_schedules' );
+		$this->add_action( 'init', $this, 'maybe_schedule_alert_checks' );
+		$this->add_action( 'spai_check_alerts', $this, 'check_alerts' );
+	}
+
+	/**
+	 * Register custom cron schedules.
+	 *
+	 * @param array $schedules Schedules.
+	 * @return array
+	 */
+	public function register_cron_schedules( $schedules ) {
+		if ( ! isset( $schedules['spai_every_five_minutes'] ) ) {
+			$schedules['spai_every_five_minutes'] = array(
+				'interval' => 5 * MINUTE_IN_SECONDS,
+				'display'  => __( 'Every 5 Minutes (SPAI)', 'site-pilot-ai' ),
+			);
+		}
+
+		return $schedules;
+	}
+
+	/**
+	 * Ensure periodic alert checks are scheduled.
+	 */
+	public function maybe_schedule_alert_checks() {
+		if ( ! function_exists( 'wp_next_scheduled' ) || ! function_exists( 'wp_schedule_event' ) ) {
+			return;
+		}
+
+		if ( wp_next_scheduled( 'spai_check_alerts' ) ) {
+			return;
+		}
+
+		wp_schedule_event( time() + 2 * MINUTE_IN_SECONDS, 'spai_every_five_minutes', 'spai_check_alerts' );
+	}
+
+	/**
+	 * Run alert checks.
+	 */
+	public function check_alerts() {
+		if ( ! class_exists( 'Spai_Alerts' ) ) {
+			return;
+		}
+
+		$alerts = new Spai_Alerts();
+		$alerts->check_alerts();
 	}
 
 	/**
@@ -214,6 +265,16 @@ class Spai_Loader {
 		}
 
 		$status = method_exists( $response, 'get_status' ) ? (int) $response->get_status() : 200;
+
+		// Ensure we log permission_callback failures and server errors which never reach controller-level logging.
+		if ( $status >= 400 ) {
+			$payload = null;
+			if ( method_exists( $response, 'get_data' ) ) {
+				$payload = $response->get_data();
+			}
+			$this->log_activity( 'rest_error', $request, $payload, $status );
+		}
+
 		if ( 429 !== $status ) {
 			return $response;
 		}

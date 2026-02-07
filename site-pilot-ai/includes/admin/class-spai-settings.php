@@ -89,6 +89,101 @@ class Spai_Settings {
 			)
 		);
 
+		add_settings_field(
+			'log_store_response_data',
+			__( 'Store Response Data', 'site-pilot-ai' ),
+			array( $this, 'render_checkbox_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'log_store_response_data',
+				'description' => __( 'Store small response bodies for debugging (redacted). Disable for privacy.', 'site-pilot-ai' ),
+			)
+		);
+
+		add_settings_field(
+			'log_redaction_keys',
+			__( 'Redaction Keys', 'site-pilot-ai' ),
+			array( $this, 'render_textarea_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'log_redaction_keys',
+				'description' => __( 'Comma or newline-separated keys to redact from logged request/response data.', 'site-pilot-ai' ),
+				'placeholder' => "api_key\nauthorization\ntoken",
+			)
+		);
+
+		add_settings_field(
+			'alerts_enabled',
+			__( 'Enable Alerts', 'site-pilot-ai' ),
+			array( $this, 'render_checkbox_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'alerts_enabled',
+				'description' => __( 'Send webhook alerts on API error spikes (requires a configured webhook subscribed to api.alert.* events).', 'site-pilot-ai' ),
+			)
+		);
+
+		add_settings_field(
+			'alerts_window_minutes',
+			__( 'Alert Window', 'site-pilot-ai' ),
+			array( $this, 'render_number_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'alerts_window_minutes',
+				'description' => __( 'Time window for counting errors.', 'site-pilot-ai' ),
+				'min'         => 1,
+				'max'         => 120,
+				'suffix'      => __( 'minutes', 'site-pilot-ai' ),
+			)
+		);
+
+		add_settings_field(
+			'alerts_5xx_threshold',
+			__( '5xx Threshold', 'site-pilot-ai' ),
+			array( $this, 'render_number_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'alerts_5xx_threshold',
+				'description' => __( 'Trigger api.alert.5xx_spike when 5xx count meets or exceeds this value.', 'site-pilot-ai' ),
+				'min'         => 1,
+				'max'         => 10000,
+			)
+		);
+
+		add_settings_field(
+			'alerts_auth_threshold',
+			__( '401/403 Threshold', 'site-pilot-ai' ),
+			array( $this, 'render_number_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'alerts_auth_threshold',
+				'description' => __( 'Trigger api.alert.auth_spike when 401/403 count meets or exceeds this value.', 'site-pilot-ai' ),
+				'min'         => 1,
+				'max'         => 10000,
+			)
+		);
+
+		add_settings_field(
+			'alerts_cooldown_minutes',
+			__( 'Alert Cooldown', 'site-pilot-ai' ),
+			array( $this, 'render_number_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'alerts_cooldown_minutes',
+				'description' => __( 'Minimum time between repeated alerts of the same type.', 'site-pilot-ai' ),
+				'min'         => 1,
+				'max'         => 1440,
+				'suffix'      => __( 'minutes', 'site-pilot-ai' ),
+			)
+		);
+
 		// Allowed origins (CORS)
 		add_settings_field(
 			'allowed_origins',
@@ -245,11 +340,28 @@ class Spai_Settings {
 		return array(
 			'enable_logging'     => true,
 			'log_retention_days' => 30,
+			'log_store_response_data' => true,
+			'log_redaction_keys' => array(
+				'api_key',
+				'x-api-key',
+				'authorization',
+				'password',
+				'secret',
+				'token',
+				'access_token',
+				'refresh_token',
+				'client_secret',
+			),
 			'allowed_origins'    => '',
 			'oauth_enabled'      => false,
 			'oauth_client_id'    => 'site_pilot_ai',
 			'oauth_client_secret_hash' => '',
 			'oauth_token_ttl'    => 3600,
+			'alerts_enabled'          => false,
+			'alerts_window_minutes'   => 5,
+			'alerts_cooldown_minutes' => 15,
+			'alerts_5xx_threshold'    => 5,
+			'alerts_auth_threshold'   => 10,
 		);
 	}
 
@@ -308,6 +420,33 @@ class Spai_Settings {
 			? min( 365, max( 1, absint( $input['log_retention_days'] ) ) )
 			: 30;
 
+		$sanitized['log_store_response_data'] = ! empty( $input['log_store_response_data'] );
+
+		$raw_redaction = isset( $input['log_redaction_keys'] )
+			? $input['log_redaction_keys']
+			: ( $current['log_redaction_keys'] ?? $this->get_defaults()['log_redaction_keys'] );
+
+		if ( is_string( $raw_redaction ) ) {
+			$raw_redaction = preg_split( '/[\r\n,]+/', $raw_redaction );
+		}
+
+		$redaction = array();
+		if ( is_array( $raw_redaction ) ) {
+			foreach ( $raw_redaction as $item ) {
+				$item = strtolower( trim( sanitize_text_field( (string) $item ) ) );
+				if ( '' === $item ) {
+					continue;
+				}
+				$redaction[] = $item;
+			}
+		}
+
+		if ( empty( $redaction ) ) {
+			$redaction = $this->get_defaults()['log_redaction_keys'];
+		}
+
+		$sanitized['log_redaction_keys'] = array_values( array_unique( $redaction ) );
+
 		$sanitized['allowed_origins'] = isset( $input['allowed_origins'] )
 			? sanitize_textarea_field( $input['allowed_origins'] )
 			: '';
@@ -326,6 +465,20 @@ class Spai_Settings {
 		} else {
 			$sanitized['oauth_client_secret_hash'] = isset( $current['oauth_client_secret_hash'] ) ? (string) $current['oauth_client_secret_hash'] : '';
 		}
+
+		$sanitized['alerts_enabled'] = ! empty( $input['alerts_enabled'] );
+		$sanitized['alerts_window_minutes'] = isset( $input['alerts_window_minutes'] )
+			? min( 120, max( 1, absint( $input['alerts_window_minutes'] ) ) )
+			: 5;
+		$sanitized['alerts_cooldown_minutes'] = isset( $input['alerts_cooldown_minutes'] )
+			? min( 1440, max( 1, absint( $input['alerts_cooldown_minutes'] ) ) )
+			: 15;
+		$sanitized['alerts_5xx_threshold'] = isset( $input['alerts_5xx_threshold'] )
+			? min( 10000, max( 1, absint( $input['alerts_5xx_threshold'] ) ) )
+			: 5;
+		$sanitized['alerts_auth_threshold'] = isset( $input['alerts_auth_threshold'] )
+			? min( 10000, max( 1, absint( $input['alerts_auth_threshold'] ) ) )
+			: 10;
 
 		return $sanitized;
 	}

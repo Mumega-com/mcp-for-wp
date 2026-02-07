@@ -264,6 +264,33 @@ class Spai_Admin {
 	}
 
 	/**
+	 * Get recent API activity rows.
+	 *
+	 * @param int $limit Limit.
+	 * @return array
+	 */
+	public function get_recent_activity_rows( $limit = 10 ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'spai_activity_log';
+
+		$limit = max( 1, min( 50, absint( $limit ) ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, action, endpoint, method, status_code, created_at
+				 FROM {$table}
+				 ORDER BY created_at DESC
+				 LIMIT %d",
+				$limit
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Display admin notices.
 	 */
 	public function admin_notices() {

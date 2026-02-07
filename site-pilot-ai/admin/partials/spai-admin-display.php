@@ -166,6 +166,49 @@ if ( isset( $new_key ) && $new_key ) {
 	<?php if ( 'setup' === $current_tab ) : ?>
 
 	<div class="spai-tab-content">
+		<!-- Recent Activity Card -->
+		<div class="spai-card">
+			<h2><?php esc_html_e( 'Recent Activity', 'site-pilot-ai' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'Latest API activity captured by Site Pilot AI. Use Activity Log for full history and details.', 'site-pilot-ai' ); ?>
+			</p>
+
+			<?php
+			$recent = $admin->get_recent_activity_rows( 10 );
+			$activity_url = admin_url( 'admin.php?page=' . Spai_Admin::ACTIVITY_LOG_PAGE_SLUG );
+			?>
+
+			<?php if ( empty( $recent ) ) : ?>
+				<p><em><?php esc_html_e( 'No activity yet.', 'site-pilot-ai' ); ?></em></p>
+			<?php else : ?>
+				<table class="widefat striped">
+					<thead>
+						<tr>
+							<th style="width:160px;"><?php esc_html_e( 'When', 'site-pilot-ai' ); ?></th>
+							<th style="width:140px;"><?php esc_html_e( 'Action', 'site-pilot-ai' ); ?></th>
+							<th><?php esc_html_e( 'Endpoint', 'site-pilot-ai' ); ?></th>
+							<th style="width:70px;"><?php esc_html_e( 'Method', 'site-pilot-ai' ); ?></th>
+							<th style="width:70px;"><?php esc_html_e( 'Status', 'site-pilot-ai' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $recent as $row ) : ?>
+						<tr>
+							<td><?php echo esc_html( (string) $row['created_at'] ); ?></td>
+							<td><?php echo esc_html( (string) $row['action'] ); ?></td>
+							<td><code><?php echo esc_html( (string) $row['endpoint'] ); ?></code></td>
+							<td><?php echo esc_html( (string) $row['method'] ); ?></td>
+							<td><?php echo esc_html( (string) $row['status_code'] ); ?></td>
+						</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+				<p style="margin-top:10px;">
+					<a class="button" href="<?php echo esc_url( $activity_url ); ?>"><?php esc_html_e( 'Open Activity Log', 'site-pilot-ai' ); ?></a>
+				</p>
+			<?php endif; ?>
+		</div>
+
 		<!-- API Key Card -->
 		<div class="spai-card">
 			<h2><?php esc_html_e( 'API Key', 'site-pilot-ai' ); ?></h2>

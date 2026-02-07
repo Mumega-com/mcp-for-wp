@@ -15,6 +15,60 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait Spai_Logging {
 
 	/**
+	 * Get configured redaction keys.
+	 *
+	 * @return array
+	 */
+	protected function get_log_redaction_keys() {
+		$defaults = array( 'api_key', 'x-api-key', 'authorization', 'password', 'secret', 'token' );
+		$settings = get_option( 'spai_settings', array() );
+		$keys = isset( $settings['log_redaction_keys'] ) ? $settings['log_redaction_keys'] : $defaults;
+
+		if ( is_string( $keys ) ) {
+			$keys = preg_split( '/[\r\n,]+/', $keys );
+		}
+
+		if ( ! is_array( $keys ) ) {
+			return $defaults;
+		}
+
+		$out = array();
+		foreach ( $keys as $key ) {
+			$key = strtolower( trim( sanitize_text_field( (string) $key ) ) );
+			if ( '' === $key ) {
+				continue;
+			}
+			$out[] = $key;
+		}
+
+		return ! empty( $out ) ? array_values( array_unique( $out ) ) : $defaults;
+	}
+
+	/**
+	 * Redact sensitive values recursively.
+	 *
+	 * @param mixed $data Data.
+	 * @param array $redaction_keys Keys to redact.
+	 * @return mixed
+	 */
+	protected function redact_log_data( $data, $redaction_keys ) {
+		if ( is_array( $data ) ) {
+			$out = array();
+			foreach ( $data as $key => $value ) {
+				$key_norm = is_string( $key ) ? strtolower( (string) $key ) : '';
+				if ( '' !== $key_norm && in_array( $key_norm, $redaction_keys, true ) ) {
+					$out[ $key ] = '[redacted]';
+					continue;
+				}
+				$out[ $key ] = $this->redact_log_data( $value, $redaction_keys );
+			}
+			return $out;
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Log API activity.
 	 *
 	 * @param string          $action      Action name.
@@ -28,6 +82,8 @@ trait Spai_Logging {
 		if ( empty( $settings['enable_logging'] ) ) {
 			return;
 		}
+
+		$redaction_keys = $this->get_log_redaction_keys();
 
 		global $wpdb;
 		$table = $wpdb->prefix . 'spai_activity_log';
@@ -45,12 +101,13 @@ trait Spai_Logging {
 		// Optionally log request data (excluding sensitive info)
 		$request_data = $this->get_loggable_request_data( $request );
 		if ( ! empty( $request_data ) ) {
-			$data['request_data'] = wp_json_encode( $request_data );
+			$data['request_data'] = wp_json_encode( $this->redact_log_data( $request_data, $redaction_keys ) );
 		}
 
 		// Log response size if available
-		if ( null !== $response ) {
-			$response_json = wp_json_encode( $response );
+		if ( null !== $response && ! empty( $settings['log_store_response_data'] ) ) {
+			$redacted_response = $this->redact_log_data( $response, $redaction_keys );
+			$response_json = wp_json_encode( $redacted_response );
 			$data['response_data'] = strlen( $response_json ) > 1000 ? null : $response_json;
 		}
 
@@ -70,12 +127,6 @@ trait Spai_Logging {
 	 */
 	protected function get_loggable_request_data( $request ) {
 		$params = $request->get_params();
-
-		// Remove sensitive fields
-		$sensitive_keys = array( 'api_key', 'password', 'secret', 'token', 'key' );
-		foreach ( $sensitive_keys as $key ) {
-			unset( $params[ $key ] );
-		}
 
 		// Truncate large fields
 		foreach ( $params as $key => $value ) {

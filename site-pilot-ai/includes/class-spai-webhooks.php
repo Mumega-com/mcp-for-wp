@@ -50,6 +50,8 @@ class Spai_Webhooks {
 		'comment.created',
 		'comment.approved',
 		'comment.deleted',
+		'api.alert.5xx_spike',
+		'api.alert.auth_spike',
 	);
 
 	/**

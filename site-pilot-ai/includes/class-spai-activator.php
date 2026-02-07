@@ -41,7 +41,24 @@ class Spai_Activator {
 			$defaults = array(
 				'enable_logging'     => true,
 				'log_retention_days' => 30,
+				'log_store_response_data' => true,
+				'log_redaction_keys' => array(
+					'api_key',
+					'x-api-key',
+					'authorization',
+					'password',
+					'secret',
+					'token',
+					'access_token',
+					'refresh_token',
+					'client_secret',
+				),
 				'allowed_origins'    => '',
+				'alerts_enabled'          => false,
+				'alerts_window_minutes'   => 5,
+				'alerts_cooldown_minutes' => 15,
+				'alerts_5xx_threshold'    => 5,
+				'alerts_auth_threshold'   => 10,
 			);
 			update_option( 'spai_settings', $defaults );
 		}
