@@ -13,6 +13,45 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Input sanitization and validation functionality.
  */
 trait Spai_Sanitization {
+	/**
+	 * Check whether content contains wrapper HTML tags that should never be injected.
+	 *
+	 * @param string $content Content to scan.
+	 * @return bool True when wrapper tags are present.
+	 */
+	protected function contains_wrapper_html_tags( $content ) {
+		if ( ! is_string( $content ) || '' === $content ) {
+			return false;
+		}
+
+		return (bool) preg_match( '/<\\/?\\s*(html|head|body)\\b/i', $content );
+	}
+
+	/**
+	 * Strip wrapper HTML tags (<html>, <head>, <body>) while preserving inner markup.
+	 *
+	 * These tags are invalid in injected snippets (e.g. wp_body_open) and can break the page.
+	 *
+	 * @param string $content Content to sanitize.
+	 * @return array{content:string,changed:bool} Sanitized content and whether it changed.
+	 */
+	protected function strip_wrapper_html_tags( $content ) {
+		if ( ! is_string( $content ) || '' === $content ) {
+			return array(
+				'content' => is_string( $content ) ? $content : '',
+				'changed' => false,
+			);
+		}
+
+		$original = $content;
+		$content  = preg_replace( '/<\\/?\\s*(html|head|body)\\b[^>]*>/i', '', $content );
+
+		return array(
+			'content' => is_string( $content ) ? $content : '',
+			'changed' => $content !== $original,
+		);
+	}
+
 
 	/**
 	 * Sanitize post data array.

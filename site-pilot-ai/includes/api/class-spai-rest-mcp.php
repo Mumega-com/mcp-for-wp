@@ -1175,6 +1175,65 @@ class Spai_REST_MCP extends Spai_REST_API {
 			array()
 		);
 
+		$pro_tools[] = $this->define_tool(
+			'wp_list_elementor_custom_code',
+			'List Elementor Pro Custom Code snippets (admin)',
+			array(
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Maximum number of items per page',
+				),
+				'page'     => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+				),
+				'status'   => array(
+					'type'        => 'string',
+					'description' => 'Filter by post status: publish|draft|any',
+				),
+				'search'   => array(
+					'type'        => 'string',
+					'description' => 'Search by snippet title',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_disable_elementor_custom_code',
+			'Disable an Elementor Pro Custom Code snippet (sets status to draft)',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Snippet post ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_enable_elementor_custom_code',
+			'Enable an Elementor Pro Custom Code snippet (sets status to publish)',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Snippet post ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_sanitize_elementor_custom_code',
+			'Sanitize an Elementor Pro Custom Code snippet by stripping <html>/<head>/<body> tags from meta values',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Snippet post ID',
+					'required'    => true,
+				),
+			)
+		);
+
 		return $pro_tools;
 	}
 
@@ -1521,6 +1580,22 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_get_elementor_widgets'       => array(
 				'method' => 'GET',
 				'route'  => '/elementor/widgets',
+			),
+			'wp_list_elementor_custom_code'  => array(
+				'method' => 'GET',
+				'route'  => '/elementor/custom-code',
+			),
+			'wp_disable_elementor_custom_code' => array(
+				'method' => 'POST',
+				'route'  => '/elementor/custom-code/{id}/disable',
+			),
+			'wp_enable_elementor_custom_code' => array(
+				'method' => 'POST',
+				'route'  => '/elementor/custom-code/{id}/enable',
+			),
+			'wp_sanitize_elementor_custom_code' => array(
+				'method' => 'POST',
+				'route'  => '/elementor/custom-code/{id}/sanitize',
 			),
 		);
 	}

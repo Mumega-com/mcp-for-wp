@@ -404,6 +404,7 @@ trait Spai_Api_Auth {
 			'/site-pilot-ai/v1/options',
 			'/site-pilot-ai/v1/webhooks',
 			'/site-pilot-ai/v1/api-keys',
+			'/site-pilot-ai/v1/elementor/custom-code',
 		);
 
 		foreach ( $admin_routes as $admin_route ) {
