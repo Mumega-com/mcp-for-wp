@@ -28,7 +28,7 @@ class Spai_Core {
 
 		$theme = wp_get_theme();
 
-		return array(
+		$info = array(
 			'name'         => get_bloginfo( 'name' ),
 			'description'  => get_bloginfo( 'description' ),
 			'url'          => home_url(),
@@ -47,6 +47,16 @@ class Spai_Core {
 				'version' => SPAI_VERSION,
 			),
 		);
+
+		// Include non-sensitive license status so clients can understand Pro state without guessing.
+		if ( function_exists( 'spai_license' ) ) {
+			$license = spai_license();
+			if ( is_object( $license ) && method_exists( $license, 'get_info' ) ) {
+				$info['license'] = $license->get_info();
+			}
+		}
+
+		return $info;
 	}
 
 	/**

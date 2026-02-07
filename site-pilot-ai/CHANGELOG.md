@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Treat Freemius plan names case-insensitively so Agency/Pro plans correctly mark the site as Pro.
 - Hide upgrade/Go Pro CTAs in plugin action links when Pro is active (including Freemius-injected links).
 
+## [1.0.37] - 2026-02-07
+
+### Added
+- Include license status in the `/site-info` API response so clients can detect Pro state.
+
 ## [1.0.35] - 2026-02-07
 
 ### Added
