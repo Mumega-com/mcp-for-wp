@@ -1394,6 +1394,76 @@ class Spai_REST_MCP extends Spai_REST_API {
 		);
 
 		$pro_tools[] = $this->define_tool(
+			'wp_get_elementor_template',
+			'Get a single Elementor template (Theme Builder template lives in elementor_library)',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Template post ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_create_elementor_template',
+			'Create a new Elementor template (Theme Builder template lives in elementor_library)',
+			array(
+				'title'          => array(
+					'type'        => 'string',
+					'description' => 'Template title',
+					'required'    => true,
+				),
+				'type'           => array(
+					'type'        => 'string',
+					'description' => 'Template type (e.g. header, footer, single, archive, section, page)',
+					'required'    => true,
+				),
+				'elementor_data' => array(
+					'type'        => 'array',
+					'description' => 'Optional Elementor data JSON (array). If omitted, Elementor creates a blank template.',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_update_elementor_template',
+			'Update an Elementor template',
+			array(
+				'id'             => array(
+					'type'        => 'number',
+					'description' => 'Template post ID',
+					'required'    => true,
+				),
+				'title'          => array(
+					'type'        => 'string',
+					'description' => 'Optional new title',
+				),
+				'elementor_data' => array(
+					'type'        => 'array',
+					'description' => 'Optional Elementor data JSON (array)',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_delete_elementor_template',
+			'Delete an Elementor template',
+			array(
+				'id'    => array(
+					'type'        => 'number',
+					'description' => 'Template post ID',
+					'required'    => true,
+				),
+				'force' => array(
+					'type'        => 'boolean',
+					'description' => 'Whether to force delete (bypass trash)',
+					'default'     => false,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
 			'wp_apply_elementor_template',
 			'Apply an Elementor template to a page',
 			array(
@@ -1884,6 +1954,22 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_list_elementor_templates'    => array(
 				'method' => 'GET',
 				'route'  => '/elementor/templates',
+			),
+			'wp_get_elementor_template'      => array(
+				'method' => 'GET',
+				'route'  => '/elementor/templates/{id}',
+			),
+			'wp_create_elementor_template'   => array(
+				'method' => 'POST',
+				'route'  => '/elementor/templates',
+			),
+			'wp_update_elementor_template'   => array(
+				'method' => 'POST',
+				'route'  => '/elementor/templates/{id}',
+			),
+			'wp_delete_elementor_template'   => array(
+				'method' => 'DELETE',
+				'route'  => '/elementor/templates/{id}',
 			),
 			'wp_apply_elementor_template'    => array(
 				'method' => 'POST',

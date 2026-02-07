@@ -5,27 +5,10 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.36] - 2026-02-07
-
-### Fixed
-- Treat Freemius plan names case-insensitively so Agency/Pro plans correctly mark the site as Pro.
-- Hide upgrade/Go Pro CTAs in plugin action links when Pro is active (including Freemius-injected links).
-
-## [1.0.37] - 2026-02-07
+## [1.0.41] - 2026-02-07
 
 ### Added
-- Include license status in the `/site-info` API response so clients can detect Pro state.
-
-## [1.0.38] - 2026-02-07
-
-### Fixed
-- Ensure Freemius `Account` and `Pricing` admin pages are registered under the plugin menu to prevent "Sorry, you are not allowed to access this page." on managed hosts.
-
-## [1.0.39] - 2026-02-07
-
-### Changed
-- Switch Freemius integration to single-plugin distribution (no premium zip required after checkout).
-- Allow Freemius `Account`/`Pricing` pages for administrators even if `manage_options` is restricted by the host.
+- MCP tools for Elementor Theme Builder templates (get/create/update/delete).
 
 ## [1.0.40] - 2026-02-07
 
@@ -34,6 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Use `activate_plugins` for WP Admin access checks so all administrators can access the plugin screens on managed hosts.
+
+## [1.0.39] - 2026-02-07
+
+### Changed
+- Switch Freemius integration to single-plugin distribution (no premium zip required after checkout).
+- Allow Freemius `Account`/`Pricing` pages for administrators even if `manage_options` is restricted by the host.
+
+## [1.0.38] - 2026-02-07
+
+### Fixed
+- Ensure Freemius `Account` and `Pricing` admin pages are registered under the plugin menu to prevent "Sorry, you are not allowed to access this page." on managed hosts.
+
+## [1.0.37] - 2026-02-07
+
+### Added
+- Include license status in the `/site-info` API response so clients can detect Pro state.
+
+## [1.0.36] - 2026-02-07
+
+### Fixed
+- Treat Freemius plan names case-insensitively so Agency/Pro plans correctly mark the site as Pro.
+- Hide upgrade/Go Pro CTAs in plugin action links when Pro is active (including Freemius-injected links).
 
 ## [1.0.35] - 2026-02-07
 

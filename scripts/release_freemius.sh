@@ -18,6 +18,8 @@ Options:
   --release-mode MODE            release mode for tag update (default: released).
                                 Allowed: released | pending | beta | all.
                                 Alias: unreleased -> pending.
+  --upload-premium-zip           Also upload a premium zip (legacy Freemius setup).
+                                Default is single-plugin distribution (no premium zip).
   --skip-bump                    Do not edit plugin/readme/changelog versions
   --dry-run                      Build and print actions; skip Freemius API calls
   --keep-zips                    Keep generated zip files in repo root
@@ -51,6 +53,7 @@ VERSION=""
 TOKEN="${FREEMIUS_BEARER_TOKEN:-}"
 PRODUCT_ID="${FREEMIUS_PRODUCT_ID:-23824}"
 RELEASE_MODE="released"
+UPLOAD_PREMIUM_ZIP=0
 SKIP_BUMP=0
 DRY_RUN=0
 KEEP_ZIPS=0
@@ -72,6 +75,10 @@ while [[ $# -gt 0 ]]; do
 	--release-mode)
 		RELEASE_MODE="${2:-}"
 		shift 2
+		;;
+	--upload-premium-zip)
+		UPLOAD_PREMIUM_ZIP=1
+		shift
 		;;
 	--skip-bump)
 		SKIP_BUMP=1
@@ -159,19 +166,23 @@ echo "Building zip package"
 	rm -rf "$BUILD_DIR" || true
 )
 
-echo "Building premium zip package"
-(
-	BUILD_DIR="$(mktemp -d)"
-	cp -R "site-pilot-ai" "$BUILD_DIR/site-pilot-ai-premium"
-	cd "$BUILD_DIR"
-	zip -qr "$ROOT_DIR/$PREMIUM_ZIP" "site-pilot-ai-premium"
-	rm -rf "$BUILD_DIR" || true
-)
+if [[ "$UPLOAD_PREMIUM_ZIP" -eq 1 ]]; then
+	echo "Building premium zip package"
+	(
+		BUILD_DIR="$(mktemp -d)"
+		cp -R "site-pilot-ai" "$BUILD_DIR/site-pilot-ai-premium"
+		cd "$BUILD_DIR"
+		zip -qr "$ROOT_DIR/$PREMIUM_ZIP" "site-pilot-ai-premium"
+		rm -rf "$BUILD_DIR" || true
+	)
+fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
 	echo "Dry run complete."
 	echo "- Free zip: $FREE_ZIP"
-	echo "- Premium zip: $PREMIUM_ZIP"
+	if [[ "$UPLOAD_PREMIUM_ZIP" -eq 1 ]]; then
+		echo "- Premium zip: $PREMIUM_ZIP"
+	fi
 	echo "- API calls skipped"
 	exit 0
 fi
@@ -201,27 +212,31 @@ fi
 
 echo "Uploaded tag id: $TAG_ID"
 
-echo "Uploading premium package for tag $TAG_ID"
-PREMIUM_RESPONSE="$(
-	curl -sS -X PUT "https://api.freemius.com/v1/products/$PRODUCT_ID/tags/$TAG_ID.json" \
-		-H "Authorization: Bearer $TOKEN" \
-		-F "file=@$PREMIUM_ZIP;type=application/zip" \
-		-F "is_premium=true"
-)"
+if [[ "$UPLOAD_PREMIUM_ZIP" -eq 1 ]]; then
+	echo "Uploading premium package for tag $TAG_ID"
+	PREMIUM_RESPONSE="$(
+		curl -sS -X PUT "https://api.freemius.com/v1/products/$PRODUCT_ID/tags/$TAG_ID.json" \
+			-H "Authorization: Bearer $TOKEN" \
+			-F "file=@$PREMIUM_ZIP;type=application/zip" \
+			-F "is_premium=true"
+	)"
 
-# Best-effort sanity check.
-PREMIUM_OK="$(printf '%s' "$PREMIUM_RESPONSE" | python3 -c 'import json,sys
+	# Best-effort sanity check.
+	PREMIUM_OK="$(printf '%s' "$PREMIUM_RESPONSE" | python3 -c 'import json,sys
 try:
     data=json.load(sys.stdin)
 except Exception:
     print("")
     sys.exit(0)
 print(data.get("version",""))')"
-if [[ "$PREMIUM_OK" != "$VERSION" ]]; then
-	echo "Premium upload response:"
-	printf '%s\n' "$PREMIUM_RESPONSE"
-	echo "Premium upload failed or returned unexpected version" >&2
-	exit 1
+	if [[ "$PREMIUM_OK" != "$VERSION" ]]; then
+		echo "Premium upload response:"
+		printf '%s\n' "$PREMIUM_RESPONSE"
+		echo "Premium upload failed or returned unexpected version" >&2
+		exit 1
+	fi
+else
+	echo "Skipping premium zip upload (single-plugin distribution)"
 fi
 
 echo "Setting release_mode=$RELEASE_MODE"
@@ -255,7 +270,9 @@ echo "- release_mode: $FINAL_MODE"
 
 if [[ "$KEEP_ZIPS" -eq 0 ]]; then
 	rm -f "$FREE_ZIP"
-	rm -f "$PREMIUM_ZIP"
+	if [[ "$UPLOAD_PREMIUM_ZIP" -eq 1 ]]; then
+		rm -f "$PREMIUM_ZIP"
+	fi
 	echo "Cleaned local zip artifacts"
 else
 	echo "Kept local zip artifacts"
