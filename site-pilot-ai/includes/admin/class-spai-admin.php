@@ -59,6 +59,81 @@ class Spai_Admin {
 			self::ACTIVITY_LOG_PAGE_SLUG,
 			array( $this, 'render_activity_log_page' )
 		);
+
+		// Ensure Freemius account/pricing pages are accessible under our menu.
+		// On some installs (especially managed hosts), Freemius may not register these
+		// pages in a way WP recognizes for direct `admin.php?page=...` access.
+		$this->maybe_add_freemius_proxy_pages();
+	}
+
+	/**
+	 * Add Freemius account/pricing pages under our menu if missing.
+	 */
+	private function maybe_add_freemius_proxy_pages() {
+		if ( ! function_exists( 'spa_fs' ) ) {
+			return;
+		}
+
+		$fs = spa_fs();
+		if ( ! is_object( $fs ) ) {
+			return;
+		}
+
+		// Account.
+		add_submenu_page(
+			self::PAGE_SLUG,
+			__( 'Account', 'site-pilot-ai' ),
+			__( 'Account', 'site-pilot-ai' ),
+			'manage_options',
+			'site-pilot-ai-account',
+			array( $this, 'render_freemius_account_page' ),
+			100
+		);
+
+		// Pricing.
+		add_submenu_page(
+			self::PAGE_SLUG,
+			__( 'Pricing', 'site-pilot-ai' ),
+			__( 'Pricing', 'site-pilot-ai' ),
+			'manage_options',
+			'site-pilot-ai-pricing',
+			array( $this, 'render_freemius_pricing_page' ),
+			101
+		);
+	}
+
+	/**
+	 * Render Freemius account page.
+	 */
+	public function render_freemius_account_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
+		}
+		if ( ! function_exists( 'spa_fs' ) ) {
+			wp_die( esc_html__( 'Licensing is not available in this environment.', 'site-pilot-ai' ) );
+		}
+		$fs = spa_fs();
+		if ( ! is_object( $fs ) || ! method_exists( $fs, '_account_page_render' ) ) {
+			wp_die( esc_html__( 'Licensing is not available in this environment.', 'site-pilot-ai' ) );
+		}
+		$fs->_account_page_render();
+	}
+
+	/**
+	 * Render Freemius pricing/checkout page.
+	 */
+	public function render_freemius_pricing_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
+		}
+		if ( ! function_exists( 'spa_fs' ) ) {
+			wp_die( esc_html__( 'Licensing is not available in this environment.', 'site-pilot-ai' ) );
+		}
+		$fs = spa_fs();
+		if ( ! is_object( $fs ) || ! method_exists( $fs, '_pricing_page_render' ) ) {
+			wp_die( esc_html__( 'Licensing is not available in this environment.', 'site-pilot-ai' ) );
+		}
+		$fs->_pricing_page_render();
 	}
 
 	/**

@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Include license status in the `/site-info` API response so clients can detect Pro state.
 
+## [1.0.38] - 2026-02-07
+
+### Fixed
+- Ensure Freemius `Account` and `Pricing` admin pages are registered under the plugin menu to prevent "Sorry, you are not allowed to access this page." on managed hosts.
+
 ## [1.0.35] - 2026-02-07
 
 ### Added
