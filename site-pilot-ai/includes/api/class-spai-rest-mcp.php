@@ -2016,8 +2016,19 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 * @return bool True if PRO is active.
 	 */
 	private function is_pro_active() {
-		// Check if PRO plugin is active
-		// This can be customized based on how the PRO plugin is detected
+		// Primary: single-plugin distribution gates Pro by license state.
+		if ( function_exists( 'spai_license' ) ) {
+			try {
+				$license = spai_license();
+				if ( $license && method_exists( $license, 'is_pro' ) && $license->is_pro() ) {
+					return true;
+				}
+			} catch ( Exception $e ) {
+				// Fall back to legacy detection.
+			}
+		}
+
+		// Legacy: separate Pro add-on plugin.
 		return function_exists( 'spai_pro' ) || defined( 'SPAI_PRO_VERSION' );
 	}
 
