@@ -60,18 +60,24 @@ class Spai_Core {
 			return $cached;
 		}
 
+		$rankmath_active = defined( 'RANK_MATH_VERSION' )
+			|| defined( 'RANK_MATH_FILE' )
+			|| class_exists( 'RankMath\\Helper' )
+			|| class_exists( 'RankMath\\Loader' );
+
 		$capabilities = array(
 			'elementor'      => defined( 'ELEMENTOR_VERSION' ),
 			'elementor_pro'  => defined( 'ELEMENTOR_PRO_VERSION' ),
 			'woocommerce'    => class_exists( 'WooCommerce' ),
 			'yoast'          => defined( 'WPSEO_VERSION' ),
-			'rankmath'       => class_exists( 'RankMath' ),
+			'rankmath'       => $rankmath_active,
 			'aioseo'         => defined( 'AIOSEO_VERSION' ),
 			'seopress'       => defined( 'SEOPRESS_VERSION' ),
 			'cf7'            => class_exists( 'WPCF7' ),
 			'wpforms'        => class_exists( 'WPForms' ),
 			'gravityforms'   => class_exists( 'GFForms' ),
 			'ninjaforms'     => class_exists( 'Ninja_Forms' ),
+			'learnpress'     => defined( 'LEARNPRESS_VERSION' ) || class_exists( 'LP' ),
 		);
 
 		// Allow premium package to extend capabilities (e.g., Pro status).
@@ -152,7 +158,7 @@ class Spai_Core {
 		// SEO plugins
 		$seo_plugins = array(
 			'yoast'    => array( 'name' => 'Yoast SEO', 'const' => 'WPSEO_VERSION' ),
-			'rankmath' => array( 'name' => 'RankMath', 'class' => 'RankMath' ),
+			'rankmath' => array( 'name' => 'RankMath', 'const' => 'RANK_MATH_VERSION' ),
 			'aioseo'   => array( 'name' => 'All in One SEO', 'const' => 'AIOSEO_VERSION' ),
 			'seopress' => array( 'name' => 'SEOPress', 'const' => 'SEOPRESS_VERSION' ),
 		);
@@ -200,6 +206,14 @@ class Spai_Core {
 			$plugins['woocommerce'] = array(
 				'name'    => 'WooCommerce',
 				'version' => defined( 'WC_VERSION' ) ? WC_VERSION : 'unknown',
+			);
+		}
+
+		// LearnPress
+		if ( ! empty( $capabilities['learnpress'] ) ) {
+			$plugins['learnpress'] = array(
+				'name'    => 'LearnPress',
+				'version' => defined( 'LEARNPRESS_VERSION' ) ? LEARNPRESS_VERSION : 'unknown',
 			);
 		}
 

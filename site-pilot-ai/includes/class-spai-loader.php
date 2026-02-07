@@ -152,6 +152,14 @@ class Spai_Loader {
 		$media_controller = new Spai_REST_Media();
 		$media_controller->register_routes();
 
+		// Menus
+		$menus_controller = new Spai_REST_Menus();
+		$menus_controller->register_routes();
+
+		// Generic content (custom post types)
+		$content_controller = new Spai_REST_Content();
+		$content_controller->register_routes();
+
 		// Elementor (basic)
 		$elementor_controller = new Spai_REST_Elementor();
 		$elementor_controller->register_routes();

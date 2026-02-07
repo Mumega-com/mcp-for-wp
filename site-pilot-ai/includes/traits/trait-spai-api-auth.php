@@ -402,6 +402,8 @@ trait Spai_Api_Auth {
 		$admin_routes = array(
 			'/site-pilot-ai/v1/settings',
 			'/site-pilot-ai/v1/options',
+			'/site-pilot-ai/v1/menus',
+			'/site-pilot-ai/v1/content',
 			'/site-pilot-ai/v1/webhooks',
 			'/site-pilot-ai/v1/api-keys',
 			'/site-pilot-ai/v1/elementor/custom-code',
@@ -468,6 +470,16 @@ trait Spai_Api_Auth {
 	protected function get_required_scope_for_tool_name( $tool_name ) {
 		$admin_tools = array(
 			'wp_delete_all_drafts',
+			'wp_get_options',
+			'wp_update_options',
+			'wp_list_menu_locations',
+			'wp_setup_menu',
+			'wp_list_content',
+			'wp_delete_content',
+			'wp_languages',
+			'wp_set_language',
+			'wp_get_translations',
+			'wp_create_translation',
 			'wp_create_webhook',
 			'wp_update_webhook',
 			'wp_delete_webhook',

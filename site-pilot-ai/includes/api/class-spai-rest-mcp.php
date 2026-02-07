@@ -437,6 +437,121 @@ class Spai_REST_MCP extends Spai_REST_API {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_get_options',
+			'Get WordPress reading options (front page, posts page, and related settings)',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_options',
+			'Update WordPress reading options (set static homepage, posts page, visibility)',
+			array(
+				'show_on_front' => array(
+					'type'        => 'string',
+					'description' => "Reading setting: 'posts' or 'page'",
+				),
+				'page_on_front' => array(
+					'type'        => 'number',
+					'description' => 'Front page ID (0 to unset)',
+				),
+				'page_for_posts' => array(
+					'type'        => 'number',
+					'description' => 'Posts page ID (0 to unset)',
+				),
+				'blog_public' => array(
+					'type'        => 'boolean',
+					'description' => 'Search engine visibility (true to allow indexing)',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_menu_locations',
+			'List theme menu locations and which menus are assigned',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_setup_menu',
+			'Create a menu, add page links, and assign it to a theme menu location',
+			array(
+				'name' => array(
+					'type'        => 'string',
+					'description' => 'Menu name',
+					'required'    => true,
+				),
+				'location' => array(
+					'type'        => 'string',
+					'description' => 'Theme menu location key (e.g., primary)',
+				),
+				'page_ids' => array(
+					'type'        => 'array',
+					'description' => 'Array of page IDs to add as menu items',
+					'items'       => array( 'type' => 'number' ),
+					'default'     => array(),
+				),
+				'overwrite' => array(
+					'type'        => 'boolean',
+					'description' => 'If true, creates a new menu even if name exists',
+					'default'     => false,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_content',
+			'List content for any post type (e.g., WooCommerce products) with search and pagination',
+			array(
+				'post_type' => array(
+					'type'        => 'string',
+					'description' => 'Post type to list (e.g., product, lp_course)',
+					'required'    => true,
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Status filter (publish, draft, any, etc.)',
+					'default'     => 'any',
+				),
+				'search' => array(
+					'type'        => 'string',
+					'description' => 'Search term',
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Items per page (1-100)',
+					'default'     => 10,
+				),
+				'page' => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_delete_content',
+			'Delete a single content item by post type and ID (supports CPT like product)',
+			array(
+				'post_type' => array(
+					'type'        => 'string',
+					'description' => 'Post type (e.g., product)',
+					'required'    => true,
+				),
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post ID',
+					'required'    => true,
+				),
+				'force' => array(
+					'type'        => 'boolean',
+					'description' => 'Force permanent deletion',
+					'default'     => false,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_search',
 			'Search posts and pages by query string with pagination and status filters',
 			array(
@@ -992,6 +1107,81 @@ class Spai_REST_MCP extends Spai_REST_API {
 	private function get_pro_tool_definitions() {
 		$pro_tools = array();
 
+		// Multilanguage Tools (WPML, Polylang, TranslatePress).
+		$pro_tools[] = $this->define_tool(
+			'wp_languages',
+			'Get multilingual plugin status and available languages',
+			array()
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_set_language',
+			'Set current language for subsequent translation operations',
+			array(
+				'language' => array(
+					'type'        => 'string',
+					'description' => 'Language code (e.g., fa, en)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_translations',
+			'Get translations for a post or page',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post/Page ID',
+					'required'    => true,
+				),
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Content type (post or page)',
+					'default'     => 'page',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_create_translation',
+			'Create a translation for a post or page in a target language',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Source Post/Page ID',
+					'required'    => true,
+				),
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Content type (post or page)',
+					'default'     => 'page',
+				),
+				'language' => array(
+					'type'        => 'string',
+					'description' => 'Target language code',
+					'required'    => true,
+				),
+				'title' => array(
+					'type'        => 'string',
+					'description' => 'Translated title',
+				),
+				'content' => array(
+					'type'        => 'string',
+					'description' => 'Translated content',
+				),
+				'excerpt' => array(
+					'type'        => 'string',
+					'description' => 'Translated excerpt',
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Translation post status',
+					'default'     => 'draft',
+				),
+			)
+		);
+
 		// SEO Tools
 		$pro_tools[] = $this->define_tool(
 			'wp_get_seo',
@@ -1373,6 +1563,30 @@ class Spai_REST_MCP extends Spai_REST_API {
 				'method' => 'GET',
 				'route'  => '/plugins',
 			),
+			'wp_get_options'    => array(
+				'method' => 'GET',
+				'route'  => '/options',
+			),
+			'wp_update_options' => array(
+				'method' => 'POST',
+				'route'  => '/options',
+			),
+			'wp_list_menu_locations' => array(
+				'method' => 'GET',
+				'route'  => '/menus/locations',
+			),
+			'wp_setup_menu'     => array(
+				'method' => 'POST',
+				'route'  => '/menus/setup',
+			),
+			'wp_list_content'   => array(
+				'method' => 'GET',
+				'route'  => '/content',
+			),
+			'wp_delete_content' => array(
+				'method' => 'DELETE',
+				'route'  => '/content/{post_type}/{id}',
+			),
 			'wp_search'         => array(
 				'method' => 'GET',
 				'route'  => '/search',
@@ -1432,6 +1646,22 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_delete_all_drafts'     => array(
 				'method' => 'DELETE',
 				'route'  => '/drafts/delete-all',
+			),
+			'wp_languages'       => array(
+				'method' => 'GET',
+				'route'  => '/languages',
+			),
+			'wp_set_language'     => array(
+				'method' => 'POST',
+				'route'  => '/languages/current',
+			),
+			'wp_get_translations' => array(
+				'method' => 'GET',
+				'route'  => '/{type}s/{id}/translations',
+			),
+			'wp_create_translation' => array(
+				'method' => 'POST',
+				'route'  => '/{type}s/{id}/translations',
 			),
 
 			// Elementor Basic
