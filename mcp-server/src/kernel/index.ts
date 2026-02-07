@@ -119,9 +119,15 @@ export class WPKernel implements Kernel {
   }
 
   // Helper for file uploads
-  async uploadFile(filePath: string, options?: { site?: string }): Promise<WPResponse> {
+  async uploadFile(filePath: string, options?: { site?: string; title?: string; alt?: string }): Promise<WPResponse> {
     const form = new FormData();
     form.append("file", fs.createReadStream(filePath));
+    if (options?.title) {
+      form.append("title", options.title);
+    }
+    if (options?.alt) {
+      form.append("alt", options.alt);
+    }
     return this.request("POST", "media", form, { ...options, isFormData: true });
   }
 

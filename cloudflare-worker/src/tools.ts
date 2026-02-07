@@ -242,7 +242,7 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     name: "wp_upload_media",
-    description: "Upload media file (image, video, document) to WordPress media library from base64 data.",
+    description: "Upload media file (image, video, document) to WordPress media library. Accepts base64 file data.",
     inputSchema: {
       type: "object",
       properties: {
@@ -258,7 +258,7 @@ export const TOOLS: ToolDefinition[] = [
           type: "string",
           description: "Media title",
         },
-        alt_text: {
+        alt: {
           type: "string",
           description: "Alt text for images",
         },
@@ -276,11 +276,15 @@ export const TOOLS: ToolDefinition[] = [
           type: "string",
           description: "URL of the media file to upload",
         },
+        filename: {
+          type: "string",
+          description: "Optional filename override",
+        },
         title: {
           type: "string",
           description: "Media title",
         },
-        alt_text: {
+        alt: {
           type: "string",
           description: "Alt text for images",
         },
@@ -647,8 +651,8 @@ export const TOOL_MAP: Record<string, ToolMapping> = {
   wp_list_pages: { method: "GET", endpoint: "pages" },
   wp_create_page: { method: "POST", endpoint: "pages", bodyParams: ["title", "content", "status", "parent_id"] },
   wp_update_page: { method: "PUT", endpoint: "pages/{id}", bodyParams: ["title", "content", "status"] },
-  wp_upload_media: { method: "POST", endpoint: "media", bodyParams: ["filename", "file_data", "title", "alt_text"] },
-  wp_upload_media_from_url: { method: "POST", endpoint: "media/from-url", bodyParams: ["url", "title", "alt_text"] },
+  wp_upload_media: { method: "POST", endpoint: "media", bodyParams: ["filename", "file_data", "title", "alt", "alt_text"] },
+  wp_upload_media_from_url: { method: "POST", endpoint: "media/from-url", bodyParams: ["url", "filename", "title", "alt", "alt_text"] },
   wp_list_drafts: { method: "GET", endpoint: "drafts" },
   wp_delete_all_drafts: { method: "DELETE", endpoint: "drafts/delete-all" },
 

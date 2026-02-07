@@ -106,7 +106,7 @@ export interface Kernel {
   ): Promise<WPResponse>;
 
   // File upload helper
-  uploadFile(filePath: string, options?: { site?: string }): Promise<WPResponse>;
+  uploadFile(filePath: string, options?: { site?: string; title?: string; alt?: string }): Promise<WPResponse>;
 
   // Extension management
   loadExtension(extension: Extension): Promise<void>;

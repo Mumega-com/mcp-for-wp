@@ -300,13 +300,53 @@ async function handleToolsCall(params: any, siteConfig: SiteConfig) {
     method,
     headers: {
       'X-API-Key': siteConfig.apiKey,
-      'Content-Type': 'application/json',
     },
   };
 
-  // Add body for non-GET requests
-  if (method !== 'GET' && method !== 'HEAD' && Object.keys(bodyData).length > 0) {
-    wpOptions.body = JSON.stringify(bodyData);
+  // Special case: media upload requires multipart/form-data (WordPress expects $_FILES['file']).
+  const isMediaUpload = apiEndpoint === 'media' && method === 'POST';
+  if (isMediaUpload) {
+    const filename = bodyData['filename'] as string | undefined;
+    const fileData = bodyData['file_data'] as string | undefined;
+    const title = bodyData['title'] as string | undefined;
+    const alt = (bodyData['alt'] ?? bodyData['alt_text']) as string | undefined;
+
+    if (!filename || !fileData) {
+      return {
+        content: [{ type: 'text', text: 'Missing required params for wp_upload_media: filename and file_data' }],
+        isError: true,
+      };
+    }
+
+    let base64 = String(fileData);
+    const commaIndex = base64.indexOf(',');
+    if (commaIndex !== -1 && base64.slice(0, commaIndex).includes('base64')) {
+      base64 = base64.slice(commaIndex + 1);
+    }
+
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    const form = new FormData();
+    form.append('file', new Blob([bytes]), filename);
+    if (title) form.append('title', title);
+    if (alt) form.append('alt', alt);
+
+    wpOptions.body = form;
+  } else {
+    // Default: JSON body for non-GET requests.
+    if (method !== 'GET' && method !== 'HEAD' && Object.keys(bodyData).length > 0) {
+      (wpOptions.headers as Record<string, string>)['Content-Type'] = 'application/json';
+      // Normalize alt_text -> alt for endpoints that expect 'alt'.
+      if (bodyData['alt'] === undefined && bodyData['alt_text'] !== undefined) {
+        bodyData['alt'] = bodyData['alt_text'];
+        delete bodyData['alt_text'];
+      }
+      wpOptions.body = JSON.stringify(bodyData);
+    }
   }
 
   // Make WordPress API request
@@ -326,6 +366,24 @@ async function handleToolsCall(params: any, siteConfig: SiteConfig) {
 
   // Check if WordPress returned an error
   if (!wpResponse.ok) {
+    const looksLikeWpNoRoute =
+      wpResponse.status === 404 &&
+      responseData &&
+      typeof responseData === 'object' &&
+      responseData.code === 'rest_no_route';
+
+    if (looksLikeWpNoRoute) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `WordPress API error (404): Endpoint not found. This tool may require Site Pilot AI Pro, or the target plugin/module is not installed/active.\n\n${JSON.stringify(responseData, null, 2)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
     return {
       content: [
         {

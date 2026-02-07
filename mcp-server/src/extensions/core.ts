@@ -182,10 +182,14 @@ export class CoreExtension extends BaseExtension {
         inputSchema: {
           type: "object",
           properties: {
-            file_path: { type: "string", description: "Local file path" },
+            file_path: { type: "string", description: "Local file path (Node MCP server only)" },
+            filename: { type: "string", description: "Filename (when sending base64 file_data)" },
+            file_data: { type: "string", description: "Base64-encoded file data (optionally data:...;base64, prefix)" },
+            title: { type: "string", description: "Media title" },
+            alt: { type: "string", description: "Alt text (images)" },
             site: { type: "string" },
           },
-          required: ["file_path"],
+          required: [],
         },
       },
       {
@@ -195,10 +199,12 @@ export class CoreExtension extends BaseExtension {
           type: "object",
           properties: {
             url: { type: "string", description: "Image URL" },
-            filename: { type: "string", description: "Filename to save as" },
+            filename: { type: "string", description: "Optional filename override" },
+            title: { type: "string", description: "Media title" },
+            alt: { type: "string", description: "Alt text (images)" },
             site: { type: "string" },
           },
-          required: ["url", "filename"],
+          required: ["url"],
         },
       },
 
@@ -309,25 +315,42 @@ export class CoreExtension extends BaseExtension {
     return this.request("PUT", `pages/${id}`, data, { site });
   }
 
-  private async uploadMedia(args: { file_path: string; site?: string }) {
-    return this.kernel.uploadFile(args.file_path, { site: args.site });
-  }
+  private async uploadMedia(args: {
+    file_path?: string;
+    filename?: string;
+    file_data?: string;
+    title?: string;
+    alt?: string;
+    site?: string;
+  }) {
+    if (args.file_path) {
+      return this.kernel.uploadFile(args.file_path, { site: args.site, title: args.title, alt: args.alt });
+    }
 
-  private async uploadMediaFromUrl(args: { url: string; filename: string; site?: string }) {
-    // Download and upload via kernel
-    const fetch = (await import("node-fetch")).default;
+    if (!args.filename || !args.file_data) {
+      throw new Error("wp_upload_media requires either file_path or (filename + file_data)");
+    }
+
+    let base64 = String(args.file_data);
+    const commaIndex = base64.indexOf(",");
+    if (commaIndex !== -1 && base64.slice(0, commaIndex).includes("base64")) {
+      base64 = base64.slice(commaIndex + 1);
+    }
+
+    const buffer = Buffer.from(base64, "base64");
     const fs = await import("fs");
-
-    const response = await fetch(args.url);
-    const buffer = await response.buffer();
-
     const tempPath = `/tmp/${args.filename}`;
     fs.writeFileSync(tempPath, buffer);
 
-    const result = await this.kernel.uploadFile(tempPath, { site: args.site });
+    const result = await this.kernel.uploadFile(tempPath, { site: args.site, title: args.title, alt: args.alt });
     fs.unlinkSync(tempPath);
 
     return result;
+  }
+
+  private async uploadMediaFromUrl(args: { url: string; filename?: string; title?: string; alt?: string; site?: string }) {
+    const { site, ...data } = args;
+    return this.request("POST", "media/from-url", data, { site });
   }
 
   private async listDrafts(args: { site?: string }) {
