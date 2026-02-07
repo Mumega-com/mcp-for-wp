@@ -24,6 +24,13 @@ class Spai_Admin {
 	const PAGE_SLUG = 'site-pilot-ai';
 
 	/**
+	 * Activity log page slug.
+	 *
+	 * @var string
+	 */
+	const ACTIVITY_LOG_PAGE_SLUG = 'site-pilot-ai-activity-log';
+
+	/**
 	 * SVG icon for menu (base64 encoded).
 	 *
 	 * @var string
@@ -43,6 +50,15 @@ class Spai_Admin {
 			self::MENU_ICON,
 			80
 		);
+
+		add_submenu_page(
+			self::PAGE_SLUG,
+			__( 'Activity Log', 'site-pilot-ai' ),
+			__( 'Activity Log', 'site-pilot-ai' ),
+			'manage_options',
+			self::ACTIVITY_LOG_PAGE_SLUG,
+			array( $this, 'render_activity_log_page' )
+		);
 	}
 
 	/**
@@ -51,7 +67,12 @@ class Spai_Admin {
 	 * @param string $hook Current admin page.
 	 */
 	public function enqueue_styles( $hook ) {
-		if ( 'toplevel_page_' . self::PAGE_SLUG !== $hook ) {
+		$allowed_hooks = array(
+			'toplevel_page_' . self::PAGE_SLUG,
+			self::PAGE_SLUG . '_page_' . self::ACTIVITY_LOG_PAGE_SLUG,
+		);
+
+		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
 			return;
 		}
 
@@ -228,6 +249,18 @@ class Spai_Admin {
 		$scoped_keys = $this->list_scoped_api_keys( true );
 
 		include SPAI_PLUGIN_DIR . 'admin/partials/spai-admin-display.php';
+	}
+
+	/**
+	 * Render activity log page.
+	 */
+	public function render_activity_log_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
+		}
+
+		$page = new Spai_Activity_Log_Page();
+		$page->render();
 	}
 
 	/**
