@@ -44,7 +44,7 @@ class Spai_Admin {
 		add_menu_page(
 			__( 'Site Pilot AI', 'site-pilot-ai' ),
 			__( 'Site Pilot AI', 'site-pilot-ai' ),
-			'manage_options',
+			'activate_plugins',
 			self::PAGE_SLUG,
 			array( $this, 'render_admin_page' ),
 			self::MENU_ICON,
@@ -55,7 +55,7 @@ class Spai_Admin {
 			self::PAGE_SLUG,
 			__( 'Activity Log', 'site-pilot-ai' ),
 			__( 'Activity Log', 'site-pilot-ai' ),
-			'manage_options',
+			'activate_plugins',
 			self::ACTIVITY_LOG_PAGE_SLUG,
 			array( $this, 'render_activity_log_page' )
 		);
@@ -79,10 +79,8 @@ class Spai_Admin {
 			return;
 		}
 
-		// Use a slightly less strict capability than manage_options so all administrators
-		// (including ones without manage_options due to host restrictions) can access
-		// licensing/checkout flows.
-		$capability = current_user_can( 'manage_options' ) ? 'manage_options' : 'activate_plugins';
+		// Use `activate_plugins` so typical WordPress Administrators can access licensing/checkout flows.
+		$capability = 'activate_plugins';
 
 		// Account.
 		add_submenu_page(
@@ -208,7 +206,7 @@ class Spai_Admin {
 	public function ajax_test_connection() {
 		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
 			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
 		}
 
@@ -244,7 +242,7 @@ class Spai_Admin {
 	public function ajax_dismiss_welcome() {
 		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
 			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
 		}
 
@@ -258,7 +256,7 @@ class Spai_Admin {
 	 */
 	public function render_admin_page() {
 		// Check permissions
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
 		}
 
@@ -335,7 +333,7 @@ class Spai_Admin {
 	 * Render activity log page.
 	 */
 	public function render_activity_log_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
 		}
 

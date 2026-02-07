@@ -45,6 +45,19 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// Introspection (self-describing API / MCP metadata).
+		register_rest_route(
+			$this->namespace,
+			'/introspect',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_introspect' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Settings (GET and PUT)
 		register_rest_route(
 			$this->namespace,
@@ -380,6 +393,43 @@ class Spai_REST_Site extends Spai_REST_API {
 		$info = $this->core->get_site_info();
 
 		return $this->success_response( $info );
+	}
+
+	/**
+	 * Get API/MCP introspection data to help clients self-configure.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_introspect( $request ) {
+		$this->log_activity( 'introspect', $request );
+
+		if ( ! class_exists( 'Spai_REST_MCP' ) ) {
+			return $this->success_response(
+				array(
+					'plugin'  => array(
+						'name'    => 'Site Pilot AI',
+						'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+					),
+					'message' => 'MCP controller not available.',
+				)
+			);
+		}
+
+		$mcp = new Spai_REST_MCP();
+		if ( ! method_exists( $mcp, 'get_introspection_data' ) ) {
+			return $this->success_response(
+				array(
+					'plugin'  => array(
+						'name'    => 'Site Pilot AI',
+						'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+					),
+					'message' => 'Introspection is not supported in this version.',
+				)
+			);
+		}
+
+		return $this->success_response( $mcp->get_introspection_data() );
 	}
 
 	/**

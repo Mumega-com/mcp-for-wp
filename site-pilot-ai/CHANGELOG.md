@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switch Freemius integration to single-plugin distribution (no premium zip required after checkout).
 - Allow Freemius `Account`/`Pricing` pages for administrators even if `manage_options` is restricted by the host.
 
+## [1.0.40] - 2026-02-07
+
+### Added
+- `wp_introspect` MCP tool and `/introspect` REST endpoint so AI clients can discover tools, auth, and capabilities automatically.
+
+### Changed
+- Use `activate_plugins` for WP Admin access checks so all administrators can access the plugin screens on managed hosts.
+
 ## [1.0.35] - 2026-02-07
 
 ### Added

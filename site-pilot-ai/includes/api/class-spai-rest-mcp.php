@@ -50,6 +50,90 @@ class Spai_REST_MCP extends Spai_REST_API {
 	private $tools_cache = null;
 
 	/**
+	 * Return introspection data for AI clients (MCP + REST).
+	 *
+	 * This is intentionally non-sensitive. It helps clients discover tools,
+	 * capabilities, and auth requirements without guessing.
+	 *
+	 * @return array
+	 */
+	public function get_introspection_data() {
+		$core = class_exists( 'Spai_Core' ) ? new Spai_Core() : null;
+
+		$site_info = is_object( $core ) && method_exists( $core, 'get_site_info' )
+			? $core->get_site_info()
+			: array(
+				'plugin'       => array(
+					'name'    => 'Site Pilot AI',
+					'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+				),
+				'capabilities' => array(),
+			);
+
+		$tools    = $this->get_tool_definitions();
+		$tool_map = $this->get_tool_map();
+
+		// Enrich each tool with route/method + annotations.
+		foreach ( $tools as &$tool ) {
+			$name = isset( $tool['name'] ) ? (string) $tool['name'] : '';
+			if ( '' === $name ) {
+				continue;
+			}
+
+			if ( isset( $tool_map[ $name ] ) ) {
+				$tool['x_spai'] = array(
+					'method' => $tool_map[ $name ]['method'],
+					'route'  => $tool_map[ $name ]['route'],
+				);
+			} else {
+				$tool['x_spai'] = array();
+			}
+
+			$tool['annotations'] = $this->get_tool_annotations( $name );
+		}
+		unset( $tool );
+
+		return array(
+			'plugin'       => $site_info['plugin'] ?? array(
+				'name'    => 'Site Pilot AI',
+				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+			),
+			'site'         => array(
+				'name'     => $site_info['name'] ?? null,
+				'url'      => $site_info['url'] ?? null,
+				'language' => $site_info['language'] ?? null,
+				'timezone' => $site_info['timezone'] ?? null,
+			),
+			'license'      => $site_info['license'] ?? null,
+			'capabilities' => $site_info['capabilities'] ?? array(),
+			'auth'         => array(
+				'header' => 'X-API-Key',
+				'note'   => 'Send your Site Pilot AI API key in the X-API-Key header for REST + MCP requests.',
+			),
+			'endpoints'    => array(
+				'rest_base' => rest_url( 'site-pilot-ai/v1/' ),
+				'mcp'       => rest_url( 'site-pilot-ai/v1/mcp' ),
+			),
+			'mcp'          => array(
+				'transport' => 'JSON-RPC 2.0 over HTTP POST',
+				'methods'   => array( 'initialize', 'tools/list', 'tools/call' ),
+			),
+			'tools'        => $tools,
+			'workflows'    => array(
+				'Setup' => array(
+					'Call wp_site_info to confirm connectivity and version.',
+					'Call wp_detect_plugins to learn available integrations (Elementor/SEO/forms/etc.).',
+					'Use wp_create_api_key for scoped keys (admin only).',
+				),
+				'Content' => array(
+					'Use wp_list_posts/wp_list_pages to browse; wp_fetch to retrieve full content.',
+					'Use wp_create_post/wp_update_post and wp_create_page/wp_update_page to publish changes.',
+				),
+			),
+		);
+	}
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -415,6 +499,12 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$tools[] = $this->define_tool(
 			'wp_site_info',
 			'Get WordPress site information including name, URL, version, theme, active plugins, and content counts',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_introspect',
+			'Get a machine-readable description of this plugin (auth, endpoints, tools, capabilities) so AI clients can self-configure instead of guessing',
 			array()
 		);
 
@@ -1554,6 +1644,10 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_site_info'      => array(
 				'method' => 'GET',
 				'route'  => '/site-info',
+			),
+			'wp_introspect'     => array(
+				'method' => 'GET',
+				'route'  => '/introspect',
 			),
 			'wp_analytics'      => array(
 				'method' => 'GET',
