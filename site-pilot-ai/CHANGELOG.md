@@ -5,6 +5,12 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.36] - 2026-02-07
+
+### Fixed
+- Treat Freemius plan names case-insensitively so Agency/Pro plans correctly mark the site as Pro.
+- Hide upgrade/Go Pro CTAs in plugin action links when Pro is active (including Freemius-injected links).
+
 ## [1.0.35] - 2026-02-07
 
 ### Added

@@ -80,7 +80,8 @@ class Spai_Loader {
 		$this->add_action( 'wp_ajax_spai_dismiss_welcome', $admin, 'ajax_dismiss_welcome' );
 
 		// Plugin action links
-		$this->add_filter( 'plugin_action_links_' . SPAI_PLUGIN_BASENAME, $admin, 'add_action_links' );
+		// Run late so we can prune any Freemius-injected "upgrade" links when Pro is active.
+		$this->add_filter( 'plugin_action_links_' . SPAI_PLUGIN_BASENAME, $admin, 'add_action_links', 100 );
 	}
 
 	/**

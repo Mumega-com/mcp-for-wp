@@ -304,6 +304,42 @@ class Spai_Admin {
 	 * @return array Modified links.
 	 */
 	public function add_action_links( $links ) {
+		$license     = function_exists( 'spai_license' ) ? spai_license() : null;
+		$is_pro      = $license ? $license->is_pro() : false;
+		$upgrade_url = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pricing/';
+
+		// If Pro is active, hide any upgrade CTAs (including ones injected by Freemius).
+		if ( $is_pro && is_array( $links ) ) {
+			$links = array_values(
+				array_filter(
+					$links,
+					static function ( $link ) use ( $upgrade_url ) {
+						if ( ! is_string( $link ) ) {
+							return true;
+						}
+
+						$haystack = strtolower( $link );
+
+						// Match by destination (most reliable) and common CTA labels.
+						if ( $upgrade_url && false !== strpos( $link, $upgrade_url ) ) {
+							return false;
+						}
+						if ( false !== strpos( $haystack, 'go pro' ) ) {
+							return false;
+						}
+						if ( false !== strpos( $haystack, 'upgrade' ) ) {
+							return false;
+						}
+						if ( false !== strpos( $haystack, 'pricing' ) ) {
+							return false;
+						}
+
+						return true;
+					}
+				)
+			);
+		}
+
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
 			admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
@@ -313,7 +349,6 @@ class Spai_Admin {
 		array_unshift( $links, $settings_link );
 
 		// Add upgrade link if not Pro
-		$is_pro = function_exists( 'spai_license' ) ? spai_license()->is_pro() : false;
 		if ( ! $is_pro ) {
 			$links[] = sprintf(
 				'<a href="%s" style="color:#00a32a;font-weight:bold;" target="_blank">%s</a>',

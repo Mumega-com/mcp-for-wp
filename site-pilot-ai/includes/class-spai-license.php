@@ -105,7 +105,7 @@ class Spai_License {
 	 * @return bool
 	 */
 	public function is_pro() {
-		$plan = $this->get_plan();
+		$plan = strtolower( trim( (string) $this->get_plan() ) );
 		return in_array( $plan, array( 'pro', 'agency', 'professional', 'business' ), true );
 	}
 
@@ -115,7 +115,7 @@ class Spai_License {
 	 * @return bool
 	 */
 	public function is_agency() {
-		$plan = $this->get_plan();
+		$plan = strtolower( trim( (string) $this->get_plan() ) );
 		return in_array( $plan, array( 'agency', 'business' ), true );
 	}
 
