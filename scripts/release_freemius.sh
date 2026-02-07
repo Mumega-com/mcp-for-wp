@@ -15,7 +15,9 @@ Required:
 Options:
   --token TOKEN                  Freemius bearer token (or FREEMIUS_BEARER_TOKEN)
   --product-id ID                Freemius product id (default: 23824 or FREEMIUS_PRODUCT_ID)
-  --release-mode MODE            release mode for tag update (default: released)
+  --release-mode MODE            release mode for tag update (default: released).
+                                Allowed: released | pending | beta | all.
+                                Alias: unreleased -> pending.
   --skip-bump                    Do not edit plugin/readme/changelog versions
   --dry-run                      Build and print actions; skip Freemius API calls
   --keep-zips                    Keep generated zip files in repo root
@@ -103,6 +105,15 @@ fi
 
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 	echo "Invalid version: $VERSION (expected X.Y.Z)" >&2
+	exit 1
+fi
+
+if [[ "$RELEASE_MODE" == "unreleased" ]]; then
+	RELEASE_MODE="pending"
+fi
+
+if [[ ! "$RELEASE_MODE" =~ ^(released|pending|beta|all)$ ]]; then
+	echo "Invalid --release-mode: $RELEASE_MODE (expected released|pending|beta|all)" >&2
 	exit 1
 fi
 
