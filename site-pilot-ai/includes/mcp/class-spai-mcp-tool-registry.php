@@ -1,0 +1,168 @@
+<?php
+/**
+ * MCP Tool Registry Base Class
+ *
+ * Abstract base class for MCP tool registries.
+ * Provides common functionality for defining tools and their annotations.
+ *
+ * @package SitePilotAI
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Abstract base class for MCP tool registries.
+ *
+ * Subclasses implement get_tools() and get_tool_map() to provide
+ * tool definitions and route mappings.
+ */
+abstract class Spai_MCP_Tool_Registry {
+
+	/**
+	 * Get tool definitions.
+	 *
+	 * Subclasses must implement this to return an array of tool definitions.
+	 *
+	 * @return array Tool definitions.
+	 */
+	abstract public function get_tools();
+
+	/**
+	 * Get tool map (tool name -> REST route mapping).
+	 *
+	 * Subclasses must implement this to return tool-to-route mappings.
+	 *
+	 * @return array Tool mappings.
+	 */
+	abstract public function get_tool_map();
+
+	/**
+	 * Define a tool for MCP.
+	 *
+	 * @param string $name        Tool name.
+	 * @param string $description Tool description.
+	 * @param array  $input_props Input schema properties.
+	 * @return array Tool definition.
+	 */
+	protected function define_tool( $name, $description, $input_props ) {
+		$properties = array();
+		$required   = array();
+
+		foreach ( $input_props as $prop_name => $prop_def ) {
+			$properties[ $prop_name ] = array(
+				'type'        => isset( $prop_def['type'] ) ? $prop_def['type'] : 'string',
+				'description' => isset( $prop_def['description'] ) ? $prop_def['description'] : '',
+			);
+
+			if ( isset( $prop_def['default'] ) ) {
+				$properties[ $prop_name ]['default'] = $prop_def['default'];
+			}
+
+			if ( ! empty( $prop_def['required'] ) ) {
+				$required[] = $prop_name;
+			}
+		}
+
+		$schema = array(
+			'type'       => 'object',
+			'properties' => $properties,
+		);
+
+		if ( ! empty( $required ) ) {
+			$schema['required'] = $required;
+		}
+
+		return array(
+			'name'        => $name,
+			'description' => $description,
+			'inputSchema' => $schema,
+			'annotations' => $this->get_tool_annotations( $name ),
+		);
+	}
+
+	/**
+	 * Get tool annotations for MCP compatibility.
+	 *
+	 * @param string $name Tool name.
+	 * @return array<string,bool> Tool annotation hints.
+	 */
+	public function get_tool_annotations( $name ) {
+		return array(
+			'readOnlyHint'    => $this->is_read_only_tool( $name ),
+			'openWorldHint'   => $this->is_open_world_tool( $name ),
+			'destructiveHint' => $this->is_destructive_tool( $name ),
+		);
+	}
+
+	/**
+	 * Determine whether a tool is read-only.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool does not modify data.
+	 */
+	protected function is_read_only_tool( $name ) {
+		$tool_map = $this->get_tool_map();
+		if ( empty( $tool_map[ $name ]['method'] ) ) {
+			return false;
+		}
+
+		$method = strtoupper( (string) $tool_map[ $name ]['method'] );
+		return in_array( $method, array( 'GET', 'HEAD', 'OPTIONS' ), true );
+	}
+
+	/**
+	 * Determine whether a tool can access external systems.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool may interact with external services.
+	 */
+	protected function is_open_world_tool( $name ) {
+		$open_world_tools = $this->get_open_world_tools();
+		return in_array( $name, $open_world_tools, true );
+	}
+
+	/**
+	 * Determine whether a tool performs destructive actions.
+	 *
+	 * @param string $name Tool name.
+	 * @return bool True when tool can delete/revoke/reset data.
+	 */
+	protected function is_destructive_tool( $name ) {
+		$destructive_tools = $this->get_destructive_tools();
+
+		if ( in_array( $name, $destructive_tools, true ) ) {
+			return true;
+		}
+
+		$tool_map = $this->get_tool_map();
+		if ( empty( $tool_map[ $name ]['method'] ) ) {
+			return false;
+		}
+
+		return 'DELETE' === strtoupper( (string) $tool_map[ $name ]['method'] );
+	}
+
+	/**
+	 * Get list of destructive tool names.
+	 *
+	 * Subclasses override this to declare which tools are destructive.
+	 *
+	 * @return array Tool names that perform destructive actions.
+	 */
+	protected function get_destructive_tools() {
+		return array();
+	}
+
+	/**
+	 * Get list of open world tool names.
+	 *
+	 * Subclasses override this to declare which tools access external systems.
+	 *
+	 * @return array Tool names that may interact with external services.
+	 */
+	protected function get_open_world_tools() {
+		return array();
+	}
+}

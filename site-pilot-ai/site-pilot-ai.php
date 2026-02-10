@@ -237,6 +237,11 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-elementor-basic.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-screenshot.php';
 
+	// Load MCP tool registries
+	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-tool-registry.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-free-tools.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-pro-tools.php';
+
 	// Load REST API
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-api.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-posts.php';
