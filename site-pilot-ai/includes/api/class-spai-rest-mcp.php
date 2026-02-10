@@ -122,42 +122,43 @@ class Spai_REST_MCP extends Spai_REST_API {
 		}
 		unset( $tool );
 
+		// Build contextual workflows
+		$capabilities = $site_info['capabilities'] ?? array();
+		$is_pro       = $this->is_pro_active();
+		$workflows    = $this->build_contextual_workflows( $capabilities, $is_pro );
+
 		return array(
-			'plugin'       => $site_info['plugin'] ?? array(
+			'plugin'                => $site_info['plugin'] ?? array(
 				'name'    => 'Site Pilot AI',
 				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 			),
-			'site'         => array(
+			'site'                  => array(
 				'name'     => $site_info['name'] ?? null,
 				'url'      => $site_info['url'] ?? null,
 				'language' => $site_info['language'] ?? null,
 				'timezone' => $site_info['timezone'] ?? null,
 			),
-			'license'      => $site_info['license'] ?? null,
-			'capabilities' => $site_info['capabilities'] ?? array(),
-			'auth'         => array(
+			'license'               => $site_info['license'] ?? null,
+			'capabilities'          => $capabilities,
+			'detected_integrations' => $this->get_detected_integrations(),
+			'auth'                  => array(
 				'header' => 'X-API-Key',
 				'note'   => 'Send your Site Pilot AI API key in the X-API-Key header for REST + MCP requests.',
 			),
-			'endpoints'    => array(
+			'endpoints'             => array(
 				'rest_base' => rest_url( 'site-pilot-ai/v1/' ),
 				'mcp'       => rest_url( 'site-pilot-ai/v1/mcp' ),
 			),
-			'mcp'          => array(
+			'mcp'                   => array(
 				'transport' => 'JSON-RPC 2.0 over HTTP POST',
 				'methods'   => array( 'initialize', 'tools/list', 'tools/call' ),
 			),
-			'tools'        => $tools,
-			'workflows'    => array(
-				'Setup' => array(
-					'Call wp_site_info to confirm connectivity and version.',
-					'Call wp_detect_plugins to learn available integrations (Elementor/SEO/forms/etc.).',
-					'Use wp_create_api_key for scoped keys (admin only).',
-				),
-				'Content' => array(
-					'Use wp_list_posts/wp_list_pages to browse; wp_fetch to retrieve full content.',
-					'Use wp_create_post/wp_update_post and wp_create_page/wp_update_page to publish changes.',
-				),
+			'tools'                 => $tools,
+			'workflows'             => $workflows,
+			'quick_start'           => array(
+				'1. Call wp_introspect to discover capabilities.',
+				'2. Call wp_detect_plugins to confirm integrations.',
+				'3. Use workflows above based on detected features.',
 			),
 		);
 	}
@@ -525,6 +526,115 @@ class Spai_REST_MCP extends Spai_REST_API {
 		);
 	}
 
+
+	/**
+	 * Get detected integrations for introspection.
+	 *
+	 * @return array Detected integrations with boolean flags.
+	 */
+	private function get_detected_integrations() {
+		// Ensure plugin.php is loaded for is_plugin_active()
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		// Detect integrations using is_plugin_active() where possible
+		$integrations = array(
+			'elementor'   => is_plugin_active( 'elementor/elementor.php' )
+				|| defined( 'ELEMENTOR_VERSION' ),
+			'woocommerce' => is_plugin_active( 'woocommerce/woocommerce.php' )
+				|| class_exists( 'WooCommerce' ),
+			'rankmath'    => is_plugin_active( 'seo-by-rank-math/rank-math.php' )
+				|| defined( 'RANK_MATH_VERSION' ),
+			'yoast'       => is_plugin_active( 'wordpress-seo/wp-seo.php' )
+				|| defined( 'WPSEO_VERSION' ),
+			'pro_active'  => $this->is_pro_active(),
+		);
+
+		return $integrations;
+	}
+
+	/**
+	 * Build contextual workflows based on site capabilities.
+	 *
+	 * @param array $capabilities Detected site capabilities.
+	 * @param bool  $is_pro      Whether Pro license is active.
+	 * @return array Contextual workflows.
+	 */
+	private function build_contextual_workflows( $capabilities, $is_pro ) {
+		$workflows = array();
+
+		// Setup (always present)
+		$workflows['Setup'] = array(
+			'Call wp_introspect to discover capabilities and version.',
+			'Call wp_detect_plugins to learn available integrations (Elementor/SEO/forms/etc.).',
+			'Use wp_create_api_key for scoped keys (admin only).',
+		);
+
+		// Content Management (always present)
+		$workflows['Content Management'] = array(
+			'Use wp_list_posts and wp_list_pages to browse existing content.',
+			'Use wp_fetch to retrieve full content for specific posts or pages.',
+			'Use wp_create_post, wp_update_post, wp_create_page, wp_update_page to publish changes.',
+			'Use wp_list_drafts to review unpublished content.',
+		);
+
+		// Elementor (conditional)
+		if ( ! empty( $capabilities['elementor'] ) ) {
+			$workflows['Elementor'] = array(
+				'Use wp_get_elementor to retrieve Elementor JSON data for a page.',
+				'Use wp_set_elementor to update Elementor page builder content.',
+				'Use wp_regenerate_elementor_css to rebuild CSS after template changes.',
+			);
+		}
+
+		// eCommerce (conditional)
+		if ( ! empty( $capabilities['woocommerce'] ) ) {
+			$workflows['eCommerce'] = array(
+				'Use WooCommerce tools to manage products and inventory.',
+				'Monitor orders and customer data.',
+				'Update product descriptions, pricing, and categories.',
+			);
+		}
+
+		// SEO (conditional - any SEO plugin)
+		$has_seo = ! empty( $capabilities['yoast'] )
+			|| ! empty( $capabilities['rankmath'] )
+			|| ! empty( $capabilities['aioseo'] )
+			|| ! empty( $capabilities['seopress'] );
+
+		if ( $has_seo ) {
+			$workflows['SEO'] = array(
+				'Use wp_get_seo and wp_set_seo to manage page metadata.',
+				'Set focus keywords, meta descriptions, and social sharing data.',
+				'Optimize content for search engines using detected SEO plugin.',
+			);
+		}
+
+		// Pro Features (conditional)
+		if ( $is_pro ) {
+			$workflows['Pro Features'] = array(
+				'Use multilanguage tools for WPML/Polylang integrations.',
+				'Manage Contact Form 7, WPForms, Gravity Forms, and Ninja Forms.',
+				'Control widgets, sidebars, and theme customizations.',
+			);
+		}
+
+		// Media (always present)
+		$workflows['Media'] = array(
+			'Use wp_upload_media to upload images from URLs or base64 data.',
+			'Use wp_screenshot to capture page screenshots for review.',
+		);
+
+		// Administration (always present)
+		$workflows['Administration'] = array(
+			'Use wp_create_api_key and wp_list_api_keys to manage authentication.',
+			'Use wp_create_webhook and wp_list_webhooks for event notifications.',
+			'Monitor usage via wp_rate_limits and wp_activity_log.',
+		);
+
+		return $workflows;
+	}
 
 	/**
 	 * Check if PRO version is active.
