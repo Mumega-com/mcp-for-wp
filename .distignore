@@ -1,0 +1,72 @@
+# .distignore - Patterns to exclude from distribution zips
+#
+# This file is used by build.sh to determine which files/directories
+# should NOT be included in the site-pilot-ai.zip and site-pilot-ai-free.zip
+# distribution packages.
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Build tools and scripts
+build.sh
+.distignore
+dist/
+scripts/
+
+# Documentation (except WordPress readme.txt)
+*.md
+!readme.txt
+
+# Development dependencies
+node_modules/
+mcp-server/
+vendor/
+composer.json
+composer.lock
+package.json
+package-lock.json
+yarn.lock
+
+# Testing
+tests/
+phpunit.xml
+phpunit.xml.dist
+.phpunit.result.cache
+*.test.js
+*.spec.js
+__tests__/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.editorconfig
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+*.log
+npm-debug.log*
+*.tmp
+*.temp
+
+# Plugin development artifacts
+plugin/
+cloudflare-worker/
+templates/
+docs/
+
+# Old release zips in repo root
+site-pilot-ai*.zip
