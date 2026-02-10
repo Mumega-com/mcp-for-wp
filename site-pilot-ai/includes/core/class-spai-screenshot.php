@@ -24,6 +24,13 @@ class Spai_Screenshot {
 	private $mshots_base = 'https://s0.wp.com/mshots/v1/';
 
 	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		add_action( 'spai_verify_screenshot', array( $this, 'handle_verification_cron' ), 10, 5 );
+	}
+
+	/**
 	 * Take a screenshot of a URL.
 	 *
 	 * Uses WordPress.com mshots service for zero-dependency screenshots.
@@ -147,5 +154,146 @@ class Spai_Screenshot {
 			'title' => $attachment->post_title,
 			'url'   => wp_get_attachment_url( $attachment_id ),
 		);
+	}
+
+	/**
+	 * Schedule async verification for screenshot readiness.
+	 *
+	 * @param string $url            Original page URL.
+	 * @param string $screenshot_url mshots URL to verify.
+	 * @param string $webhook_url    Webhook URL to notify when ready.
+	 * @param array  $args           Additional args (save_to_media, title, etc).
+	 */
+	public function schedule_verification( $url, $screenshot_url, $webhook_url, $args = array() ) {
+		wp_schedule_single_event(
+			time() + 5,
+			'spai_verify_screenshot',
+			array( $url, $screenshot_url, $webhook_url, $args, 0 )
+		);
+	}
+
+	/**
+	 * Check if screenshot is ready (not placeholder).
+	 *
+	 * @param string $screenshot_url mshots URL to check.
+	 * @return bool True if ready, false if still placeholder.
+	 */
+	public function verify_screenshot_ready( $screenshot_url ) {
+		$response = wp_remote_get(
+			$screenshot_url,
+			array(
+				'timeout' => 10,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+
+		$content_length = wp_remote_retrieve_header( $response, 'content-length' );
+
+		// Real screenshots are typically > 5KB, placeholders are much smaller.
+		return $content_length > 5000;
+	}
+
+	/**
+	 * Fire webhook with screenshot data.
+	 *
+	 * @param string $webhook_url Webhook URL.
+	 * @param array  $data        Payload data.
+	 * @return array|WP_Error Response data or error.
+	 */
+	public function fire_screenshot_webhook( $webhook_url, $data ) {
+		// SSRF protection.
+		if ( class_exists( 'Spai_Security' ) ) {
+			$ssrf_check = Spai_Security::validate_external_url( $webhook_url );
+			if ( is_wp_error( $ssrf_check ) ) {
+				return $ssrf_check;
+			}
+		}
+
+		$body = wp_json_encode( $data );
+
+		$response = wp_remote_post(
+			$webhook_url,
+			array(
+				'timeout'     => 15,
+				'redirection' => 0,
+				'sslverify'   => true,
+				'headers'     => array(
+					'Content-Type'  => 'application/json',
+					'X-SPAI-Event'  => 'screenshot.ready',
+				),
+				'body'        => $body,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+
+		return array(
+			'success'       => $code >= 200 && $code < 300,
+			'response_code' => $code,
+			'response_body' => wp_remote_retrieve_body( $response ),
+		);
+	}
+
+	/**
+	 * Handle scheduled screenshot verification (cron callback).
+	 *
+	 * @param string $url            Original page URL.
+	 * @param string $screenshot_url mshots URL.
+	 * @param string $webhook_url    Webhook URL.
+	 * @param array  $args           Additional args.
+	 * @param int    $retry_count    Current retry attempt.
+	 */
+	public function handle_verification_cron( $url, $screenshot_url, $webhook_url, $args, $retry_count ) {
+		$is_ready = $this->verify_screenshot_ready( $screenshot_url );
+
+		if ( $is_ready ) {
+			// Screenshot is ready - prepare webhook payload.
+			$webhook_data = array(
+				'url'            => $url,
+				'screenshot_url' => $screenshot_url,
+				'status'         => 'ready',
+				'timestamp'      => current_time( 'c' ),
+			);
+
+			// Optionally save to media library.
+			if ( ! empty( $args['save_to_media'] ) ) {
+				$media_result = $this->save_screenshot_to_media( $screenshot_url, $url, $args );
+				if ( ! is_wp_error( $media_result ) ) {
+					$webhook_data['media'] = $media_result;
+				} else {
+					$webhook_data['media_error'] = $media_result->get_error_message();
+				}
+			}
+
+			// Fire webhook.
+			$this->fire_screenshot_webhook( $webhook_url, $webhook_data );
+
+		} elseif ( $retry_count < 6 ) {
+			// Not ready yet - reschedule check in 10 seconds.
+			wp_schedule_single_event(
+				time() + 10,
+				'spai_verify_screenshot',
+				array( $url, $screenshot_url, $webhook_url, $args, $retry_count + 1 )
+			);
+
+		} else {
+			// Max retries reached - fire webhook with timeout status.
+			$webhook_data = array(
+				'url'            => $url,
+				'screenshot_url' => $screenshot_url,
+				'status'         => 'timeout',
+				'message'        => __( 'Screenshot generation timed out after 1 minute. The URL may be unreachable or mshots service may be slow.', 'site-pilot-ai' ),
+				'timestamp'      => current_time( 'c' ),
+			);
+
+			$this->fire_screenshot_webhook( $webhook_url, $webhook_data );
+		}
 	}
 }

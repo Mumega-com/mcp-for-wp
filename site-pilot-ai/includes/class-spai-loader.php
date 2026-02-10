@@ -228,6 +228,10 @@ class Spai_Loader {
 		$mcp_controller = new Spai_REST_MCP();
 		$mcp_controller->register_routes();
 
+		// Batch
+		$batch_controller = new Spai_REST_Batch();
+		$batch_controller->register_routes();
+
 		/**
 		 * Action to register additional REST routes.
 		 *

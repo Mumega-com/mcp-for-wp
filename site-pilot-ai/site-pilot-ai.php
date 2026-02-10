@@ -249,6 +249,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-webhooks.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-screenshot.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-mcp.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-batch.php';
 
 	// Load admin
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-admin.php';

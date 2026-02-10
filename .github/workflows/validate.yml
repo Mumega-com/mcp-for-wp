@@ -1,0 +1,208 @@
+name: Validate Site Pilot AI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "site-pilot-ai/**"
+      - ".github/workflows/validate.yml"
+
+env:
+  PLUGIN_SLUG: site-pilot-ai
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2']
+
+    name: PHP ${{ matrix.php-version }} Validation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          tools: composer:v2
+
+      - name: PHP Syntax Check
+        run: |
+          echo "Checking PHP syntax for all .php files..."
+          find site-pilot-ai -name "*.php" -exec php -l {} \; | tee syntax-check.log
+
+          if grep -q "Parse error" syntax-check.log; then
+            echo "::error::PHP syntax errors found!"
+            exit 1
+          fi
+
+          echo "✓ All PHP files have valid syntax"
+
+      - name: Verify Plugin Headers
+        run: |
+          echo "Checking plugin headers..."
+
+          # Check Plugin Name
+          if ! grep -q "Plugin Name:" site-pilot-ai/site-pilot-ai.php; then
+            echo "::error::Plugin Name header not found"
+            exit 1
+          fi
+
+          # Check Version
+          VERSION=$(grep -E "^\s+\* Version:\s+" site-pilot-ai/site-pilot-ai.php | sed -E 's/.*Version:\s+//' | tr -d '[:space:]')
+          if [ -z "${VERSION}" ]; then
+            echo "::error::Version header not found or empty"
+            exit 1
+          fi
+          echo "✓ Version: ${VERSION}"
+
+          # Check SPAI_VERSION constant
+          DEFINE_VERSION=$(grep -E "^define\( 'SPAI_VERSION'" site-pilot-ai/site-pilot-ai.php | sed -E "s/.*'([0-9.]+)'.*/\1/")
+          if [ -z "${DEFINE_VERSION}" ]; then
+            echo "::error::SPAI_VERSION constant not found"
+            exit 1
+          fi
+
+          if [ "${VERSION}" != "${DEFINE_VERSION}" ]; then
+            echo "::error::Version mismatch! Header: ${VERSION}, Constant: ${DEFINE_VERSION}"
+            exit 1
+          fi
+
+          echo "✓ Version consistency verified"
+
+          # Check required headers
+          for HEADER in "Description:" "Author:" "Requires at least:" "Requires PHP:" "License:"; do
+            if ! grep -q "${HEADER}" site-pilot-ai/site-pilot-ai.php; then
+              echo "::error::Required header '${HEADER}' not found"
+              exit 1
+            fi
+          done
+
+          echo "✓ All required plugin headers present"
+
+      - name: Verify Required Files
+        run: |
+          echo "Checking required files..."
+
+          REQUIRED_FILES=(
+            "site-pilot-ai/site-pilot-ai.php"
+            "site-pilot-ai/index.php"
+            "site-pilot-ai/readme.txt"
+            "site-pilot-ai/includes/api/class-spai-rest-mcp.php"
+            "site-pilot-ai/includes/core/class-spai-plugin.php"
+            "site-pilot-ai/includes/admin/class-spai-admin.php"
+          )
+
+          MISSING_FILES=()
+
+          for FILE in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "${FILE}" ]; then
+              echo "::error::Required file missing: ${FILE}"
+              MISSING_FILES+=("${FILE}")
+            else
+              echo "✓ ${FILE}"
+            fi
+          done
+
+          if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+            echo "::error::${#MISSING_FILES[@]} required file(s) missing"
+            exit 1
+          fi
+
+          echo "✓ All required files present"
+
+      - name: Verify Directory Structure
+        run: |
+          echo "Checking directory structure..."
+
+          REQUIRED_DIRS=(
+            "site-pilot-ai/includes"
+            "site-pilot-ai/includes/api"
+            "site-pilot-ai/includes/core"
+            "site-pilot-ai/includes/admin"
+            "site-pilot-ai/includes/traits"
+            "site-pilot-ai/admin"
+            "site-pilot-ai/languages"
+          )
+
+          MISSING_DIRS=()
+
+          for DIR in "${REQUIRED_DIRS[@]}"; do
+            if [ ! -d "${DIR}" ]; then
+              echo "::error::Required directory missing: ${DIR}"
+              MISSING_DIRS+=("${DIR}")
+            else
+              echo "✓ ${DIR}"
+            fi
+          done
+
+          if [ ${#MISSING_DIRS[@]} -gt 0 ]; then
+            echo "::error::${#MISSING_DIRS[@]} required director(ies) missing"
+            exit 1
+          fi
+
+          echo "✓ Directory structure valid"
+
+      - name: Check for Security Issues
+        run: |
+          echo "Checking for common security issues..."
+
+          # Check for direct file access protection
+          FILES_WITHOUT_PROTECTION=$(find site-pilot-ai -name "*.php" -type f -exec grep -L "ABSPATH" {} \; | grep -v "vendor/" | grep -v "freemius/" || true)
+
+          if [ -n "${FILES_WITHOUT_PROTECTION}" ]; then
+            echo "::warning::The following PHP files may be missing ABSPATH protection:"
+            echo "${FILES_WITHOUT_PROTECTION}"
+          else
+            echo "✓ All PHP files have ABSPATH protection"
+          fi
+
+          # Check for eval() usage
+          EVAL_USAGE=$(find site-pilot-ai -name "*.php" -type f -exec grep -n "eval(" {} \; | grep -v "vendor/" | grep -v "freemius/" || true)
+
+          if [ -n "${EVAL_USAGE}" ]; then
+            echo "::error::Found eval() usage (security risk):"
+            echo "${EVAL_USAGE}"
+            exit 1
+          else
+            echo "✓ No eval() usage found"
+          fi
+
+          echo "✓ Basic security checks passed"
+
+      - name: Validate Pro Structure
+        if: hashFiles('site-pilot-ai/includes/pro') != ''
+        run: |
+          echo "Checking Pro structure..."
+
+          if [ -d "site-pilot-ai/includes/pro" ]; then
+            echo "✓ Pro directory exists"
+
+            # Check for pro bootstrap
+            if [ ! -f "site-pilot-ai/includes/pro/class-spai-pro-bootstrap.php" ]; then
+              echo "::error::Pro bootstrap file missing"
+              exit 1
+            fi
+
+            echo "✓ Pro structure valid"
+          fi
+
+      - name: Validation Summary
+        if: success()
+        run: |
+          echo "### Validation Passed! :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PHP Version:** ${{ matrix.php-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All checks passed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ PHP syntax valid" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Plugin headers correct" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Required files present" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Directory structure valid" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Security checks passed" >> $GITHUB_STEP_SUMMARY

@@ -66,6 +66,12 @@ class Spai_REST_Screenshot extends Spai_REST_API {
 							'description' => __( 'Title for saved media.', 'site-pilot-ai' ),
 							'type'        => 'string',
 						),
+						'webhook_url'    => array(
+							'description' => __( 'Webhook URL to notify when screenshot is ready (async mode).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'format'      => 'uri',
+							'required'    => false,
+						),
 					),
 				),
 			)
@@ -81,8 +87,9 @@ class Spai_REST_Screenshot extends Spai_REST_API {
 	public function take_screenshot( $request ) {
 		$this->log_activity( 'screenshot', $request );
 
-		$url  = $request->get_param( 'url' );
-		$args = array(
+		$url         = $request->get_param( 'url' );
+		$webhook_url = $request->get_param( 'webhook_url' );
+		$args        = array(
 			'width'         => $request->get_param( 'width' ),
 			'height'        => $request->get_param( 'height' ),
 			'save_to_media' => $request->get_param( 'save_to_media' ),
@@ -95,6 +102,25 @@ class Spai_REST_Screenshot extends Spai_REST_API {
 			return $result;
 		}
 
+		// Async mode: schedule verification and return immediately.
+		if ( ! empty( $webhook_url ) ) {
+			$this->screenshot->schedule_verification(
+				$url,
+				$result['screenshot_url'],
+				$webhook_url,
+				$args
+			);
+
+			return $this->success_response(
+				array(
+					'status'         => 'pending',
+					'screenshot_url' => $result['screenshot_url'],
+					'message'        => __( 'Screenshot queued. Webhook will fire when ready.', 'site-pilot-ai' ),
+				)
+			);
+		}
+
+		// Sync mode: return screenshot URL immediately (original behavior).
 		return $this->success_response( $result );
 	}
 }

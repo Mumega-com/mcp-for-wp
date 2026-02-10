@@ -1,0 +1,210 @@
+name: Release Site Pilot AI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  PLUGIN_SLUG: site-pilot-ai
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/v}"
+          echo "version=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "Version: ${TAG_NAME}"
+
+      - name: Verify version in plugin file
+        run: |
+          PLUGIN_VERSION=$(grep -E "^\s+\* Version:\s+" site-pilot-ai/site-pilot-ai.php | sed -E 's/.*Version:\s+//' | tr -d '[:space:]')
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+
+          echo "Plugin file version: ${PLUGIN_VERSION}"
+          echo "Tag version: ${TAG_VERSION}"
+
+          if [ "${PLUGIN_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "::error::Version mismatch! Plugin file has ${PLUGIN_VERSION} but tag is ${TAG_VERSION}"
+            exit 1
+          fi
+
+          DEFINE_VERSION=$(grep -E "^define\( 'SPAI_VERSION'" site-pilot-ai/site-pilot-ai.php | sed -E "s/.*'([0-9.]+)'.*/\1/")
+          echo "Define version: ${DEFINE_VERSION}"
+
+          if [ "${DEFINE_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "::error::Version mismatch! SPAI_VERSION constant is ${DEFINE_VERSION} but tag is ${TAG_VERSION}"
+            exit 1
+          fi
+
+      - name: Create free distribution
+        id: create_free
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          FREE_ZIP="site-pilot-ai-${VERSION}-free.zip"
+          TEMP_DIR="site-pilot-ai-free"
+
+          # Copy plugin to temp directory
+          cp -r site-pilot-ai "${TEMP_DIR}"
+
+          # Remove pro directory
+          rm -rf "${TEMP_DIR}/includes/pro"
+
+          # Remove development files
+          rm -rf "${TEMP_DIR}/.git"
+          rm -rf "${TEMP_DIR}/.github"
+          rm -rf "${TEMP_DIR}/tests"
+          rm -rf "${TEMP_DIR}/node_modules"
+          rm -rf "${TEMP_DIR}/dist"
+          rm -f "${TEMP_DIR}/.gitignore"
+          rm -f "${TEMP_DIR}/.distignore"
+          rm -f "${TEMP_DIR}/composer.json"
+          rm -f "${TEMP_DIR}/composer.lock"
+          rm -f "${TEMP_DIR}/package.json"
+          rm -f "${TEMP_DIR}/package-lock.json"
+          rm -f "${TEMP_DIR}/phpunit.xml"
+          rm -f "${TEMP_DIR}/README.md"
+          rm -f "${TEMP_DIR}/CONTRIBUTING.md"
+          rm -f "${TEMP_DIR}/CHANGELOG.md"
+
+          # Rename directory back to site-pilot-ai for WordPress
+          mv "${TEMP_DIR}" site-pilot-ai-temp
+
+          # Create zip
+          zip -r "${FREE_ZIP}" site-pilot-ai-temp
+          mv site-pilot-ai-temp/readme.txt . 2>/dev/null || true
+
+          # Clean up
+          rm -rf site-pilot-ai-temp
+
+          echo "free_zip=${FREE_ZIP}" >> $GITHUB_OUTPUT
+          echo "Free distribution created: ${FREE_ZIP}"
+          ls -lh "${FREE_ZIP}"
+
+      - name: Create premium distribution
+        id: create_premium
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PREMIUM_ZIP="site-pilot-ai-${VERSION}.zip"
+          TEMP_DIR="site-pilot-ai-premium"
+
+          # Copy plugin to temp directory
+          cp -r site-pilot-ai "${TEMP_DIR}"
+
+          # Remove development files (keep pro)
+          rm -rf "${TEMP_DIR}/.git"
+          rm -rf "${TEMP_DIR}/.github"
+          rm -rf "${TEMP_DIR}/tests"
+          rm -rf "${TEMP_DIR}/node_modules"
+          rm -rf "${TEMP_DIR}/dist"
+          rm -f "${TEMP_DIR}/.gitignore"
+          rm -f "${TEMP_DIR}/.distignore"
+          rm -f "${TEMP_DIR}/composer.json"
+          rm -f "${TEMP_DIR}/composer.lock"
+          rm -f "${TEMP_DIR}/package.json"
+          rm -f "${TEMP_DIR}/package-lock.json"
+          rm -f "${TEMP_DIR}/phpunit.xml"
+          rm -f "${TEMP_DIR}/README.md"
+          rm -f "${TEMP_DIR}/CONTRIBUTING.md"
+          rm -f "${TEMP_DIR}/CHANGELOG.md"
+
+          # Rename directory back to site-pilot-ai for WordPress
+          mv "${TEMP_DIR}" site-pilot-ai-temp
+
+          # Create zip
+          zip -r "${PREMIUM_ZIP}" site-pilot-ai-temp
+
+          # Clean up
+          rm -rf site-pilot-ai-temp
+
+          echo "premium_zip=${PREMIUM_ZIP}" >> $GITHUB_OUTPUT
+          echo "Premium distribution created: ${PREMIUM_ZIP}"
+          ls -lh "${PREMIUM_ZIP}"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Get previous tag
+          PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]' | head -n 2 | tail -n 1)
+
+          if [ -z "${PREV_TAG}" ]; then
+            echo "No previous tag found, using all commits"
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          echo "Generating release notes from ${PREV_TAG} to ${GITHUB_REF_NAME}"
+
+          # Create release notes
+          cat > release_notes.md << 'EOF'
+          ## Site Pilot AI v${{ steps.version.outputs.version }}
+
+          ### Changes
+
+          EOF
+
+          # Get commit messages
+          git log ${PREV_TAG}..HEAD --pretty=format:"- %s" >> release_notes.md
+
+          # Add download instructions
+          cat >> release_notes.md << 'EOF'
+
+          ### Installation
+
+          **Free Version:**
+          - Download `site-pilot-ai-${{ steps.version.outputs.version }}-free.zip`
+          - Upload to WordPress via Plugins > Add New > Upload
+          - No Pro features included
+
+          **Premium Version:**
+          - Download `site-pilot-ai-${{ steps.version.outputs.version }}.zip`
+          - Requires valid Freemius license
+          - Includes all Pro features (forms, users, SEO, WooCommerce, etc.)
+
+          ### Requirements
+
+          - WordPress 5.0 or higher
+          - PHP 7.4 or higher
+
+          ---
+
+          🤖 Generated with [Site Pilot AI](https://github.com/Digidinc/site-pilot-ai)
+          EOF
+
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Site Pilot AI v${{ steps.version.outputs.version }}"
+          body_path: release_notes.md
+          files: |
+            ${{ steps.create_free.outputs.free_zip }}
+            ${{ steps.create_premium.outputs.premium_zip }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        run: |
+          echo "### Release Complete! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Free: \`${{ steps.create_free.outputs.free_zip }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Premium: \`${{ steps.create_premium.outputs.premium_zip }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Release](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})" >> $GITHUB_STEP_SUMMARY
