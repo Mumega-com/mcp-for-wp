@@ -5,6 +5,7 @@ site-pilot-ai/vendor/
 
 # Build output
 mcp-server/dist/
+dist/
 
 # Environment
 .env
