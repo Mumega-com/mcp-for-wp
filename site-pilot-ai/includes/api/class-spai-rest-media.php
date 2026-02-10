@@ -130,6 +130,39 @@ class Spai_REST_Media extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Upload from Base64
+		register_rest_route(
+			$this->namespace,
+			'/media/from-base64',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'upload_from_base64' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'data'     => array(
+							'description' => __( 'Base64-encoded file content. Optionally prefixed with data URI (e.g., data:image/png;base64,...).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'filename' => array(
+							'description' => __( 'Filename with extension (e.g., logo.png).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'title'    => array(
+							'description' => __( 'Media title.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'alt'      => array(
+							'description' => __( 'Alt text.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -305,5 +338,39 @@ class Spai_REST_Media extends Spai_REST_API {
 			'media'        => $results['success'],
 			'errors'       => $results['failed'],
 		), 201 );
+	}
+
+	/**
+	 * Upload media from Base64.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function upload_from_base64( $request ) {
+		$this->log_activity( 'upload_from_base64', $request );
+
+		$data     = $request->get_param( 'data' );
+		$filename = $request->get_param( 'filename' );
+
+		if ( empty( $data ) || empty( $filename ) ) {
+			return $this->error_response(
+				'missing_params',
+				__( 'Both "data" (Base64 string) and "filename" are required.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$args = array(
+			'title' => $request->get_param( 'title' ),
+			'alt'   => $request->get_param( 'alt' ),
+		);
+
+		$result = $this->media->upload_from_base64( $data, $filename, $args );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result, 201 );
 	}
 }

@@ -109,6 +109,25 @@ class Spai_REST_Elementor extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Regenerate CSS
+		register_rest_route(
+			$this->namespace,
+			'/elementor/regenerate-css',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'regenerate_css' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id' => array(
+							'description' => __( 'Page ID. Omit to regenerate all site CSS.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -217,5 +236,24 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result, 201 );
+	}
+
+	/**
+	 * Regenerate Elementor CSS.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function regenerate_css( $request ) {
+		$this->log_activity( 'regenerate_elementor_css', $request );
+
+		$page_id = $request->get_param( 'id' );
+		$result  = $this->elementor->regenerate_css( $page_id ? absint( $page_id ) : null );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
 	}
 }

@@ -181,6 +181,156 @@ class Spai_Media {
 	}
 
 	/**
+	 * Upload media from Base64 encoded string.
+	 *
+	 * Bypasses multipart/form-data which can trigger ModSecurity on shared hosts.
+	 *
+	 * @param string $base64_data Base64 encoded file content.
+	 * @param string $filename    Desired filename with extension.
+	 * @param array  $args        Additional arguments (title, alt, caption).
+	 * @return array|WP_Error Attachment data or error.
+	 */
+	public function upload_from_base64( $base64_data, $filename, $args = array() ) {
+		if ( ! function_exists( 'wp_handle_upload' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+		}
+
+		// Strip optional data URI prefix (e.g. "data:image/png;base64,").
+		if ( preg_match( '/^data:[^;]+;base64,/', $base64_data ) ) {
+			$base64_data = preg_replace( '/^data:[^;]+;base64,/', '', $base64_data );
+		}
+
+		// Decode.
+		$decoded = base64_decode( $base64_data, true );
+		if ( false === $decoded ) {
+			return new WP_Error(
+				'invalid_base64',
+				__( 'Invalid Base64 data.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Limit file size to 10MB.
+		$max_size = 10 * 1024 * 1024;
+		if ( strlen( $decoded ) > $max_size ) {
+			return new WP_Error(
+				'file_too_large',
+				__( 'File exceeds maximum size of 10MB.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Sanitize filename.
+		$filename = sanitize_file_name( $filename );
+		if ( empty( $filename ) ) {
+			return new WP_Error(
+				'invalid_filename',
+				__( 'A valid filename is required.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Write to temp file.
+		$tmp_file = wp_tempnam( $filename );
+		if ( ! $tmp_file ) {
+			return new WP_Error(
+				'tmp_error',
+				__( 'Could not create temporary file.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		file_put_contents( $tmp_file, $decoded );
+
+		// Detect mime type.
+		$mime = wp_check_filetype( $filename );
+		if ( empty( $mime['type'] ) ) {
+			// Try from content.
+			$finfo = new finfo( FILEINFO_MIME_TYPE );
+			$detected_mime = $finfo->buffer( $decoded );
+			$mime['type'] = $detected_mime ?: 'application/octet-stream';
+		}
+
+		// Validate allowed file types.
+		$check = wp_check_filetype_and_ext( $tmp_file, $filename );
+		if ( ! empty( $check['proper_filename'] ) ) {
+			$filename = $check['proper_filename'];
+		}
+
+		// Get upload directory.
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) ) {
+			wp_delete_file( $tmp_file );
+			return new WP_Error(
+				'upload_dir_error',
+				$upload_dir['error'],
+				array( 'status' => 500 )
+			);
+		}
+
+		// Move to uploads directory.
+		$unique_filename = wp_unique_filename( $upload_dir['path'], $filename );
+		$new_file = $upload_dir['path'] . '/' . $unique_filename;
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rename
+		if ( ! rename( $tmp_file, $new_file ) ) {
+			wp_delete_file( $tmp_file );
+			return new WP_Error(
+				'move_error',
+				__( 'Could not move file to uploads directory.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// Set file permissions.
+		$stat = stat( dirname( $new_file ) );
+		$perms = $stat['mode'] & 0000666;
+		chmod( $new_file, $perms );
+
+		// Create attachment.
+		$attachment = array(
+			'post_mime_type' => $mime['type'],
+			'post_title'     => isset( $args['title'] ) ? sanitize_text_field( $args['title'] ) : sanitize_file_name( pathinfo( $filename, PATHINFO_FILENAME ) ),
+			'post_content'   => '',
+			'post_status'    => 'inherit',
+		);
+
+		$attachment_id = wp_insert_attachment( $attachment, $new_file );
+
+		if ( is_wp_error( $attachment_id ) ) {
+			wp_delete_file( $new_file );
+			return $attachment_id;
+		}
+
+		// Generate metadata.
+		$metadata = wp_generate_attachment_metadata( $attachment_id, $new_file );
+		wp_update_attachment_metadata( $attachment_id, $metadata );
+
+		// Set alt text.
+		if ( ! empty( $args['alt'] ) ) {
+			update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( $args['alt'] ) );
+		}
+
+		// Set caption.
+		if ( ! empty( $args['caption'] ) ) {
+			wp_update_post(
+				array(
+					'ID'           => $attachment_id,
+					'post_excerpt' => sanitize_textarea_field( $args['caption'] ),
+				)
+			);
+		}
+
+		return $this->format_attachment( $attachment_id );
+	}
+
+	/**
 	 * List media.
 	 *
 	 * @param array $args Query arguments.

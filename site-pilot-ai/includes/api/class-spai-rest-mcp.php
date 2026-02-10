@@ -902,6 +902,31 @@ class Spai_REST_MCP extends Spai_REST_API {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_upload_media_b64',
+			'Upload a media file from Base64 encoded data. Safer than multipart uploads on shared hosting (bypasses ModSecurity).',
+			array(
+				'data' => array(
+					'type'        => 'string',
+					'description' => 'Base64-encoded file content (optionally with data URI prefix)',
+					'required'    => true,
+				),
+				'filename' => array(
+					'type'        => 'string',
+					'description' => 'Filename with extension (e.g., logo.png)',
+					'required'    => true,
+				),
+				'title' => array(
+					'type'        => 'string',
+					'description' => 'Media title',
+				),
+				'alt' => array(
+					'type'        => 'string',
+					'description' => 'Alt text',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_list_drafts',
 			'List all draft posts and pages',
 			array(
@@ -963,6 +988,44 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_elementor_status',
 			'Check if Elementor is active and get Elementor status information',
 			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_regenerate_elementor_css',
+			'Regenerate Elementor CSS for a specific page or the entire site. Use after updating Elementor data via API to ensure styles are applied.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Page ID to regenerate CSS for. Omit to regenerate all site CSS.',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_screenshot_url',
+			'Take a screenshot of a URL using WordPress mshots service. Returns a screenshot URL immediately. Optionally saves to media library.',
+			array(
+				'url' => array(
+					'type'        => 'string',
+					'description' => 'URL to screenshot',
+					'required'    => true,
+				),
+				'width' => array(
+					'type'        => 'number',
+					'description' => 'Screenshot width (320-1920)',
+					'default'     => 1280,
+				),
+				'height' => array(
+					'type'        => 'number',
+					'description' => 'Screenshot height (240-1440)',
+					'default'     => 960,
+				),
+				'save_to_media' => array(
+					'type'        => 'boolean',
+					'description' => 'Also save screenshot to WordPress media library',
+					'default'     => false,
+				),
+			)
 		);
 
 		$tools[] = $this->define_tool(
@@ -1584,6 +1647,147 @@ class Spai_REST_MCP extends Spai_REST_API {
 			)
 		);
 
+		// Widget & Sidebar Management Tools
+		$pro_tools[] = $this->define_tool(
+			'wp_list_sidebars',
+			'List all registered widget areas (sidebars) with widget counts',
+			array()
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_sidebar',
+			'Get a single sidebar with its widgets',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Sidebar ID (e.g., sidebar-1, footer-1)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_sidebar_widgets',
+			'Get all widgets in a specific sidebar',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Sidebar ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_widget_types',
+			'List all available widget types that can be added to sidebars',
+			array()
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_widget',
+			'Get a single widget by ID with its settings',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Widget ID (e.g., text-2, custom_html-3)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_add_widget',
+			'Add a widget to a sidebar',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Sidebar ID to add the widget to',
+					'required'    => true,
+				),
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Widget type (id_base, e.g., text, custom_html, search)',
+					'required'    => true,
+				),
+				'settings' => array(
+					'type'        => 'object',
+					'description' => 'Widget settings (varies by widget type)',
+				),
+				'position' => array(
+					'type'        => 'number',
+					'description' => 'Position in sidebar (0-based index)',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_update_widget',
+			'Update widget settings',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Widget ID (e.g., text-2)',
+					'required'    => true,
+				),
+				'settings' => array(
+					'type'        => 'object',
+					'description' => 'New settings to merge with existing',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_delete_widget',
+			'Delete a widget from its sidebar and remove its settings',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Widget ID (e.g., text-2)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_move_widget',
+			'Move a widget to a different sidebar',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Widget ID to move',
+					'required'    => true,
+				),
+				'sidebar' => array(
+					'type'        => 'string',
+					'description' => 'Target sidebar ID',
+					'required'    => true,
+				),
+				'position' => array(
+					'type'        => 'number',
+					'description' => 'Position in target sidebar',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_reorder_widgets',
+			'Reorder widgets within a sidebar',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Sidebar ID',
+					'required'    => true,
+				),
+				'widgets' => array(
+					'type'        => 'array',
+					'description' => 'Ordered array of widget IDs',
+					'required'    => true,
+				),
+			)
+		);
+
 		return $pro_tools;
 	}
 
@@ -1671,6 +1875,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$open_world_tools = array(
 			'wp_upload_media_from_url',
 			'wp_test_webhook',
+			'wp_screenshot_url',
 		);
 
 		return in_array( $name, $open_world_tools, true );
@@ -1689,6 +1894,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_revoke_api_key',
 			'wp_reset_rate_limit',
 			'wp_delete_webhook',
+			'wp_delete_widget',
 		);
 
 		if ( in_array( $name, $destructive_tools, true ) ) {
@@ -1801,6 +2007,10 @@ class Spai_REST_MCP extends Spai_REST_API {
 				'method' => 'POST',
 				'route'  => '/media/from-url',
 			),
+			'wp_upload_media_b64'          => array(
+				'method' => 'POST',
+				'route'  => '/media/from-base64',
+			),
 
 			// Drafts
 			'wp_list_drafts'           => array(
@@ -1840,6 +2050,14 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_elementor_status'      => array(
 				'method' => 'GET',
 				'route'  => '/elementor/status',
+			),
+			'wp_regenerate_elementor_css'  => array(
+				'method' => 'POST',
+				'route'  => '/elementor/regenerate-css',
+			),
+			'wp_screenshot_url'            => array(
+				'method' => 'POST',
+				'route'  => '/screenshot',
 			),
 			'wp_list_api_keys'        => array(
 				'method' => 'GET',
@@ -2006,6 +2224,48 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'wp_sanitize_elementor_custom_code' => array(
 				'method' => 'POST',
 				'route'  => '/elementor/custom-code/{id}/sanitize',
+			),
+
+			// Widgets & Sidebars
+			'wp_list_sidebars'      => array(
+				'method' => 'GET',
+				'route'  => '/sidebars',
+			),
+			'wp_get_sidebar'        => array(
+				'method' => 'GET',
+				'route'  => '/sidebars/{id}',
+			),
+			'wp_get_sidebar_widgets' => array(
+				'method' => 'GET',
+				'route'  => '/sidebars/{id}/widgets',
+			),
+			'wp_get_widget_types'   => array(
+				'method' => 'GET',
+				'route'  => '/widgets/types',
+			),
+			'wp_get_widget'         => array(
+				'method' => 'GET',
+				'route'  => '/widgets/{id}',
+			),
+			'wp_add_widget'         => array(
+				'method' => 'POST',
+				'route'  => '/sidebars/{id}/widgets',
+			),
+			'wp_update_widget'      => array(
+				'method' => 'PUT',
+				'route'  => '/widgets/{id}',
+			),
+			'wp_delete_widget'      => array(
+				'method' => 'DELETE',
+				'route'  => '/widgets/{id}',
+			),
+			'wp_move_widget'        => array(
+				'method' => 'POST',
+				'route'  => '/widgets/{id}/move',
+			),
+			'wp_reorder_widgets'    => array(
+				'method' => 'POST',
+				'route'  => '/sidebars/{id}/reorder',
 			),
 		);
 	}

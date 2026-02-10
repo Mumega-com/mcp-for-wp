@@ -250,4 +250,76 @@ class Spai_Elementor_Basic {
 			'edit_url' => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
 	}
+
+	/**
+	 * Regenerate Elementor CSS for a specific page or the entire site.
+	 *
+	 * @param int|null $page_id Page ID, or null for full site regeneration.
+	 * @return array|WP_Error Result or error.
+	 */
+	public function regenerate_css( $page_id = null ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error(
+				'elementor_not_active',
+				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! class_exists( '\Elementor\Plugin' ) ) {
+			return new WP_Error(
+				'elementor_not_loaded',
+				__( 'Elementor plugin class not available.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		$plugin = \Elementor\Plugin::$instance;
+
+		if ( $page_id ) {
+			$page_id = absint( $page_id );
+			$page = get_post( $page_id );
+
+			if ( ! $page ) {
+				return new WP_Error(
+					'not_found',
+					__( 'Page not found.', 'site-pilot-ai' ),
+					array( 'status' => 404 )
+				);
+			}
+
+			// Regenerate CSS for specific post.
+			if ( method_exists( $plugin, 'documents' ) ) {
+				$document = $plugin->documents->get( $page_id );
+				if ( $document ) {
+					// Delete existing CSS file to force regeneration.
+					$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+					$css_file->update();
+
+					return array(
+						'success' => true,
+						'page_id' => $page_id,
+						'message' => __( 'CSS regenerated for page.', 'site-pilot-ai' ),
+					);
+				}
+			}
+
+			// Fallback: clear all cache.
+			$plugin->files_manager->clear_cache();
+
+			return array(
+				'success' => true,
+				'page_id' => $page_id,
+				'message' => __( 'Elementor cache cleared.', 'site-pilot-ai' ),
+			);
+		}
+
+		// Full site CSS regeneration.
+		$plugin->files_manager->clear_cache();
+
+		return array(
+			'success' => true,
+			'message' => __( 'All Elementor CSS regenerated.', 'site-pilot-ai' ),
+		);
+	}
 }
