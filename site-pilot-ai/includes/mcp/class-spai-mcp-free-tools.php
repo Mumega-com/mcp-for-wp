@@ -26,6 +26,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	protected function get_destructive_tools() {
 		return array(
 			'wp_delete_post',
+			'wp_delete_page',
 			'wp_delete_all_drafts',
 			'wp_delete_menu',
 			'wp_delete_menu_item',
@@ -658,6 +659,121 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		$tools[] = $this->define_tool(
+			'wp_delete_page',
+			'Delete a page (moves to trash by default, use force for permanent deletion)',
+			array(
+				'id'    => array(
+					'type'        => 'number',
+					'description' => 'Page ID',
+					'required'    => true,
+				),
+				'force' => array(
+					'type'        => 'boolean',
+					'description' => 'Force permanent deletion (bypass trash)',
+					'default'     => false,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_clone_page',
+			'Duplicate a page including its content, Elementor data, template, and featured image',
+			array(
+				'id'     => array(
+					'type'        => 'number',
+					'description' => 'Page ID to clone',
+					'required'    => true,
+				),
+				'title'  => array(
+					'type'        => 'string',
+					'description' => 'Title for the cloned page (defaults to original with Copy suffix)',
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Status for cloned page (publish, draft, pending, private)',
+					'default'     => 'draft',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_page_by_slug',
+			'Fetch a page by its URL slug (e.g., "about", "contact")',
+			array(
+				'slug' => array(
+					'type'        => 'string',
+					'description' => 'Page URL slug',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_set_featured_image',
+			'Set or remove the featured image (thumbnail) for a post or page',
+			array(
+				'id'       => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID',
+					'required'    => true,
+				),
+				'media_id' => array(
+					'type'        => 'number',
+					'description' => 'Media attachment ID. Use 0 to remove featured image.',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_categories',
+			'List post categories with IDs, names, slugs, and post counts',
+			array(
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page (1-200)',
+					'default'     => 100,
+				),
+				'search'   => array(
+					'type'        => 'string',
+					'description' => 'Search term',
+				),
+				'parent'   => array(
+					'type'        => 'number',
+					'description' => 'Parent category ID to list children',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_tags',
+			'List post tags with IDs, names, slugs, and post counts',
+			array(
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page (1-200)',
+					'default'     => 100,
+				),
+				'search'   => array(
+					'type'        => 'string',
+					'description' => 'Search term',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_batch_update',
+			'Execute multiple REST API operations in a single request (max 25). Each operation specifies method, path, and body.',
+			array(
+				'operations' => array(
+					'type'        => 'array',
+					'description' => 'Array of {method, path, body} objects. method: GET/POST/PUT/DELETE. path: relative to /site-pilot-ai/v1/',
+					'required'    => true,
+				),
+			)
+		);
+
 		// Media
 		$tools[] = $this->define_tool(
 			'wp_upload_media',
@@ -1173,6 +1289,34 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_page'    => array(
 				'method' => 'POST',
 				'route'  => '/pages/{id}',
+			),
+			'wp_delete_page'    => array(
+				'method' => 'DELETE',
+				'route'  => '/pages/{id}',
+			),
+			'wp_clone_page'     => array(
+				'method' => 'POST',
+				'route'  => '/pages/{id}/clone',
+			),
+			'wp_get_page_by_slug' => array(
+				'method' => 'GET',
+				'route'  => '/pages/by-slug/{slug}',
+			),
+			'wp_set_featured_image' => array(
+				'method' => 'POST',
+				'route'  => '/posts/{id}/featured-image',
+			),
+			'wp_list_categories' => array(
+				'method' => 'GET',
+				'route'  => '/categories',
+			),
+			'wp_list_tags'       => array(
+				'method' => 'GET',
+				'route'  => '/tags',
+			),
+			'wp_batch_update'    => array(
+				'method' => 'POST',
+				'route'  => '/batch',
 			),
 
 			// Media

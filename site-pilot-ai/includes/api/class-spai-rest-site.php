@@ -231,6 +231,62 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// Categories
+		register_rest_route(
+			$this->namespace,
+			'/categories',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_categories' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'per_page' => array(
+							'description' => __( 'Results per page.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'default'     => 100,
+							'minimum'     => 1,
+							'maximum'     => 200,
+						),
+						'search'   => array(
+							'description' => __( 'Search term.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'parent'   => array(
+							'description' => __( 'Parent category ID.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+					),
+				),
+			)
+		);
+
+		// Tags
+		register_rest_route(
+			$this->namespace,
+			'/tags',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_tags' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'per_page' => array(
+							'description' => __( 'Results per page.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'default'     => 100,
+							'minimum'     => 1,
+							'maximum'     => 200,
+						),
+						'search'   => array(
+							'description' => __( 'Search term.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
+				),
+			)
+		);
+
 		// OAuth token issuance (client credentials)
 		register_rest_route(
 			$this->namespace,
@@ -1251,6 +1307,98 @@ class Spai_REST_Site extends Spai_REST_API {
 			'revoked' => true,
 			'id'      => sanitize_key( $key_id ),
 		) );
+	}
+
+	/**
+	 * List categories.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function list_categories( $request ) {
+		$this->log_activity( 'list_categories', $request );
+
+		$args = array(
+			'taxonomy'   => 'category',
+			'number'     => min( 200, max( 1, absint( $request->get_param( 'per_page' ) ?: 100 ) ) ),
+			'hide_empty' => false,
+			'orderby'    => 'name',
+			'order'      => 'ASC',
+		);
+
+		$search = $request->get_param( 'search' );
+		if ( ! empty( $search ) ) {
+			$args['search'] = sanitize_text_field( $search );
+		}
+
+		$parent = $request->get_param( 'parent' );
+		if ( null !== $parent ) {
+			$args['parent'] = absint( $parent );
+		}
+
+		$terms = get_terms( $args );
+		if ( is_wp_error( $terms ) ) {
+			$terms = array();
+		}
+
+		$items = array_map( array( $this, 'format_term' ), $terms );
+
+		return $this->success_response( array(
+			'categories' => $items,
+			'total'      => count( $items ),
+		) );
+	}
+
+	/**
+	 * List tags.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function list_tags( $request ) {
+		$this->log_activity( 'list_tags', $request );
+
+		$args = array(
+			'taxonomy'   => 'post_tag',
+			'number'     => min( 200, max( 1, absint( $request->get_param( 'per_page' ) ?: 100 ) ) ),
+			'hide_empty' => false,
+			'orderby'    => 'name',
+			'order'      => 'ASC',
+		);
+
+		$search = $request->get_param( 'search' );
+		if ( ! empty( $search ) ) {
+			$args['search'] = sanitize_text_field( $search );
+		}
+
+		$terms = get_terms( $args );
+		if ( is_wp_error( $terms ) ) {
+			$terms = array();
+		}
+
+		$items = array_map( array( $this, 'format_term' ), $terms );
+
+		return $this->success_response( array(
+			'tags'  => $items,
+			'total' => count( $items ),
+		) );
+	}
+
+	/**
+	 * Format a term for API response.
+	 *
+	 * @param WP_Term $term Term object.
+	 * @return array Formatted term.
+	 */
+	private function format_term( $term ) {
+		return array(
+			'id'          => $term->term_id,
+			'name'        => $term->name,
+			'slug'        => $term->slug,
+			'description' => $term->description,
+			'count'       => $term->count,
+			'parent'      => $term->parent,
+		);
 	}
 
 	/**

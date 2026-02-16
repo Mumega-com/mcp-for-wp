@@ -140,8 +140,15 @@ class Spai_Elementor_Basic {
 		$elementor_json = null;
 
 		if ( isset( $data['elementor_data'] ) ) {
-			// If array, encode to JSON
+			// If array, validate structure and encode to JSON
 			if ( is_array( $data['elementor_data'] ) ) {
+				if ( ! $this->is_valid_elementor_structure( $data['elementor_data'] ) ) {
+					return new WP_Error(
+						'invalid_structure',
+						__( 'Elementor data must be an array of element objects.', 'site-pilot-ai' ),
+						array( 'status' => 400 )
+					);
+				}
 				$elementor_json = wp_json_encode( $data['elementor_data'] );
 			} else {
 				// Validate JSON string
@@ -150,6 +157,13 @@ class Spai_Elementor_Basic {
 					return new WP_Error(
 						'invalid_json',
 						__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
+						array( 'status' => 400 )
+					);
+				}
+				if ( ! is_array( $decoded ) ) {
+					return new WP_Error(
+						'invalid_structure',
+						__( 'Elementor data must decode to an array.', 'site-pilot-ai' ),
 						array( 'status' => 400 )
 					);
 				}
@@ -162,6 +176,13 @@ class Spai_Elementor_Basic {
 				return new WP_Error(
 					'invalid_json',
 					__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
+					array( 'status' => 400 )
+				);
+			}
+			if ( ! is_array( $decoded ) ) {
+				return new WP_Error(
+					'invalid_structure',
+					__( 'Elementor data must decode to an array.', 'site-pilot-ai' ),
 					array( 'status' => 400 )
 				);
 			}
@@ -260,6 +281,31 @@ class Spai_Elementor_Basic {
 			'url'      => get_permalink( $page_id ),
 			'edit_url' => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
+	}
+
+	/**
+	 * Check if data has valid Elementor structure (array of elements).
+	 *
+	 * @param mixed $data Data to validate.
+	 * @return bool True if valid structure.
+	 */
+	private function is_valid_elementor_structure( $data ) {
+		// Must be an array (can be empty for blank pages).
+		if ( ! is_array( $data ) ) {
+			return false;
+		}
+
+		// Empty array is valid (blank page).
+		if ( empty( $data ) ) {
+			return true;
+		}
+
+		// If indexed array, first element should be an array (element object).
+		if ( isset( $data[0] ) && ! is_array( $data[0] ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

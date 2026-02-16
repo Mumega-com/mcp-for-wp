@@ -107,6 +107,26 @@ class Spai_REST_Posts extends Spai_REST_API {
 			)
 		);
 
+		// Set featured image
+		register_rest_route(
+			$this->namespace,
+			'/posts/(?P<id>\d+)/featured-image',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'set_featured_image' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'media_id' => array(
+							'description' => __( 'Media attachment ID. Use 0 to remove featured image.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Drafts
 		register_rest_route(
 			$this->namespace,
@@ -249,6 +269,49 @@ class Spai_REST_Posts extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result );
+	}
+
+	/**
+	 * Set featured image for a post or page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function set_featured_image( $request ) {
+		$this->log_activity( 'set_featured_image', $request );
+
+		$post_id  = absint( $request->get_param( 'id' ) );
+		$media_id = absint( $request->get_param( 'media_id' ) );
+
+		$post = get_post( $post_id );
+		if ( ! $post || ! in_array( $post->post_type, array( 'post', 'page' ), true ) ) {
+			return $this->error_response( 'not_found', __( 'Post not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		if ( 0 === $media_id ) {
+			delete_post_thumbnail( $post_id );
+			return $this->success_response( array(
+				'success'  => true,
+				'post_id'  => $post_id,
+				'message'  => __( 'Featured image removed.', 'site-pilot-ai' ),
+			) );
+		}
+
+		$attachment = get_post( $media_id );
+		if ( ! $attachment || 'attachment' !== $attachment->post_type ) {
+			return $this->error_response( 'invalid_media', __( 'Invalid media ID.', 'site-pilot-ai' ), 400 );
+		}
+
+		set_post_thumbnail( $post_id, $media_id );
+
+		$image = wp_get_attachment_image_src( $media_id, 'full' );
+
+		return $this->success_response( array(
+			'success'  => true,
+			'post_id'  => $post_id,
+			'media_id' => $media_id,
+			'url'      => $image ? $image[0] : '',
+		) );
 	}
 
 	/**

@@ -120,6 +120,44 @@ class Spai_REST_Pages extends Spai_REST_API {
 			)
 		);
 
+		// Clone page
+		register_rest_route(
+			$this->namespace,
+			'/pages/(?P<id>\d+)/clone',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'clone_page' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'title'  => array(
+							'description' => __( 'Title for the cloned page. Defaults to original title with (Copy) suffix.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'status' => array(
+							'description' => __( 'Status for the cloned page.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'enum'        => array( 'publish', 'draft', 'pending', 'private' ),
+							'default'     => 'draft',
+						),
+					),
+				),
+			)
+		);
+
+		// Get page by slug
+		register_rest_route(
+			$this->namespace,
+			'/pages/by-slug/(?P<slug>[a-z0-9-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_page_by_slug' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Update page template
 		register_rest_route(
 			$this->namespace,
@@ -295,6 +333,103 @@ class Spai_REST_Pages extends Spai_REST_API {
 			'old_template' => $old_template,
 			'new_template' => $template,
 		) );
+	}
+
+	/**
+	 * Clone a page with its Elementor data.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function clone_page( $request ) {
+		$this->log_activity( 'clone_page', $request );
+
+		$page_id = absint( $request->get_param( 'id' ) );
+		$page    = get_post( $page_id );
+
+		if ( ! $page || 'page' !== $page->post_type ) {
+			return $this->error_response( 'not_found', __( 'Page not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		$title  = $request->get_param( 'title' );
+		$status = $request->get_param( 'status' ) ?: 'draft';
+
+		if ( empty( $title ) ) {
+			/* translators: %s: original page title */
+			$title = sprintf( __( '%s (Copy)', 'site-pilot-ai' ), $page->post_title );
+		}
+
+		// Create the clone.
+		$new_page_id = wp_insert_post( array(
+			'post_type'    => 'page',
+			'post_title'   => sanitize_text_field( $title ),
+			'post_content' => $page->post_content,
+			'post_status'  => sanitize_key( $status ),
+			'post_parent'  => $page->post_parent,
+			'menu_order'   => $page->menu_order,
+		), true );
+
+		if ( is_wp_error( $new_page_id ) ) {
+			return $new_page_id;
+		}
+
+		// Copy page template.
+		$template = get_post_meta( $page_id, '_wp_page_template', true );
+		if ( $template ) {
+			update_post_meta( $new_page_id, '_wp_page_template', $template );
+		}
+
+		// Copy Elementor data.
+		$elementor_data = get_post_meta( $page_id, '_elementor_data', true );
+		if ( $elementor_data ) {
+			update_post_meta( $new_page_id, '_elementor_data', wp_slash( $elementor_data ) );
+			update_post_meta( $new_page_id, '_elementor_edit_mode', 'builder' );
+
+			$template_type = get_post_meta( $page_id, '_elementor_template_type', true );
+			if ( $template_type ) {
+				update_post_meta( $new_page_id, '_elementor_template_type', $template_type );
+			}
+		}
+
+		// Copy featured image.
+		$thumbnail_id = get_post_thumbnail_id( $page_id );
+		if ( $thumbnail_id ) {
+			set_post_thumbnail( $new_page_id, $thumbnail_id );
+		}
+
+		$result = $this->pages->get_page( $new_page_id );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result, 201 );
+	}
+
+	/**
+	 * Get a page by slug.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_page_by_slug( $request ) {
+		$this->log_activity( 'get_page_by_slug', $request );
+
+		$slug = sanitize_title( (string) $request->get_param( 'slug' ) );
+
+		$page = get_page_by_path( $slug, OBJECT, 'page' );
+
+		if ( ! $page ) {
+			return $this->error_response( 'not_found', __( 'Page not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		$result = $this->pages->get_page( $page->ID );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
 	}
 
 	/**
