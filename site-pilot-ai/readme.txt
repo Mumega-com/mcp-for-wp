@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.56
+Stable tag: 1.0.57
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,13 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.57 =
+* New: Full element tree validation on Elementor save — auto-generates missing element IDs, validates widget types, checks nesting rules
+* New: `warnings` array in Elementor save response — reports unknown widgets (with "did you mean?" suggestions), invalid nesting, auto-fixes applied
+* New: `elementor_layout_mode` in site capabilities — reports whether site uses 'container' (Flexbox) or 'section' (classic) layout
+* Improved: Widget type validation against Elementor's live registry with fallback to 70+ known widget types
+* Improved: Structure validation catches missing `elType`, invalid `elements` arrays, widgets without `widgetType`
 
 = 1.0.56 =
 * New: Self-update REST endpoint (`GET/POST /update`) — check and trigger plugin updates via API (#87)

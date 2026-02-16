@@ -258,13 +258,16 @@ class Spai_Elementor_Basic {
 			count( $stored_decoded ) === count( $input_decoded )
 		);
 
-		// --- 3. Sanitize widget settings to prevent renderer crashes (#90) ---
+		// --- 3. Validate and fix element tree ---
 
-		$sanitize_warnings = $this->sanitize_element_settings( $elementor_json );
-		if ( ! empty( $sanitize_warnings ) ) {
-			$save_debug['sanitize_warnings'] = $sanitize_warnings;
-			// Re-write sanitized data.
-			update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+		$validation = $this->validate_and_fix_elements( $elementor_json );
+		if ( ! empty( $validation['fixes'] ) || ! empty( $validation['warnings'] ) ) {
+			$save_debug['validation_fixes']    = $validation['fixes'];
+			$save_debug['validation_warnings'] = $validation['warnings'];
+			// Re-write fixed data if any auto-fixes were applied.
+			if ( ! empty( $validation['fixes'] ) ) {
+				update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+			}
 		}
 
 		// --- 4. Clear Elementor caches and regenerate CSS ---
@@ -311,7 +314,16 @@ class Spai_Elementor_Basic {
 		$this->purge_page_cache( $page_id );
 		$save_debug['page_cache_purged'] = true;
 
-		return array(
+		// Build top-level warnings from validation results.
+		$all_warnings = array();
+		if ( ! empty( $save_debug['validation_warnings'] ) ) {
+			$all_warnings = array_merge( $all_warnings, $save_debug['validation_warnings'] );
+		}
+		if ( ! empty( $save_debug['validation_fixes'] ) ) {
+			$all_warnings = array_merge( $all_warnings, $save_debug['validation_fixes'] );
+		}
+
+		$result = array(
 			'success'     => true,
 			'page_id'     => (string) $page_id,
 			'message'     => __( 'Elementor data updated.', 'site-pilot-ai' ),
@@ -319,6 +331,12 @@ class Spai_Elementor_Basic {
 			'debug'       => $save_debug,
 			'edit_url'    => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
+
+		if ( ! empty( $all_warnings ) ) {
+			$result['warnings'] = $all_warnings;
+		}
+
+		return $result;
 	}
 
 	/**
@@ -407,11 +425,10 @@ class Spai_Elementor_Basic {
 	}
 
 	/**
-	 * Known valid control keys per widget type.
+	 * Known control key renames per widget type.
 	 *
-	 * Keys not in this map are left as-is (Elementor ignores truly unknown keys
-	 * for most widgets). This map targets controls that use the wrong name and
-	 * crash the frontend renderer.
+	 * Maps commonly-used wrong key names to their correct Elementor equivalents.
+	 * These are auto-fixed during validation to prevent renderer crashes.
 	 *
 	 * @var array<string, array<string, string>>
 	 */
@@ -430,52 +447,265 @@ class Spai_Elementor_Basic {
 	);
 
 	/**
-	 * Walk the element tree and fix known invalid control keys.
+	 * Valid top-level element types.
+	 *
+	 * @var array
+	 */
+	private static $valid_el_types = array( 'section', 'column', 'widget', 'container' );
+
+	/**
+	 * Valid nesting rules: parent elType => allowed child elTypes.
+	 *
+	 * @var array<string, array<string>>
+	 */
+	private static $nesting_rules = array(
+		'section'   => array( 'column' ),
+		'column'    => array( 'widget', 'section', 'container' ),
+		'container' => array( 'widget', 'container' ),
+	);
+
+	/**
+	 * Known Elementor free widget types.
+	 *
+	 * @var array
+	 */
+	private static $known_free_widgets = array(
+		'heading', 'text-editor', 'image', 'video', 'button', 'divider',
+		'spacer', 'google_maps', 'icon', 'image-box', 'icon-box', 'icon-list',
+		'counter', 'progress', 'testimonial', 'tabs', 'accordion', 'toggle',
+		'social-icons', 'alert', 'html', 'shortcode', 'menu-anchor',
+		'sidebar', 'read-more', 'star-rating', 'basic-gallery', 'image-carousel',
+		'wp-widget-pages', 'wp-widget-calendar', 'wp-widget-archives',
+		'wp-widget-media_audio', 'wp-widget-media_image', 'wp-widget-media_gallery',
+		'wp-widget-media_video', 'wp-widget-meta', 'wp-widget-search',
+		'wp-widget-text', 'wp-widget-categories', 'wp-widget-recent-posts',
+		'wp-widget-recent-comments', 'wp-widget-rss', 'wp-widget-tag_cloud',
+		'wp-widget-nav_menu', 'wp-widget-custom_html', 'inner-section',
+		'common', 'container', 'text-path', 'nested-tabs', 'nested-accordion',
+		'nested-carousel', 'link-in-bio', 'off-canvas',
+	);
+
+	/**
+	 * Known Elementor Pro widget types.
+	 *
+	 * @var array
+	 */
+	private static $known_pro_widgets = array(
+		'posts', 'portfolio', 'gallery', 'form', 'login', 'slides',
+		'nav-menu', 'animated-headline', 'price-list', 'price-table',
+		'flip-box', 'call-to-action', 'media-carousel', 'testimonial-carousel',
+		'reviews', 'table-of-contents', 'countdown', 'share-buttons',
+		'blockquote', 'template', 'facebook-button', 'facebook-comments',
+		'facebook-embed', 'facebook-page', 'search-form', 'post-navigation',
+		'author-box', 'post-comments', 'post-info', 'post-title',
+		'post-excerpt', 'post-content', 'post-featured-image', 'archive-title',
+		'archive-posts', 'sitemap', 'lottie', 'hotspot', 'paypal-button',
+		'stripe-button', 'progress-tracker', 'code-highlight',
+		'video-playlist', 'mega-menu', 'loop-grid', 'loop-carousel',
+		'taxonomy-filter',
+	);
+
+	/**
+	 * Get the list of registered widget type names from Elementor.
+	 *
+	 * Falls back to a hardcoded list if the widget manager is not available.
+	 *
+	 * @return array Widget type names.
+	 */
+	private function get_registered_widgets() {
+		// Try live registry first.
+		if ( class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->widgets_manager ) ) {
+			$manager = \Elementor\Plugin::$instance->widgets_manager;
+			if ( method_exists( $manager, 'get_widget_types' ) ) {
+				$types = $manager->get_widget_types();
+				if ( ! empty( $types ) && is_array( $types ) ) {
+					return array_keys( $types );
+				}
+			}
+		}
+
+		// Fallback to hardcoded list.
+		$widgets = self::$known_free_widgets;
+		if ( $this->is_pro_active() ) {
+			$widgets = array_merge( $widgets, self::$known_pro_widgets );
+		}
+		return $widgets;
+	}
+
+	/**
+	 * Find closest match for a widget type using Levenshtein distance.
+	 *
+	 * @param string $input      Unknown widget type.
+	 * @param array  $candidates Known widget types.
+	 * @return string|null Closest match or null if none close enough.
+	 */
+	private function find_closest_widget( $input, $candidates ) {
+		$best_match    = null;
+		$best_distance = PHP_INT_MAX;
+
+		foreach ( $candidates as $candidate ) {
+			$distance = levenshtein( $input, $candidate );
+			if ( $distance < $best_distance && $distance <= 3 ) {
+				$best_distance = $distance;
+				$best_match    = $candidate;
+			}
+		}
+
+		return $best_match;
+	}
+
+	/**
+	 * Validate and fix element tree.
+	 *
+	 * Performs 5 validation passes:
+	 * 1. Auto-generate missing element IDs
+	 * 2. Validate widget types against registered widgets
+	 * 3. Rename known wrong control keys
+	 * 4. Validate element structure and nesting
+	 * 5. Flag suspicious/unknown control keys
 	 *
 	 * Modifies $elementor_json in-place (reference).
 	 *
 	 * @param string &$elementor_json JSON string (modified in-place).
-	 * @return array Warnings about renamed keys.
+	 * @return array Associative array with 'warnings' and 'fixes' arrays.
 	 */
-	private function sanitize_element_settings( &$elementor_json ) {
+	private function validate_and_fix_elements( &$elementor_json ) {
 		$elements = json_decode( $elementor_json, true );
 		if ( ! is_array( $elements ) ) {
-			return array();
+			return array(
+				'warnings' => array( 'Elementor data is not a valid array.' ),
+				'fixes'    => array(),
+			);
 		}
 
-		$warnings = array();
-		$changed  = false;
+		$warnings          = array();
+		$fixes             = array();
+		$changed           = false;
+		$registered        = $this->get_registered_widgets();
+		$registered_lookup = array_flip( $registered );
 
-		$walk = function ( &$el ) use ( &$walk, &$warnings, &$changed ) {
+		/**
+		 * Walk a single element recursively.
+		 *
+		 * @param array  &$el   Element (modified in-place).
+		 * @param string $path  Human-readable path for warnings.
+		 * @param string $parent_type Parent elType for nesting validation.
+		 */
+		$walk = function ( &$el, $path = '', $parent_type = '' ) use (
+			&$walk, &$warnings, &$fixes, &$changed,
+			$registered, $registered_lookup
+		) {
+			$el_type     = isset( $el['elType'] ) ? $el['elType'] : '';
 			$widget_type = isset( $el['widgetType'] ) ? $el['widgetType'] : '';
-			if ( $widget_type && isset( self::$control_renames[ $widget_type ] ) ) {
+
+			// --- 1. Auto-generate missing IDs ---
+			if ( empty( $el['id'] ) ) {
+				$el['id'] = $this->generate_element_id();
+				$fixes[]  = "{$path}: auto-generated missing ID";
+				$changed  = true;
+			}
+
+			// --- 2. Validate elType ---
+			if ( '' === $el_type ) {
+				$warnings[] = "{$path}: missing elType";
+			} elseif ( ! in_array( $el_type, self::$valid_el_types, true ) ) {
+				$warnings[] = "{$path}: unknown elType '{$el_type}'";
+			}
+
+			// --- 3. Validate nesting ---
+			if ( '' !== $parent_type && '' !== $el_type && isset( self::$nesting_rules[ $parent_type ] ) ) {
+				if ( ! in_array( $el_type, self::$nesting_rules[ $parent_type ], true ) ) {
+					$warnings[] = "{$path}: '{$el_type}' should not be nested inside '{$parent_type}'";
+				}
+			}
+
+			// --- 4. Validate widget type ---
+			if ( 'widget' === $el_type && '' !== $widget_type ) {
+				if ( ! isset( $registered_lookup[ $widget_type ] ) ) {
+					$suggestion = $this->find_closest_widget( $widget_type, $registered );
+					if ( $suggestion ) {
+						$warnings[] = "{$path}: unknown widget '{$widget_type}' (did you mean '{$suggestion}'?)";
+					} else {
+						$warnings[] = "{$path}: unknown widget type '{$widget_type}'";
+					}
+				}
+			} elseif ( 'widget' === $el_type && '' === $widget_type ) {
+				$warnings[] = "{$path}: widget element missing widgetType";
+			}
+
+			// --- 5. Rename known wrong control keys ---
+			if ( '' !== $widget_type && isset( self::$control_renames[ $widget_type ] ) ) {
 				$renames = self::$control_renames[ $widget_type ];
 				foreach ( $renames as $old_key => $new_key ) {
 					if ( isset( $el['settings'][ $old_key ] ) && ! isset( $el['settings'][ $new_key ] ) ) {
 						$el['settings'][ $new_key ] = $el['settings'][ $old_key ];
 						unset( $el['settings'][ $old_key ] );
-						$warnings[] = "{$widget_type}: renamed {$old_key} -> {$new_key}";
-						$changed    = true;
+						$fixes[] = "{$path}: renamed '{$old_key}' -> '{$new_key}'";
+						$changed = true;
 					}
 				}
 			}
+
+			// --- 6. Validate elements array ---
+			if ( isset( $el['elements'] ) && ! is_array( $el['elements'] ) ) {
+				$warnings[]    = "{$path}: 'elements' must be an array";
+				$el['elements'] = array();
+				$changed        = true;
+			}
+
+			// Recurse into children.
 			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
-				foreach ( $el['elements'] as &$child ) {
-					$walk( $child );
+				foreach ( $el['elements'] as $idx => &$child ) {
+					$child_path = $path . '.' . ( isset( $child['elType'] ) ? $child['elType'] : 'element' ) . "[{$idx}]";
+					$walk( $child, $child_path, $el_type );
 				}
+				unset( $child );
 			}
 		};
 
-		foreach ( $elements as &$el ) {
-			$walk( $el );
+		// Walk each top-level element.
+		foreach ( $elements as $idx => &$el ) {
+			$top_type = isset( $el['elType'] ) ? $el['elType'] : 'element';
+			$path     = "{$top_type}[{$idx}]";
+			$walk( $el, $path, '' );
 		}
 		unset( $el );
 
+		// Re-encode if any fixes were applied.
 		if ( $changed ) {
 			$elementor_json = wp_json_encode( $elements );
 		}
 
-		return $warnings;
+		return array(
+			'warnings' => $warnings,
+			'fixes'    => $fixes,
+		);
+	}
+
+	/**
+	 * Generate a random 8-character element ID matching Elementor's format.
+	 *
+	 * @return string Random ID.
+	 */
+	private function generate_element_id() {
+		$chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+		$id    = '';
+		for ( $i = 0; $i < 8; $i++ ) {
+			$id .= $chars[ wp_rand( 0, 35 ) ];
+		}
+		return $id;
+	}
+
+	/**
+	 * Backward-compatible wrapper for the old sanitize method.
+	 *
+	 * @param string &$elementor_json JSON string (modified in-place).
+	 * @return array Warnings about renamed keys.
+	 * @deprecated Use validate_and_fix_elements() instead.
+	 */
+	private function sanitize_element_settings( &$elementor_json ) {
+		$result = $this->validate_and_fix_elements( $elementor_json );
+		return array_merge( $result['warnings'], $result['fixes'] );
 	}
 
 	/**

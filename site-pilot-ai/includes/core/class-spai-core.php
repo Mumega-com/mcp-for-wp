@@ -75,9 +75,20 @@ class Spai_Core {
 			|| class_exists( 'RankMath\\Helper' )
 			|| class_exists( 'RankMath\\Loader' );
 
+		// Detect Elementor layout mode (container vs section).
+		$elementor_layout = 'section';
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			// Elementor 3.15+ uses containers by default; check experiment setting.
+			$experiments = get_option( 'elementor_experiment-container', '' );
+			if ( 'active' === $experiments || 'default' === $experiments ) {
+				$elementor_layout = 'container';
+			}
+		}
+
 		$capabilities = array(
-			'elementor'      => defined( 'ELEMENTOR_VERSION' ),
-			'elementor_pro'  => defined( 'ELEMENTOR_PRO_VERSION' ),
+			'elementor'             => defined( 'ELEMENTOR_VERSION' ),
+			'elementor_pro'         => defined( 'ELEMENTOR_PRO_VERSION' ),
+			'elementor_layout_mode' => $elementor_layout,
 			'woocommerce'    => class_exists( 'WooCommerce' ),
 			'yoast'          => defined( 'WPSEO_VERSION' ),
 			'rankmath'       => $rankmath_active,
