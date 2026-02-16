@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.55
+Stable tag: 1.0.56
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,13 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.56 =
+* New: Self-update REST endpoint (`GET/POST /update`) — check and trigger plugin updates via API (#87)
+* New: Page-level settings support (`page_settings.custom_css`) on Elementor save (#81)
+* New: Set `_elementor_pro_version` meta on save for Pro widget rendering
+* Fix: Auto-rename flip-box widget keys (`front_title_text` → `title_text_a`, etc.) to match Elementor Pro schema (#83)
+* Improved: Elementor GET response now includes `page_settings` field
 
 = 1.0.55 =
 * Fix: Set `_elementor_template_type` and `_elementor_version` meta on save — fixes frontend rendering failures (#88)

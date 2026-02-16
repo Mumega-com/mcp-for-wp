@@ -103,6 +103,8 @@ class Spai_Elementor_Basic {
 		$edit_mode = get_post_meta( $page_id, '_elementor_edit_mode', true );
 		$template_type = get_post_meta( $page_id, '_elementor_template_type', true );
 
+		$page_settings = get_post_meta( $page_id, '_elementor_page_settings', true );
+
 		return array(
 			'page_id'        => $page_id,
 			'title'          => $page->post_title,
@@ -111,6 +113,7 @@ class Spai_Elementor_Basic {
 			'template_type'  => $template_type ?: null,
 			'elementor_data' => $elementor_data ? json_decode( $elementor_data, true ) : null,
 			'elementor_json' => $elementor_data ?: null,
+			'page_settings'  => $page_settings ? ( is_array( $page_settings ) ? $page_settings : json_decode( $page_settings, true ) ) : null,
 			'edit_url'       => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
 	}
@@ -234,6 +237,12 @@ class Spai_Elementor_Basic {
 			$save_debug['elementor_version'] = ELEMENTOR_VERSION;
 		}
 
+		// Pro version — required for Pro widget rendering.
+		if ( defined( 'ELEMENTOR_PRO_VERSION' ) ) {
+			update_post_meta( $page_id, '_elementor_pro_version', ELEMENTOR_PRO_VERSION );
+			$save_debug['elementor_pro_version'] = ELEMENTOR_PRO_VERSION;
+		}
+
 		// --- 2. Write element data via update_post_meta (always reliable) ---
 
 		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
@@ -280,7 +289,24 @@ class Spai_Elementor_Basic {
 			}
 		}
 
-		// --- 5. Purge page caches (#89) ---
+		// --- 5. Page-level settings (custom CSS, etc.) (#81) ---
+
+		if ( ! empty( $data['page_settings'] ) && is_array( $data['page_settings'] ) ) {
+			$allowed_keys = array( 'custom_css', 'background_background', 'background_color', 'padding', 'hide_title' );
+			$page_settings = get_post_meta( $page_id, '_elementor_page_settings', true );
+			if ( ! is_array( $page_settings ) ) {
+				$page_settings = array();
+			}
+			foreach ( $data['page_settings'] as $key => $value ) {
+				if ( in_array( $key, $allowed_keys, true ) ) {
+					$page_settings[ $key ] = $value;
+				}
+			}
+			update_post_meta( $page_id, '_elementor_page_settings', $page_settings );
+			$save_debug['page_settings_updated'] = array_keys( $data['page_settings'] );
+		}
+
+		// --- 6. Purge page caches (#89) ---
 
 		$this->purge_page_cache( $page_id );
 		$save_debug['page_cache_purged'] = true;
@@ -392,6 +418,14 @@ class Spai_Elementor_Basic {
 	private static $control_renames = array(
 		'icon-box' => array(
 			'title_size' => 'title_typography_font_size',
+		),
+		'flip-box' => array(
+			'front_title_text'       => 'title_text_a',
+			'front_description_text' => 'description_text_a',
+			'back_title_text'        => 'title_text_b',
+			'back_description_text'  => 'description_text_b',
+			'front_background_color' => 'background_color_a',
+			'back_background_color'  => 'background_color_b',
 		),
 	);
 

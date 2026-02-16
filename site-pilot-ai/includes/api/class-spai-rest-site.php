@@ -435,6 +435,24 @@ class Spai_REST_Site extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Self-update check and trigger (#87)
+		register_rest_route(
+			$this->namespace,
+			'/update',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'check_update' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'trigger_update' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -1306,6 +1324,121 @@ class Spai_REST_Site extends Spai_REST_API {
 		return $this->success_response( array(
 			'revoked' => true,
 			'id'      => sanitize_key( $key_id ),
+		) );
+	}
+
+	/**
+	 * Check for available plugin update.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function check_update( $request ) {
+		$this->log_activity( 'check_update', $request );
+
+		$current_version = defined( 'SPAI_VERSION' ) ? SPAI_VERSION : '0.0.0';
+
+		// Force WordPress to check for updates.
+		if ( function_exists( 'wp_update_plugins' ) ) {
+			wp_update_plugins();
+		}
+
+		$update_plugins = get_site_transient( 'update_plugins' );
+		$plugin_file    = defined( 'SPAI_PLUGIN_BASENAME' ) ? SPAI_PLUGIN_BASENAME : 'site-pilot-ai/site-pilot-ai.php';
+
+		$update_available = false;
+		$new_version      = null;
+		$package          = null;
+
+		if ( ! empty( $update_plugins->response[ $plugin_file ] ) ) {
+			$plugin_update    = $update_plugins->response[ $plugin_file ];
+			$new_version      = is_object( $plugin_update ) ? $plugin_update->new_version : null;
+			$package          = is_object( $plugin_update ) ? $plugin_update->package : null;
+			$update_available = ! empty( $new_version ) && version_compare( $new_version, $current_version, '>' );
+		}
+
+		return $this->success_response( array(
+			'current_version'  => $current_version,
+			'update_available' => $update_available,
+			'new_version'      => $new_version,
+			'has_package'      => ! empty( $package ),
+		) );
+	}
+
+	/**
+	 * Trigger plugin self-update.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function trigger_update( $request ) {
+		$this->log_activity( 'trigger_update', $request );
+
+		if ( ! $this->can_manage_api_keys() ) {
+			return $this->error_response(
+				'forbidden',
+				__( 'You do not have permission to update the plugin.', 'site-pilot-ai' ),
+				403
+			);
+		}
+
+		$plugin_file = defined( 'SPAI_PLUGIN_BASENAME' ) ? SPAI_PLUGIN_BASENAME : 'site-pilot-ai/site-pilot-ai.php';
+
+		// Force update check.
+		if ( function_exists( 'wp_update_plugins' ) ) {
+			wp_update_plugins();
+		}
+
+		$update_plugins = get_site_transient( 'update_plugins' );
+
+		if ( empty( $update_plugins->response[ $plugin_file ] ) ) {
+			return $this->success_response( array(
+				'updated' => false,
+				'message' => __( 'No update available.', 'site-pilot-ai' ),
+				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+			) );
+		}
+
+		$plugin_update = $update_plugins->response[ $plugin_file ];
+		if ( empty( $plugin_update->package ) ) {
+			return $this->error_response(
+				'no_package',
+				__( 'Update package URL is not available.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+		$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+		$result   = $upgrader->upgrade( $plugin_file );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response(
+				'update_failed',
+				$result->get_error_message(),
+				500
+			);
+		}
+
+		if ( true !== $result ) {
+			return $this->error_response(
+				'update_failed',
+				__( 'Plugin update failed.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		// Reactivate if needed.
+		if ( ! is_plugin_active( $plugin_file ) ) {
+			activate_plugin( $plugin_file );
+		}
+
+		return $this->success_response( array(
+			'updated'     => true,
+			'new_version' => is_object( $plugin_update ) ? $plugin_update->new_version : null,
+			'message'     => __( 'Plugin updated successfully.', 'site-pilot-ai' ),
 		) );
 	}
 
