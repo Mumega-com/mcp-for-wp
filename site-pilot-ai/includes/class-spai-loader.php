@@ -288,25 +288,42 @@ class Spai_Loader {
 			return $response;
 		}
 
+		// Ensure 429 responses always have a JSON body (#92).
 		$data = method_exists( $response, 'get_data' ) ? $response->get_data() : null;
-		if ( ! is_array( $data ) || empty( $data['data'] ) || ! is_array( $data['data'] ) ) {
-			return $response;
+
+		if ( empty( $data ) ) {
+			// Build a fallback body from rate limiter state.
+			$rl_headers = $limiter->get_headers();
+			$retry      = isset( $rl_headers['Retry-After'] ) ? (int) $rl_headers['Retry-After'] : 0;
+			$response->set_data( array(
+				'code'    => 'rate_limit_exceeded',
+				'message' => sprintf( 'Rate limit exceeded. Try again in %d seconds.', $retry ),
+				'data'    => array(
+					'status'      => 429,
+					'retry_after' => $retry,
+				),
+			) );
+			$data = $response->get_data();
 		}
 
-		if ( isset( $data['data']['retry_after'] ) ) {
-			$response->header( 'Retry-After', max( 0, (int) $data['data']['retry_after'] ) );
-		}
+		$response->header( 'Content-Type', 'application/json; charset=UTF-8' );
 
-		if ( isset( $data['data']['limit'] ) ) {
-			$response->header( 'X-RateLimit-Limit', (int) $data['data']['limit'] );
-		}
+		if ( is_array( $data ) && ! empty( $data['data'] ) && is_array( $data['data'] ) ) {
+			if ( isset( $data['data']['retry_after'] ) ) {
+				$response->header( 'Retry-After', max( 0, (int) $data['data']['retry_after'] ) );
+			}
 
-		if ( isset( $data['data']['remaining'] ) ) {
-			$response->header( 'X-RateLimit-Remaining', max( 0, (int) $data['data']['remaining'] ) );
-		}
+			if ( isset( $data['data']['limit'] ) ) {
+				$response->header( 'X-RateLimit-Limit', (int) $data['data']['limit'] );
+			}
 
-		if ( isset( $data['data']['reset'] ) ) {
-			$response->header( 'X-RateLimit-Reset', (int) $data['data']['reset'] );
+			if ( isset( $data['data']['remaining'] ) ) {
+				$response->header( 'X-RateLimit-Remaining', max( 0, (int) $data['data']['remaining'] ) );
+			}
+
+			if ( isset( $data['data']['reset'] ) ) {
+				$response->header( 'X-RateLimit-Reset', (int) $data['data']['reset'] );
+			}
 		}
 
 		return $response;
