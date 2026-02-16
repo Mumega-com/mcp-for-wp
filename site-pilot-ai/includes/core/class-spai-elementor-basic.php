@@ -205,25 +205,93 @@ class Spai_Elementor_Basic {
 			);
 		}
 
-		// Save Elementor data
-		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
-		update_post_meta( $page_id, '_elementor_edit_mode', 'builder' );
+		$save_debug    = array();
+		$elementor_ok  = class_exists( '\Elementor\Plugin' );
 
-		// Set page template to Elementor
-		if ( ! get_post_meta( $page_id, '_wp_page_template', true ) ) {
+		// --- 1. Set ALL required Elementor meta keys ---
+
+		// Page template.
+		$current_template = get_post_meta( $page_id, '_wp_page_template', true );
+		if ( ! $current_template || 'default' === $current_template ) {
 			update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
 		}
 
-		// Clear Elementor cache if available
-		if ( class_exists( '\Elementor\Plugin' ) ) {
-			\Elementor\Plugin::$instance->files_manager->clear_cache();
+		// Edit mode must be 'builder'.
+		update_post_meta( $page_id, '_elementor_edit_mode', 'builder' );
+
+		// Template type — required for frontend rendering.
+		$template_type = get_post_meta( $page_id, '_elementor_template_type', true );
+		if ( empty( $template_type ) ) {
+			$post_type = get_post_type( $page_id );
+			$type_value = ( 'elementor_library' === $post_type ) ? 'section' : 'wp-page';
+			update_post_meta( $page_id, '_elementor_template_type', $type_value );
+			$save_debug['set_template_type'] = $type_value;
 		}
 
+		// Elementor version — prevents unnecessary migrations.
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			update_post_meta( $page_id, '_elementor_version', ELEMENTOR_VERSION );
+			$save_debug['elementor_version'] = ELEMENTOR_VERSION;
+		}
+
+		// --- 2. Write element data via update_post_meta (always reliable) ---
+
+		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+		$save_debug['meta_written'] = true;
+
+		// Verify data was stored correctly.
+		$stored = get_post_meta( $page_id, '_elementor_data', true );
+		$stored_decoded = json_decode( $stored, true );
+		$input_decoded  = json_decode( $elementor_json, true );
+		$save_debug['meta_verified'] = (
+			is_array( $stored_decoded ) &&
+			is_array( $input_decoded ) &&
+			count( $stored_decoded ) === count( $input_decoded )
+		);
+
+		// --- 3. Sanitize widget settings to prevent renderer crashes (#90) ---
+
+		$sanitize_warnings = $this->sanitize_element_settings( $elementor_json );
+		if ( ! empty( $sanitize_warnings ) ) {
+			$save_debug['sanitize_warnings'] = $sanitize_warnings;
+			// Re-write sanitized data.
+			update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+		}
+
+		// --- 4. Clear Elementor caches and regenerate CSS ---
+
+		$save_method = 'meta_direct';
+
+		if ( $elementor_ok ) {
+			// Clear file cache.
+			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
+				\Elementor\Plugin::$instance->files_manager->clear_cache();
+				$save_debug['cache_cleared'] = true;
+			}
+
+			// Delete compiled CSS meta to force regeneration on next page load.
+			delete_post_meta( $page_id, '_elementor_css' );
+
+			// Regenerate CSS for this page.
+			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+				$css_file->update();
+				$save_debug['css_regenerated'] = true;
+			}
+		}
+
+		// --- 5. Purge page caches (#89) ---
+
+		$this->purge_page_cache( $page_id );
+		$save_debug['page_cache_purged'] = true;
+
 		return array(
-			'success' => true,
-			'page_id' => $page_id,
-			'message' => __( 'Elementor data updated.', 'site-pilot-ai' ),
-			'edit_url' => admin_url( "post.php?post={$page_id}&action=elementor" ),
+			'success'     => true,
+			'page_id'     => (string) $page_id,
+			'message'     => __( 'Elementor data updated.', 'site-pilot-ai' ),
+			'save_method' => $save_method,
+			'debug'       => $save_debug,
+			'edit_url'    => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
 	}
 
@@ -256,9 +324,13 @@ class Spai_Elementor_Basic {
 			return $page_id;
 		}
 
-		// Enable Elementor
+		// Enable Elementor with all required meta keys (#88).
 		update_post_meta( $page_id, '_elementor_edit_mode', 'builder' );
 		update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
+		update_post_meta( $page_id, '_elementor_template_type', 'wp-page' );
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			update_post_meta( $page_id, '_elementor_version', ELEMENTOR_VERSION );
+		}
 
 		// Set initial Elementor data if provided
 		if ( ! empty( $data['elementor_data'] ) || ! empty( $data['elementor_json'] ) ) {
@@ -306,6 +378,119 @@ class Spai_Elementor_Basic {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Known valid control keys per widget type.
+	 *
+	 * Keys not in this map are left as-is (Elementor ignores truly unknown keys
+	 * for most widgets). This map targets controls that use the wrong name and
+	 * crash the frontend renderer.
+	 *
+	 * @var array<string, array<string, string>>
+	 */
+	private static $control_renames = array(
+		'icon-box' => array(
+			'title_size' => 'title_typography_font_size',
+		),
+	);
+
+	/**
+	 * Walk the element tree and fix known invalid control keys.
+	 *
+	 * Modifies $elementor_json in-place (reference).
+	 *
+	 * @param string &$elementor_json JSON string (modified in-place).
+	 * @return array Warnings about renamed keys.
+	 */
+	private function sanitize_element_settings( &$elementor_json ) {
+		$elements = json_decode( $elementor_json, true );
+		if ( ! is_array( $elements ) ) {
+			return array();
+		}
+
+		$warnings = array();
+		$changed  = false;
+
+		$walk = function ( &$el ) use ( &$walk, &$warnings, &$changed ) {
+			$widget_type = isset( $el['widgetType'] ) ? $el['widgetType'] : '';
+			if ( $widget_type && isset( self::$control_renames[ $widget_type ] ) ) {
+				$renames = self::$control_renames[ $widget_type ];
+				foreach ( $renames as $old_key => $new_key ) {
+					if ( isset( $el['settings'][ $old_key ] ) && ! isset( $el['settings'][ $new_key ] ) ) {
+						$el['settings'][ $new_key ] = $el['settings'][ $old_key ];
+						unset( $el['settings'][ $old_key ] );
+						$warnings[] = "{$widget_type}: renamed {$old_key} -> {$new_key}";
+						$changed    = true;
+					}
+				}
+			}
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				foreach ( $el['elements'] as &$child ) {
+					$walk( $child );
+				}
+			}
+		};
+
+		foreach ( $elements as &$el ) {
+			$walk( $el );
+		}
+		unset( $el );
+
+		if ( $changed ) {
+			$elementor_json = wp_json_encode( $elements );
+		}
+
+		return $warnings;
+	}
+
+	/**
+	 * Purge page cache across common WordPress caching plugins.
+	 *
+	 * @param int $page_id Post ID to purge.
+	 */
+	private function purge_page_cache( $page_id ) {
+		// WordPress core.
+		clean_post_cache( $page_id );
+
+		$url = get_permalink( $page_id );
+
+		// SiteGround SG Optimizer.
+		if ( function_exists( 'sg_cachepress_purge_cache' ) ) {
+			sg_cachepress_purge_cache( $url );
+		}
+
+		// WP Super Cache.
+		if ( function_exists( 'wp_cache_post_change' ) ) {
+			wp_cache_post_change( $page_id );
+		}
+
+		// W3 Total Cache.
+		if ( function_exists( 'w3tc_flush_post' ) ) {
+			w3tc_flush_post( $page_id );
+		}
+
+		// WP Rocket.
+		if ( function_exists( 'rocket_clean_post' ) ) {
+			rocket_clean_post( $page_id );
+		}
+
+		// LiteSpeed Cache.
+		if ( method_exists( 'LiteSpeed_Cache_API', 'purge_post' ) ) {
+			LiteSpeed_Cache_API::purge_post( $page_id );
+		} elseif ( class_exists( 'LiteSpeed\Purge' ) && method_exists( 'LiteSpeed\Purge', 'purge_post' ) ) {
+			LiteSpeed\Purge::purge_post( $page_id );
+		}
+
+		// WP Fastest Cache.
+		if ( function_exists( 'wpfc_clear_post_cache_by_id' ) ) {
+			wpfc_clear_post_cache_by_id( $page_id );
+		}
+
+		// Autoptimize.
+		if ( class_exists( 'autoptimizeCache' ) && method_exists( 'autoptimizeCache', 'clearall' ) ) {
+			autoptimizeCache::clearall();
+		}
 	}
 
 	/**

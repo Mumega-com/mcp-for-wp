@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.43
+Stable tag: 1.0.54
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.54 =
+* Fix: Set `_elementor_template_type` and `_elementor_version` meta on save — fixes frontend rendering failures (#88)
+* Fix: Auto-rename invalid widget control keys (e.g. `title_size` → `title_typography_font_size`) to prevent Elementor renderer crashes (#90)
+* New: Purge page cache after Elementor data update — supports SG Optimizer, WP Super Cache, W3TC, WP Rocket, LiteSpeed (#89)
+* Improved: Elementor data saved via `update_post_meta` with verification, replacing unreliable `Document->save()` in REST context
 
 = 1.0.43 =
 * Fix: Pro MCP tools now unlock based on active license (single-plugin distribution), not a separate Pro add-on
