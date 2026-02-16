@@ -34,6 +34,44 @@ class Spai_REST_Menus extends Spai_REST_API {
 			)
 		);
 
+		// Delete a menu.
+		register_rest_route(
+			$this->namespace,
+			'/menus/(?P<menu_id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_menu' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Assign menu to location.
+		register_rest_route(
+			$this->namespace,
+			'/menus/assign-location',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'assign_menu_location' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'menu_id'  => array(
+							'description' => __( 'Menu ID to assign.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'required'    => true,
+						),
+						'location' => array(
+							'description' => __( 'Theme menu location key (e.g., menu-1).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// List theme menu locations.
 		register_rest_route(
 			$this->namespace,
@@ -225,6 +263,103 @@ class Spai_REST_Menus extends Spai_REST_API {
 		}
 
 		return $this->success_response( array( 'menus' => $out ) );
+	}
+
+	/**
+	 * Delete a menu.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function delete_menu( $request ) {
+		$this->log_activity( 'delete_menu', $request );
+
+		$menu_id = absint( $request->get_param( 'menu_id' ) );
+		$menu    = wp_get_nav_menu_object( $menu_id );
+
+		if ( ! $menu ) {
+			return $this->error_response(
+				'menu_not_found',
+				__( 'Menu not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$name   = $menu->name;
+		$result = wp_delete_nav_menu( $menu_id );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response(
+				'delete_failed',
+				$result->get_error_message(),
+				500
+			);
+		}
+
+		if ( ! $result ) {
+			return $this->error_response(
+				'delete_failed',
+				__( 'Failed to delete menu.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		return $this->success_response( array(
+			'success' => true,
+			'deleted' => (int) $menu_id,
+			'name'    => $name,
+		) );
+	}
+
+	/**
+	 * Assign an existing menu to a theme location.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function assign_menu_location( $request ) {
+		$this->log_activity( 'assign_menu_location', $request );
+
+		$menu_id  = absint( $request->get_param( 'menu_id' ) );
+		$location = sanitize_key( (string) $request->get_param( 'location' ) );
+
+		if ( '' === $location ) {
+			return $this->error_response(
+				'missing_location',
+				__( 'Location key is required.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$menu = wp_get_nav_menu_object( $menu_id );
+		if ( ! $menu ) {
+			return $this->error_response(
+				'menu_not_found',
+				__( 'Menu not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$registered = get_registered_nav_menus();
+		if ( ! isset( $registered[ $location ] ) ) {
+			return $this->error_response(
+				'invalid_location',
+				__( 'Unknown theme menu location.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$locations              = get_nav_menu_locations();
+		$locations[ $location ] = $menu_id;
+		set_theme_mod( 'nav_menu_locations', $locations );
+
+		return $this->success_response( array(
+			'success'  => true,
+			'menu_id'  => (int) $menu_id,
+			'menu_name' => (string) $menu->name,
+			'location' => $location,
+			'label'    => $registered[ $location ],
+		) );
 	}
 
 	/**

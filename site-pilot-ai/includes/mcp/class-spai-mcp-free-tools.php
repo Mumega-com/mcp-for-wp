@@ -27,6 +27,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		return array(
 			'wp_delete_post',
 			'wp_delete_all_drafts',
+			'wp_delete_menu',
 			'wp_delete_menu_item',
 			'wp_revoke_api_key',
 			'wp_reset_rate_limit',
@@ -271,6 +272,80 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'items'   => array(
 					'type'        => 'array',
 					'description' => 'Array of {id, position, parent_id} objects',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_delete_menu',
+			'Delete an entire navigation menu and all its items',
+			array(
+				'menu_id' => array(
+					'type'        => 'number',
+					'description' => 'Menu ID to delete',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_assign_menu_location',
+			'Assign a menu to a theme menu location without modifying menu items',
+			array(
+				'menu_id'  => array(
+					'type'        => 'number',
+					'description' => 'Menu ID to assign',
+					'required'    => true,
+				),
+				'location' => array(
+					'type'        => 'string',
+					'description' => 'Theme menu location key (e.g., primary, footer)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_page_template',
+			'Change a page template (e.g., default, elementor_header_footer, elementor_canvas)',
+			array(
+				'id'       => array(
+					'type'        => 'number',
+					'description' => 'Page ID',
+					'required'    => true,
+				),
+				'template' => array(
+					'type'        => 'string',
+					'description' => 'Template slug (e.g., default, elementor_header_footer, elementor_canvas)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_page_templates',
+			'List all available page templates for the active theme',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_bulk_find_replace',
+			'Search and replace text in Elementor data for a given post or page',
+			array(
+				'id'      => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID',
+					'required'    => true,
+				),
+				'search'  => array(
+					'type'        => 'string',
+					'description' => 'Text to search for in Elementor JSON data',
+					'required'    => true,
+				),
+				'replace' => array(
+					'type'        => 'string',
+					'description' => 'Replacement text',
 					'required'    => true,
 				),
 			)
@@ -1026,6 +1101,26 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_reorder_menu_items'  => array(
 				'method' => 'POST',
 				'route'  => '/menus/{menu_id}/items/reorder',
+			),
+			'wp_delete_menu'         => array(
+				'method' => 'DELETE',
+				'route'  => '/menus/{menu_id}',
+			),
+			'wp_assign_menu_location' => array(
+				'method' => 'POST',
+				'route'  => '/menus/assign-location',
+			),
+			'wp_update_page_template' => array(
+				'method' => 'POST',
+				'route'  => '/pages/{id}/template',
+			),
+			'wp_list_page_templates'  => array(
+				'method' => 'GET',
+				'route'  => '/templates/page',
+			),
+			'wp_bulk_find_replace'   => array(
+				'method' => 'POST',
+				'route'  => '/elementor/{id}/find-replace',
 			),
 			'wp_list_media'          => array(
 				'method' => 'GET',

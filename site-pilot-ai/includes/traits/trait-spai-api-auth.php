@@ -480,6 +480,8 @@ trait Spai_Api_Auth {
 			'wp_update_menu_item',
 			'wp_delete_menu_item',
 			'wp_reorder_menu_items',
+			'wp_delete_menu',
+			'wp_assign_menu_location',
 			'wp_list_content',
 			'wp_delete_content',
 			'wp_languages',

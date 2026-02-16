@@ -120,6 +120,26 @@ class Spai_REST_Pages extends Spai_REST_API {
 			)
 		);
 
+		// Update page template
+		register_rest_route(
+			$this->namespace,
+			'/pages/(?P<id>\d+)/template',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'update_page_template' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'template' => array(
+							'description' => __( 'Template slug (e.g., default, elementor_header_footer, elementor_canvas).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Page templates list
 		register_rest_route(
 			$this->namespace,
@@ -236,6 +256,44 @@ class Spai_REST_Pages extends Spai_REST_API {
 			'deleted' => true,
 			'id'      => $page_id,
 			'trashed' => ! $force,
+		) );
+	}
+
+	/**
+	 * Update a page's template.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function update_page_template( $request ) {
+		$this->log_activity( 'update_page_template', $request );
+
+		$page_id  = absint( $request->get_param( 'id' ) );
+		$template = sanitize_text_field( (string) $request->get_param( 'template' ) );
+
+		$page = get_post( $page_id );
+		if ( ! $page || 'page' !== $page->post_type ) {
+			return $this->error_response(
+				'not_found',
+				__( 'Page not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$old_template = get_post_meta( $page_id, '_wp_page_template', true ) ?: 'default';
+
+		if ( 'default' === $template ) {
+			delete_post_meta( $page_id, '_wp_page_template' );
+		} else {
+			update_post_meta( $page_id, '_wp_page_template', $template );
+		}
+
+		return $this->success_response( array(
+			'success'      => true,
+			'page_id'      => $page_id,
+			'title'        => $page->post_title,
+			'old_template' => $old_template,
+			'new_template' => $template,
 		) );
 	}
 

@@ -110,6 +110,31 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			)
 		);
 
+		// Find and replace in Elementor data
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/find-replace',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'find_replace' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'search'  => array(
+							'description' => __( 'Text to search for.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'replace' => array(
+							'description' => __( 'Replacement text.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Regenerate CSS
 		register_rest_route(
 			$this->namespace,
@@ -255,5 +280,63 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result );
+	}
+
+	/**
+	 * Find and replace text in Elementor data.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function find_replace( $request ) {
+		$this->log_activity( 'elementor_find_replace', $request );
+
+		$page_id = absint( $request->get_param( 'id' ) );
+		$search  = (string) $request->get_param( 'search' );
+		$replace = (string) $request->get_param( 'replace' );
+
+		// Validate the post.
+		$post = $this->elementor->validate_post( $page_id );
+		if ( is_wp_error( $post ) ) {
+			return $post;
+		}
+
+		// Get current Elementor data.
+		$raw = get_post_meta( $page_id, '_elementor_data', true );
+		if ( empty( $raw ) ) {
+			return $this->error_response(
+				'no_elementor_data',
+				__( 'No Elementor data found for this post.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		// Perform replacement and count occurrences.
+		$updated = str_replace( $search, $replace, $raw, $count );
+
+		if ( 0 === $count ) {
+			return $this->success_response( array(
+				'replacements' => 0,
+				'message'      => __( 'Search text not found in Elementor data.', 'site-pilot-ai' ),
+			) );
+		}
+
+		// Save updated data.
+		update_post_meta( $page_id, '_elementor_data', wp_slash( $updated ) );
+
+		// Clear Elementor CSS cache for this post.
+		if ( class_exists( '\Elementor\Plugin' ) ) {
+			$post_css = \Elementor\Core\Files\CSS\Post::create( $page_id );
+			if ( $post_css ) {
+				$post_css->delete();
+			}
+		}
+
+		return $this->success_response( array(
+			'replacements' => $count,
+			'post_id'      => $page_id,
+			'search'       => $search,
+			'replace'      => $replace,
+		) );
 	}
 }
