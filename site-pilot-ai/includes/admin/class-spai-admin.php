@@ -384,7 +384,7 @@ class Spai_Admin {
 	public function add_action_links( $links ) {
 		$license     = function_exists( 'spai_license' ) ? spai_license() : null;
 		$is_pro      = $license ? $license->is_pro() : false;
-		$upgrade_url = $license ? $license->get_upgrade_url() : 'https://sitepilot.ai/pricing/';
+		$upgrade_url = $license ? $license->get_upgrade_url() : 'http://sitepilotai.mumega.com/pricing/';
 
 		// If Pro is active, hide any upgrade CTAs (including ones injected by Freemius).
 		if ( $is_pro && is_array( $links ) ) {
@@ -430,7 +430,7 @@ class Spai_Admin {
 		if ( ! $is_pro ) {
 			$links[] = sprintf(
 				'<a href="%s" style="color:#00a32a;font-weight:bold;" target="_blank">%s</a>',
-				'https://sitepilotai.com/pricing',
+				'http://sitepilotai.mumega.com/pricing',
 				__( 'Go Pro', 'site-pilot-ai' )
 			);
 		}

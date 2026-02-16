@@ -125,6 +125,39 @@ if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_filter' ) ) {
 	$spai_fs_instance->add_filter( 'download_latest_url', 'spa_fs_download_latest_url_auto_install' );
 }
 
+// Force Freemius to re-check for updates when visiting the plugins page.
+// This fixes the delay between deploying a new version and seeing the update notice.
+if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_action' ) ) {
+	add_action( 'load-plugins.php', 'spa_fs_maybe_flush_update_cache' );
+	add_action( 'load-update-core.php', 'spa_fs_maybe_flush_update_cache' );
+}
+
+/**
+ * Clear Freemius update cache on plugins page to ensure updates appear immediately.
+ */
+function spa_fs_maybe_flush_update_cache() {
+	if ( ! function_exists( 'spa_fs' ) ) {
+		return;
+	}
+
+	$fs = spa_fs();
+
+	// Only flush once per hour to avoid hammering Freemius API.
+	$last_flush = get_option( 'spai_last_update_flush', 0 );
+	if ( time() - $last_flush < 3600 ) {
+		return;
+	}
+
+	// Delete the WordPress update transient so it re-checks.
+	delete_site_transient( 'update_plugins' );
+	update_option( 'spai_last_update_flush', time() );
+
+	// Trigger Freemius to re-sync if available.
+	if ( is_object( $fs ) && method_exists( $fs, 'get_update' ) ) {
+		$fs->get_update( false, false );
+	}
+}
+
 // Uninstall hook.
 if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_action' ) ) {
 	$spai_fs_instance->add_action( 'after_uninstall', 'spa_fs_uninstall_cleanup' );
