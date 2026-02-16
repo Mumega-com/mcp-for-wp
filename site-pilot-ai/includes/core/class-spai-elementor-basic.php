@@ -59,6 +59,27 @@ class Spai_Elementor_Basic {
 	}
 
 	/**
+	 * Validate and return a post if it's a supported Elementor type.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return WP_Post|WP_Error Post object or error.
+	 */
+	public function validate_post( $post_id ) {
+		$post    = get_post( absint( $post_id ) );
+		$allowed = array( 'page', 'post', 'elementor_library' );
+
+		if ( ! $post || ! in_array( $post->post_type, $allowed, true ) ) {
+			return new WP_Error(
+				'not_found',
+				__( 'Post not found or unsupported type.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		return $post;
+	}
+
+	/**
 	 * Get Elementor data for a page.
 	 *
 	 * @param int $page_id Page ID.
@@ -73,14 +94,9 @@ class Spai_Elementor_Basic {
 			);
 		}
 
-		$page = get_post( absint( $page_id ) );
-
-		if ( ! $page || 'page' !== $page->post_type ) {
-			return new WP_Error(
-				'not_found',
-				__( 'Page not found.', 'site-pilot-ai' ),
-				array( 'status' => 404 )
-			);
+		$page = $this->validate_post( $page_id );
+		if ( is_wp_error( $page ) ) {
+			return $page;
 		}
 
 		$elementor_data = get_post_meta( $page_id, '_elementor_data', true );
@@ -115,14 +131,9 @@ class Spai_Elementor_Basic {
 			);
 		}
 
-		$page = get_post( absint( $page_id ) );
-
-		if ( ! $page || 'page' !== $page->post_type ) {
-			return new WP_Error(
-				'not_found',
-				__( 'Page not found.', 'site-pilot-ai' ),
-				array( 'status' => 404 )
-			);
+		$page = $this->validate_post( $page_id );
+		if ( is_wp_error( $page ) ) {
+			return $page;
 		}
 
 		// Validate and encode data

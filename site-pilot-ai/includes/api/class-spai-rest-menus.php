@@ -12,7 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Menus REST controller.
  *
- * Supports creating a menu, adding page items, and assigning it to a theme location.
+ * Supports listing menus, creating menus, managing menu items (add, update,
+ * remove, reorder), and assigning menus to theme locations.
  */
 class Spai_REST_Menus extends Spai_REST_API {
 
@@ -20,6 +21,19 @@ class Spai_REST_Menus extends Spai_REST_API {
 	 * Register routes.
 	 */
 	public function register_routes() {
+		// List all menus.
+		register_rest_route(
+			$this->namespace,
+			'/menus',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_menus' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// List theme menu locations.
 		register_rest_route(
 			$this->namespace,
@@ -67,6 +81,150 @@ class Spai_REST_Menus extends Spai_REST_API {
 				),
 			)
 		);
+
+		// List menu items.
+		register_rest_route(
+			$this->namespace,
+			'/menus/(?P<menu_id>\d+)/items',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_menu_items' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'add_menu_item' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'type'      => array(
+							'description' => __( 'Item type: custom, post_type, or taxonomy.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'enum'        => array( 'custom', 'post_type', 'taxonomy' ),
+							'default'     => 'custom',
+						),
+						'title'     => array(
+							'description' => __( 'Menu item label.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'url'       => array(
+							'description' => __( 'URL for custom links.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'object'    => array(
+							'description' => __( 'Object type: page, post, product, category, etc.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'object_id' => array(
+							'description' => __( 'Object ID for post_type or taxonomy items.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'parent_id' => array(
+							'description' => __( 'Parent menu item ID (for sub-menus).', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'default'     => 0,
+						),
+						'position'  => array(
+							'description' => __( 'Menu order position.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'classes'   => array(
+							'description' => __( 'CSS classes for this item.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'items'       => array( 'type' => 'string' ),
+							'default'     => array(),
+						),
+					),
+				),
+			)
+		);
+
+		// Update a menu item.
+		register_rest_route(
+			$this->namespace,
+			'/menus/(?P<menu_id>\d+)/items/(?P<item_id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_menu_item' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'title'     => array(
+							'description' => __( 'Menu item label.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'url'       => array(
+							'description' => __( 'URL (for custom links).', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'parent_id' => array(
+							'description' => __( 'Parent menu item ID.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'position'  => array(
+							'description' => __( 'Menu order position.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'classes'   => array(
+							'description' => __( 'CSS classes.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'items'       => array( 'type' => 'string' ),
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_menu_item' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Bulk reorder menu items.
+		register_rest_route(
+			$this->namespace,
+			'/menus/(?P<menu_id>\d+)/items/reorder',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'reorder_menu_items' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'items' => array(
+							'description' => __( 'Array of {id, position, parent_id} objects.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'required'    => true,
+							'items'       => array( 'type' => 'object' ),
+						),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * List all menus.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response Response.
+	 */
+	public function list_menus( $request ) {
+		$this->log_activity( 'list_menus', $request );
+
+		$menus = wp_get_nav_menus();
+		$out   = array();
+
+		foreach ( $menus as $menu ) {
+			$out[] = array(
+				'id'    => (int) $menu->term_id,
+				'name'  => (string) $menu->name,
+				'slug'  => (string) $menu->slug,
+				'count' => (int) $menu->count,
+			);
+		}
+
+		return $this->success_response( array( 'menus' => $out ) );
 	}
 
 	/**
@@ -198,5 +356,374 @@ class Spai_REST_Menus extends Spai_REST_API {
 			),
 		) );
 	}
-}
 
+	/**
+	 * List items in a menu.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function list_menu_items( $request ) {
+		$this->log_activity( 'list_menu_items', $request );
+
+		$menu_id = absint( $request->get_param( 'menu_id' ) );
+		$menu    = wp_get_nav_menu_object( $menu_id );
+
+		if ( ! $menu ) {
+			return $this->error_response(
+				'menu_not_found',
+				__( 'Menu not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$items = wp_get_nav_menu_items( $menu_id );
+
+		if ( false === $items ) {
+			return $this->error_response(
+				'menu_items_error',
+				__( 'Could not retrieve menu items.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		$out = array();
+		foreach ( $items as $item ) {
+			$out[] = $this->format_menu_item( $item );
+		}
+
+		return $this->success_response( array(
+			'menu'  => array(
+				'id'   => (int) $menu->term_id,
+				'name' => (string) $menu->name,
+			),
+			'items' => $out,
+		) );
+	}
+
+	/**
+	 * Add a menu item.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function add_menu_item( $request ) {
+		$this->log_activity( 'add_menu_item', $request );
+
+		$menu_id = absint( $request->get_param( 'menu_id' ) );
+		$menu    = wp_get_nav_menu_object( $menu_id );
+
+		if ( ! $menu ) {
+			return $this->error_response(
+				'menu_not_found',
+				__( 'Menu not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$type      = sanitize_text_field( (string) $request->get_param( 'type' ) );
+		$title     = sanitize_text_field( (string) $request->get_param( 'title' ) );
+		$url       = esc_url_raw( (string) $request->get_param( 'url' ) );
+		$object    = sanitize_key( (string) $request->get_param( 'object' ) );
+		$object_id = absint( $request->get_param( 'object_id' ) );
+		$parent_id = absint( $request->get_param( 'parent_id' ) );
+		$position  = $request->get_param( 'position' );
+		$classes   = (array) $request->get_param( 'classes' );
+
+		if ( '' === $title ) {
+			return $this->error_response(
+				'missing_title',
+				__( 'Menu item title is required.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$item_data = array(
+			'menu-item-title'     => $title,
+			'menu-item-status'    => 'publish',
+			'menu-item-parent-id' => $parent_id,
+			'menu-item-classes'   => implode( ' ', array_map( 'sanitize_html_class', $classes ) ),
+		);
+
+		if ( null !== $position ) {
+			$item_data['menu-item-position'] = absint( $position );
+		}
+
+		if ( 'custom' === $type || '' === $type ) {
+			if ( '' === $url ) {
+				return $this->error_response(
+					'missing_url',
+					__( 'URL is required for custom link items.', 'site-pilot-ai' ),
+					400
+				);
+			}
+			$item_data['menu-item-type'] = 'custom';
+			$item_data['menu-item-url']  = $url;
+		} elseif ( 'post_type' === $type ) {
+			if ( '' === $object || $object_id <= 0 ) {
+				return $this->error_response(
+					'missing_object',
+					__( 'Object and object_id are required for post_type items.', 'site-pilot-ai' ),
+					400
+				);
+			}
+			$item_data['menu-item-type']      = 'post_type';
+			$item_data['menu-item-object']    = $object;
+			$item_data['menu-item-object-id'] = $object_id;
+		} elseif ( 'taxonomy' === $type ) {
+			if ( '' === $object || $object_id <= 0 ) {
+				return $this->error_response(
+					'missing_object',
+					__( 'Object and object_id are required for taxonomy items.', 'site-pilot-ai' ),
+					400
+				);
+			}
+			$item_data['menu-item-type']      = 'taxonomy';
+			$item_data['menu-item-object']    = $object;
+			$item_data['menu-item-object-id'] = $object_id;
+		}
+
+		$item_id = wp_update_nav_menu_item( $menu_id, 0, $item_data );
+
+		if ( is_wp_error( $item_id ) ) {
+			return $this->error_response(
+				'add_item_failed',
+				$item_id->get_error_message(),
+				500
+			);
+		}
+
+		$nav_item = wp_setup_nav_menu_item( get_post( $item_id ) );
+
+		return $this->success_response(
+			array(
+				'success' => true,
+				'item'    => $this->format_menu_item( $nav_item ),
+			),
+			201
+		);
+	}
+
+	/**
+	 * Update a menu item.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function update_menu_item( $request ) {
+		$this->log_activity( 'update_menu_item', $request );
+
+		$menu_id = absint( $request->get_param( 'menu_id' ) );
+		$item_id = absint( $request->get_param( 'item_id' ) );
+
+		$menu = wp_get_nav_menu_object( $menu_id );
+		if ( ! $menu ) {
+			return $this->error_response(
+				'menu_not_found',
+				__( 'Menu not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$existing = get_post( $item_id );
+		if ( ! $existing || 'nav_menu_item' !== $existing->post_type ) {
+			return $this->error_response(
+				'item_not_found',
+				__( 'Menu item not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		// Build update data from existing item, overriding with provided params.
+		$nav_item  = wp_setup_nav_menu_item( $existing );
+		$item_data = array(
+			'menu-item-title'     => $nav_item->title,
+			'menu-item-url'       => $nav_item->url,
+			'menu-item-type'      => $nav_item->type,
+			'menu-item-object'    => $nav_item->object,
+			'menu-item-object-id' => $nav_item->object_id,
+			'menu-item-parent-id' => $nav_item->menu_item_parent,
+			'menu-item-position'  => $nav_item->menu_order,
+			'menu-item-status'    => 'publish',
+			'menu-item-classes'   => is_array( $nav_item->classes ) ? implode( ' ', $nav_item->classes ) : '',
+		);
+
+		$title = $request->get_param( 'title' );
+		if ( null !== $title ) {
+			$item_data['menu-item-title'] = sanitize_text_field( $title );
+		}
+
+		$url = $request->get_param( 'url' );
+		if ( null !== $url ) {
+			$item_data['menu-item-url'] = esc_url_raw( $url );
+		}
+
+		$parent_id = $request->get_param( 'parent_id' );
+		if ( null !== $parent_id ) {
+			$item_data['menu-item-parent-id'] = absint( $parent_id );
+		}
+
+		$position = $request->get_param( 'position' );
+		if ( null !== $position ) {
+			$item_data['menu-item-position'] = absint( $position );
+		}
+
+		$classes = $request->get_param( 'classes' );
+		if ( null !== $classes ) {
+			$item_data['menu-item-classes'] = implode( ' ', array_map( 'sanitize_html_class', (array) $classes ) );
+		}
+
+		$result = wp_update_nav_menu_item( $menu_id, $item_id, $item_data );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response(
+				'update_item_failed',
+				$result->get_error_message(),
+				500
+			);
+		}
+
+		$updated = wp_setup_nav_menu_item( get_post( $result ) );
+
+		return $this->success_response( array(
+			'success' => true,
+			'item'    => $this->format_menu_item( $updated ),
+		) );
+	}
+
+	/**
+	 * Delete a menu item.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function delete_menu_item( $request ) {
+		$this->log_activity( 'delete_menu_item', $request );
+
+		$item_id = absint( $request->get_param( 'item_id' ) );
+
+		$existing = get_post( $item_id );
+		if ( ! $existing || 'nav_menu_item' !== $existing->post_type ) {
+			return $this->error_response(
+				'item_not_found',
+				__( 'Menu item not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$deleted = wp_delete_post( $item_id, true );
+
+		if ( ! $deleted ) {
+			return $this->error_response(
+				'delete_failed',
+				__( 'Failed to delete menu item.', 'site-pilot-ai' ),
+				500
+			);
+		}
+
+		return $this->success_response( array(
+			'success' => true,
+			'deleted' => (int) $item_id,
+		) );
+	}
+
+	/**
+	 * Bulk reorder menu items.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function reorder_menu_items( $request ) {
+		$this->log_activity( 'reorder_menu_items', $request );
+
+		$menu_id = absint( $request->get_param( 'menu_id' ) );
+		$menu    = wp_get_nav_menu_object( $menu_id );
+
+		if ( ! $menu ) {
+			return $this->error_response(
+				'menu_not_found',
+				__( 'Menu not found.', 'site-pilot-ai' ),
+				404
+			);
+		}
+
+		$items = (array) $request->get_param( 'items' );
+
+		if ( empty( $items ) ) {
+			return $this->error_response(
+				'missing_items',
+				__( 'Items array is required.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$updated = array();
+		$errors  = array();
+
+		foreach ( $items as $item ) {
+			$id = isset( $item['id'] ) ? absint( $item['id'] ) : 0;
+			if ( $id <= 0 ) {
+				continue;
+			}
+
+			$existing = get_post( $id );
+			if ( ! $existing || 'nav_menu_item' !== $existing->post_type ) {
+				$errors[] = array(
+					'id'    => $id,
+					'error' => 'Item not found.',
+				);
+				continue;
+			}
+
+			$nav_item  = wp_setup_nav_menu_item( $existing );
+			$item_data = array(
+				'menu-item-title'     => $nav_item->title,
+				'menu-item-url'       => $nav_item->url,
+				'menu-item-type'      => $nav_item->type,
+				'menu-item-object'    => $nav_item->object,
+				'menu-item-object-id' => $nav_item->object_id,
+				'menu-item-status'    => 'publish',
+				'menu-item-parent-id' => isset( $item['parent_id'] ) ? absint( $item['parent_id'] ) : $nav_item->menu_item_parent,
+				'menu-item-position'  => isset( $item['position'] ) ? absint( $item['position'] ) : $nav_item->menu_order,
+				'menu-item-classes'   => is_array( $nav_item->classes ) ? implode( ' ', $nav_item->classes ) : '',
+			);
+
+			$result = wp_update_nav_menu_item( $menu_id, $id, $item_data );
+
+			if ( is_wp_error( $result ) ) {
+				$errors[] = array(
+					'id'    => $id,
+					'error' => $result->get_error_message(),
+				);
+			} else {
+				$updated[] = $id;
+			}
+		}
+
+		return $this->success_response( array(
+			'success' => true,
+			'updated' => $updated,
+			'errors'  => $errors,
+		) );
+	}
+
+	/**
+	 * Format a menu item for API response.
+	 *
+	 * @param object $item WP_Post nav menu item.
+	 * @return array Formatted item.
+	 */
+	private function format_menu_item( $item ) {
+		return array(
+			'id'        => (int) $item->ID,
+			'title'     => (string) $item->title,
+			'url'       => (string) $item->url,
+			'type'      => (string) $item->type,
+			'object'    => (string) $item->object,
+			'object_id' => (int) $item->object_id,
+			'parent'    => (int) $item->menu_item_parent,
+			'position'  => (int) $item->menu_order,
+			'classes'   => is_array( $item->classes ) ? array_values( array_filter( $item->classes ) ) : array(),
+		);
+	}
+}

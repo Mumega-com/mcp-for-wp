@@ -27,6 +27,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		return array(
 			'wp_delete_post',
 			'wp_delete_all_drafts',
+			'wp_delete_menu_item',
 			'wp_revoke_api_key',
 			'wp_reset_rate_limit',
 			'wp_delete_webhook',
@@ -115,6 +116,12 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_list_menus',
+			'List all navigation menus (including unassigned ones) with id, name, slug, and item count',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_list_menu_locations',
 			'List theme menu locations and which menus are assigned',
 			array()
@@ -143,6 +150,149 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'boolean',
 					'description' => 'If true, creates a new menu even if name exists',
 					'default'     => false,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_menu_items',
+			'List all items in a menu with their titles, URLs, types, and parent/child relationships',
+			array(
+				'menu_id' => array(
+					'type'        => 'number',
+					'description' => 'Menu ID to list items for',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_add_menu_item',
+			'Add a menu item: custom link (any URL), post type (page, post, product), or taxonomy (category, tag). Supports sub-menus via parent_id.',
+			array(
+				'menu_id'   => array(
+					'type'        => 'number',
+					'description' => 'Menu ID to add item to',
+					'required'    => true,
+				),
+				'title'     => array(
+					'type'        => 'string',
+					'description' => 'Menu item label',
+					'required'    => true,
+				),
+				'type'      => array(
+					'type'        => 'string',
+					'description' => "Item type: 'custom' (URL link), 'post_type' (page/post/product), or 'taxonomy' (category/tag)",
+					'default'     => 'custom',
+				),
+				'url'       => array(
+					'type'        => 'string',
+					'description' => 'URL for custom link items',
+				),
+				'object'    => array(
+					'type'        => 'string',
+					'description' => 'Object type for post_type/taxonomy items (e.g., page, product, category)',
+				),
+				'object_id' => array(
+					'type'        => 'number',
+					'description' => 'Object ID for post_type/taxonomy items',
+				),
+				'parent_id' => array(
+					'type'        => 'number',
+					'description' => 'Parent menu item ID to create a sub-menu item',
+					'default'     => 0,
+				),
+				'position'  => array(
+					'type'        => 'number',
+					'description' => 'Menu order position',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_menu_item',
+			'Update an existing menu item: rename its title, change URL, move to different parent, or reposition',
+			array(
+				'menu_id'   => array(
+					'type'        => 'number',
+					'description' => 'Menu ID',
+					'required'    => true,
+				),
+				'item_id'   => array(
+					'type'        => 'number',
+					'description' => 'Menu item ID to update',
+					'required'    => true,
+				),
+				'title'     => array(
+					'type'        => 'string',
+					'description' => 'New menu item label',
+				),
+				'url'       => array(
+					'type'        => 'string',
+					'description' => 'New URL (for custom link items)',
+				),
+				'parent_id' => array(
+					'type'        => 'number',
+					'description' => 'New parent menu item ID (0 for top level)',
+				),
+				'position'  => array(
+					'type'        => 'number',
+					'description' => 'New menu order position',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_delete_menu_item',
+			'Remove a single item from a menu',
+			array(
+				'menu_id' => array(
+					'type'        => 'number',
+					'description' => 'Menu ID',
+					'required'    => true,
+				),
+				'item_id' => array(
+					'type'        => 'number',
+					'description' => 'Menu item ID to delete',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_reorder_menu_items',
+			'Bulk reorder and reparent menu items in a single call',
+			array(
+				'menu_id' => array(
+					'type'        => 'number',
+					'description' => 'Menu ID',
+					'required'    => true,
+				),
+				'items'   => array(
+					'type'        => 'array',
+					'description' => 'Array of {id, position, parent_id} objects',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_media',
+			'List media library items with URLs, titles, and MIME types. Supports pagination and filtering.',
+			array(
+				'per_page'  => array(
+					'type'        => 'number',
+					'description' => 'Items per page (1-100)',
+					'default'     => 20,
+				),
+				'page'      => array(
+					'type'        => 'number',
+					'description' => 'Page number',
+					'default'     => 1,
+				),
+				'mime_type' => array(
+					'type'        => 'string',
+					'description' => "Filter by MIME type (e.g., 'image', 'image/png', 'video')",
 				),
 			)
 		);
@@ -845,13 +995,41 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'POST',
 				'route'  => '/options',
 			),
+			'wp_list_menus'          => array(
+				'method' => 'GET',
+				'route'  => '/menus',
+			),
 			'wp_list_menu_locations' => array(
 				'method' => 'GET',
 				'route'  => '/menus/locations',
 			),
-			'wp_setup_menu'     => array(
+			'wp_setup_menu'          => array(
 				'method' => 'POST',
 				'route'  => '/menus/setup',
+			),
+			'wp_list_menu_items'     => array(
+				'method' => 'GET',
+				'route'  => '/menus/{menu_id}/items',
+			),
+			'wp_add_menu_item'       => array(
+				'method' => 'POST',
+				'route'  => '/menus/{menu_id}/items',
+			),
+			'wp_update_menu_item'    => array(
+				'method' => 'POST',
+				'route'  => '/menus/{menu_id}/items/{item_id}',
+			),
+			'wp_delete_menu_item'    => array(
+				'method' => 'DELETE',
+				'route'  => '/menus/{menu_id}/items/{item_id}',
+			),
+			'wp_reorder_menu_items'  => array(
+				'method' => 'POST',
+				'route'  => '/menus/{menu_id}/items/reorder',
+			),
+			'wp_list_media'          => array(
+				'method' => 'GET',
+				'route'  => '/media',
 			),
 			'wp_list_content'   => array(
 				'method' => 'GET',

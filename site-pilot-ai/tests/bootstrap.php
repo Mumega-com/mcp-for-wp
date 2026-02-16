@@ -399,9 +399,54 @@ function rest_do_request()
     return new WP_REST_Response(array( 'ok' => true ), 200);
 }
 
+// ── Post / meta stubs (controllable via globals) ─────────────────────────
+
+$GLOBALS['_spai_test_posts'] = array();
+$GLOBALS['_spai_test_meta']  = array();
+
+function get_post($id)
+{
+    $id = (int) $id;
+    return isset($GLOBALS['_spai_test_posts'][ $id ]) ? $GLOBALS['_spai_test_posts'][ $id ] : null;
+}
+
+function get_post_meta($post_id, $key = '', $single = false)
+{
+    $post_id = (int) $post_id;
+    if (isset($GLOBALS['_spai_test_meta'][ $post_id ][ $key ])) {
+        return $GLOBALS['_spai_test_meta'][ $post_id ][ $key ];
+    }
+    return $single ? '' : array();
+}
+
+function update_post_meta($post_id, $key, $value)
+{
+    $GLOBALS['_spai_test_meta'][ (int) $post_id ][ $key ] = $value;
+    return true;
+}
+
+function sanitize_html_class($class)
+{
+    return preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) $class);
+}
+
+function admin_url($path = '')
+{
+    return 'https://example.com/wp-admin/' . ltrim($path, '/');
+}
+
+function wp_slash($value)
+{
+    return is_string($value) ? addslashes($value) : $value;
+}
+
 require_once dirname(__DIR__) . '/includes/traits/trait-spai-api-auth.php';
 require_once dirname(__DIR__) . '/includes/traits/trait-spai-sanitization.php';
 require_once dirname(__DIR__) . '/includes/traits/trait-spai-logging.php';
 require_once dirname(__DIR__) . '/includes/class-spai-rate-limiter.php';
 require_once dirname(__DIR__) . '/includes/api/class-spai-rest-api.php';
 require_once dirname(__DIR__) . '/includes/api/class-spai-rest-mcp.php';
+require_once dirname(__DIR__) . '/includes/api/class-spai-rest-menus.php';
+require_once dirname(__DIR__) . '/includes/core/class-spai-elementor-basic.php';
+require_once dirname(__DIR__) . '/includes/mcp/class-spai-mcp-tool-registry.php';
+require_once dirname(__DIR__) . '/includes/mcp/class-spai-mcp-free-tools.php';
