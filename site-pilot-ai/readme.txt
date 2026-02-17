@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.58
+Stable tag: 1.0.59
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,10 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.59 =
+* Fix: Template apply now sets _elementor_template_type, versions, and regenerates CSS — pages render immediately after apply
+* Refactor: Extracted get_all_tools(), get_all_tool_map(), get_registry_for_tool() in MCP controller — eliminated duplicated merge logic
 
 = 1.0.58 =
 * New: Integration Registry — third-party plugins can register MCP tools, REST endpoints, and capabilities via `spai_integrations` filter

@@ -495,6 +495,29 @@ class Spai_Elementor_Pro {
 		update_post_meta( $page_id, '_elementor_edit_mode', 'builder' );
 		update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
 
+		// Set required meta for frontend rendering.
+		$post_type  = get_post_type( $page_id );
+		$type_value = ( 'elementor_library' === $post_type ) ? 'section' : 'wp-page';
+		update_post_meta( $page_id, '_elementor_template_type', $type_value );
+
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			update_post_meta( $page_id, '_elementor_version', ELEMENTOR_VERSION );
+		}
+		if ( defined( 'ELEMENTOR_PRO_VERSION' ) ) {
+			update_post_meta( $page_id, '_elementor_pro_version', ELEMENTOR_PRO_VERSION );
+		}
+
+		// Regenerate CSS for the page.
+		if ( class_exists( '\Elementor\Plugin' ) ) {
+			if ( method_exists( \Elementor\Plugin::$instance->files_manager, 'clear_cache' ) ) {
+				\Elementor\Plugin::$instance->files_manager->clear_cache();
+			}
+			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+			if ( $css_file ) {
+				$css_file->update();
+			}
+		}
+
 		return true;
 	}
 

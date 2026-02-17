@@ -64,6 +64,63 @@ class Spai_REST_MCP extends Spai_REST_API {
 	private $pro_registry;
 
 	/**
+	 * Get merged tool definitions from all registries.
+	 *
+	 * Combines free, pro, and third-party integration tools.
+	 *
+	 * @return array Tool definitions.
+	 */
+	private function get_all_tools() {
+		$tools = $this->free_registry->get_tools();
+		if ( $this->is_pro_active() ) {
+			$tools = array_merge( $tools, $this->pro_registry->get_tools() );
+		}
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			$tools = array_merge( $tools, $integration->get_tools() );
+		}
+		return $tools;
+	}
+
+	/**
+	 * Get merged tool map from all registries.
+	 *
+	 * Combines free, pro, and third-party integration route mappings.
+	 *
+	 * @return array Tool name => route mappings.
+	 */
+	private function get_all_tool_map() {
+		$tool_map = $this->free_registry->get_tool_map();
+		if ( $this->is_pro_active() ) {
+			$tool_map = array_merge( $tool_map, $this->pro_registry->get_tool_map() );
+		}
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			$tool_map = array_merge( $tool_map, $integration->get_tool_map() );
+		}
+		return $tool_map;
+	}
+
+	/**
+	 * Find the registry that owns a given tool.
+	 *
+	 * @param string $tool_name Tool name to look up.
+	 * @return Spai_MCP_Tool_Registry The owning registry.
+	 */
+	private function get_registry_for_tool( $tool_name ) {
+		if ( isset( $this->free_registry->get_tool_map()[ $tool_name ] ) ) {
+			return $this->free_registry;
+		}
+		if ( $this->is_pro_active() && isset( $this->pro_registry->get_tool_map()[ $tool_name ] ) ) {
+			return $this->pro_registry;
+		}
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			if ( isset( $integration->get_tool_map()[ $tool_name ] ) ) {
+				return $integration;
+			}
+		}
+		return $this->free_registry; // fallback
+	}
+
+	/**
 	 * Return introspection data for AI clients (MCP + REST).
 	 *
 	 * This is intentionally non-sensitive. It helps clients discover tools,
@@ -84,23 +141,9 @@ class Spai_REST_MCP extends Spai_REST_API {
 				'capabilities' => array(),
 			);
 
-		// Build tools from registries
-		$tools = $this->free_registry->get_tools();
-		if ( $this->is_pro_active() ) {
-			$tools = array_merge( $tools, $this->pro_registry->get_tools() );
-		}
-
-		// Build tool map from registries
-		$tool_map = $this->free_registry->get_tool_map();
-		if ( $this->is_pro_active() ) {
-			$tool_map = array_merge( $tool_map, $this->pro_registry->get_tool_map() );
-		}
-
-		// Merge third-party integration tools.
-		foreach ( Spai_Integration::resolve_all() as $integration ) {
-			$tools    = array_merge( $tools, $integration->get_tools() );
-			$tool_map = array_merge( $tool_map, $integration->get_tool_map() );
-		}
+		// Build tools and tool map from all registries.
+		$tools    = $this->get_all_tools();
+		$tool_map = $this->get_all_tool_map();
 
 		// Enrich each tool with route/method + annotations.
 		foreach ( $tools as &$tool ) {
@@ -118,22 +161,8 @@ class Spai_REST_MCP extends Spai_REST_API {
 				$tool['x_spai'] = array();
 			}
 
-			// Get annotations from the appropriate registry
-			$registry = $this->free_registry;
-			$free_map = $this->free_registry->get_tool_map();
-			if ( ! isset( $free_map[ $name ] ) && $this->is_pro_active() ) {
-				$registry = $this->pro_registry;
-			}
-			// Fallback to third-party integration registries.
-			if ( ! isset( $free_map[ $name ] ) && ( ! $this->is_pro_active() || ! isset( $this->pro_registry->get_tool_map()[ $name ] ) ) ) {
-				foreach ( Spai_Integration::resolve_all() as $int_registry ) {
-					if ( isset( $int_registry->get_tool_map()[ $name ] ) ) {
-						$registry = $int_registry;
-						break;
-					}
-				}
-			}
-			$tool['annotations'] = $registry->get_tool_annotations( $name );
+			// Get annotations from the owning registry.
+			$tool['annotations'] = $this->get_registry_for_tool( $name )->get_tool_annotations( $name );
 		}
 		unset( $tool );
 
@@ -393,17 +422,9 @@ class Spai_REST_MCP extends Spai_REST_API {
 	private function handle_tools_list( $id ) {
 		$this->log_mcp_activity( 'mcp_tools_list', array() );
 
-		// Build tools from registries (with caching)
+		// Build tools from all registries (with caching).
 		if ( $this->tools_cache === null ) {
-			$tools = $this->free_registry->get_tools();
-			if ( $this->is_pro_active() ) {
-				$tools = array_merge( $tools, $this->pro_registry->get_tools() );
-			}
-			// Third-party integrations.
-			foreach ( Spai_Integration::resolve_all() as $integration ) {
-				$tools = array_merge( $tools, $integration->get_tools() );
-			}
-			$this->tools_cache = $tools;
+			$this->tools_cache = $this->get_all_tools();
 		}
 
 		return array(
@@ -474,15 +495,8 @@ class Spai_REST_MCP extends Spai_REST_API {
 			)
 		);
 
-		// Build tool map from registries
-		$tool_map = $this->free_registry->get_tool_map();
-		if ( $this->is_pro_active() ) {
-			$tool_map = array_merge( $tool_map, $this->pro_registry->get_tool_map() );
-		}
-		// Third-party integrations.
-		foreach ( Spai_Integration::resolve_all() as $integration ) {
-			$tool_map = array_merge( $tool_map, $integration->get_tool_map() );
-		}
+		// Build tool map from all registries.
+		$tool_map = $this->get_all_tool_map();
 
 		if ( ! isset( $tool_map[ $tool_name ] ) ) {
 			return $this->jsonrpc_error( $id, -32602, 'Unknown tool: ' . $tool_name );
