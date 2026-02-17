@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.60
+Stable tag: 1.0.61
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,10 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.61 =
+* Fix: REST update endpoint now clears Freemius SDK cache before checking — updates appear immediately via API
+* Fix: OpenAPI spec version bumped to match plugin
 
 = 1.0.60 =
 * New: Capability-aware tool filtering — MCP tools/list only shows tools for installed plugins (Elementor, SEO, Forms)

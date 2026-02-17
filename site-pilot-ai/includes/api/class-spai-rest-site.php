@@ -1338,6 +1338,15 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$current_version = defined( 'SPAI_VERSION' ) ? SPAI_VERSION : '0.0.0';
 
+		// Clear Freemius SDK cache so it re-checks against the API.
+		if ( function_exists( 'spa_fs' ) ) {
+			$fs = spa_fs();
+			delete_site_transient( 'update_plugins' );
+			if ( is_object( $fs ) && method_exists( $fs, 'get_update' ) ) {
+				$fs->get_update( false, false );
+			}
+		}
+
 		// Force WordPress to check for updates.
 		if ( function_exists( 'wp_update_plugins' ) ) {
 			wp_update_plugins();
@@ -1383,6 +1392,15 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		$plugin_file = defined( 'SPAI_PLUGIN_BASENAME' ) ? SPAI_PLUGIN_BASENAME : 'site-pilot-ai/site-pilot-ai.php';
+
+		// Clear Freemius SDK cache so it re-checks against the API.
+		if ( function_exists( 'spa_fs' ) ) {
+			$fs = spa_fs();
+			delete_site_transient( 'update_plugins' );
+			if ( is_object( $fs ) && method_exists( $fs, 'get_update' ) ) {
+				$fs->get_update( false, false );
+			}
+		}
 
 		// Force update check.
 		if ( function_exists( 'wp_update_plugins' ) ) {
