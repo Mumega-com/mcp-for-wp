@@ -39,6 +39,42 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 	}
 
 	/**
+	 * Get required capabilities for pro tools.
+	 *
+	 * @return array Map of tool_name => capability_key.
+	 */
+	public function get_required_capabilities() {
+		return array(
+			// SEO tools — any SEO plugin.
+			'wp_get_seo'            => 'seo',
+			'wp_set_seo'            => 'seo',
+			'wp_analyze_seo'        => 'seo',
+			'wp_bulk_seo'           => 'seo',
+			'wp_seo_status'         => 'seo',
+			// Forms tools — any forms plugin.
+			'wp_list_forms'         => 'forms',
+			'wp_get_form'           => 'forms',
+			'wp_get_form_entries'   => 'forms',
+			'wp_forms_status'       => 'forms',
+			// Elementor Pro tools.
+			'wp_list_elementor_templates'         => 'elementor',
+			'wp_get_elementor_template'           => 'elementor',
+			'wp_create_elementor_template'        => 'elementor',
+			'wp_update_elementor_template'        => 'elementor',
+			'wp_delete_elementor_template'        => 'elementor',
+			'wp_apply_elementor_template'         => 'elementor',
+			'wp_create_landing_page'              => 'elementor',
+			'wp_clone_elementor_page'             => 'elementor',
+			'wp_get_elementor_globals'            => 'elementor',
+			'wp_get_elementor_widgets'            => 'elementor',
+			'wp_list_elementor_custom_code'       => 'elementor',
+			'wp_disable_elementor_custom_code'    => 'elementor',
+			'wp_enable_elementor_custom_code'     => 'elementor',
+			'wp_sanitize_elementor_custom_code'   => 'elementor',
+		);
+	}
+
+	/**
 	 * Get tool definitions for pro tier.
 	 *
 	 * @return array Tool definitions.

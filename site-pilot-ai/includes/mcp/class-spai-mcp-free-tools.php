@@ -50,6 +50,21 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	}
 
 	/**
+	 * Get required capabilities for free tools.
+	 *
+	 * @return array Map of tool_name => capability_key.
+	 */
+	public function get_required_capabilities() {
+		return array(
+			'wp_get_elementor'            => 'elementor',
+			'wp_set_elementor'            => 'elementor',
+			'wp_elementor_status'         => 'elementor',
+			'wp_regenerate_elementor_css' => 'elementor',
+			'wp_bulk_find_replace'        => 'elementor',
+		);
+	}
+
+	/**
 	 * Get tool definitions for free tier.
 	 *
 	 * @return array Tool definitions.

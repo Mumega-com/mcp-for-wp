@@ -460,7 +460,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-    put:
+    post:
       tags: [SEO]
       operationId: updateSeoData
       summary: Update SEO metadata

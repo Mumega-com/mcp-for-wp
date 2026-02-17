@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.59
+Stable tag: 1.0.60
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.60 =
+* New: Capability-aware tool filtering — MCP tools/list only shows tools for installed plugins (Elementor, SEO, Forms)
+* New: Helpful error messages when calling tools for plugins that aren't installed (e.g. "Tool requires Elementor to be installed")
+* New: `get_required_capabilities()` method on tool registries — third-party integrations can declare plugin requirements
+* Fix: OpenAPI spec SEO endpoint changed from PUT to POST to match MCP server and Cloudflare Worker
 
 = 1.0.59 =
 * Fix: Template apply now sets _elementor_template_type, versions, and regenerates CSS — pages render immediately after apply

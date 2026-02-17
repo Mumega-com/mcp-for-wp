@@ -64,9 +64,66 @@ class Spai_REST_MCP extends Spai_REST_API {
 	private $pro_registry;
 
 	/**
+	 * Resolved capability flags (cached).
+	 *
+	 * @var array|null
+	 */
+	private $active_capabilities = null;
+
+	/**
+	 * Check whether a capability requirement is satisfied.
+	 *
+	 * Handles composite requirements: 'seo' is true if any SEO plugin is active,
+	 * 'forms' is true if any forms plugin is active.
+	 *
+	 * @param string $requirement The capability key (e.g. 'elementor', 'seo', 'forms').
+	 * @return bool True if the requirement is satisfied.
+	 */
+	private function is_capability_active( $requirement ) {
+		if ( null === $this->active_capabilities ) {
+			$core = class_exists( 'Spai_Core' ) ? new Spai_Core() : null;
+			$caps = ( $core && method_exists( $core, 'get_capabilities' ) )
+				? $core->get_capabilities()
+				: array();
+
+			$this->active_capabilities = $caps;
+
+			// Derive composite flags.
+			$this->active_capabilities['seo'] = ! empty( $caps['yoast'] )
+				|| ! empty( $caps['rankmath'] )
+				|| ! empty( $caps['aioseo'] )
+				|| ! empty( $caps['seopress'] );
+
+			$this->active_capabilities['forms'] = ! empty( $caps['cf7'] )
+				|| ! empty( $caps['wpforms'] )
+				|| ! empty( $caps['gravityforms'] )
+				|| ! empty( $caps['ninjaforms'] );
+		}
+
+		return ! empty( $this->active_capabilities[ $requirement ] );
+	}
+
+	/**
+	 * Collect all capability requirements from all registries.
+	 *
+	 * @return array Map of tool_name => capability_key.
+	 */
+	private function get_all_required_capabilities() {
+		$reqs = $this->free_registry->get_required_capabilities();
+		if ( $this->is_pro_active() ) {
+			$reqs = array_merge( $reqs, $this->pro_registry->get_required_capabilities() );
+		}
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			$reqs = array_merge( $reqs, $integration->get_required_capabilities() );
+		}
+		return $reqs;
+	}
+
+	/**
 	 * Get merged tool definitions from all registries.
 	 *
 	 * Combines free, pro, and third-party integration tools.
+	 * Filters out tools whose required plugins are not installed.
 	 *
 	 * @return array Tool definitions.
 	 */
@@ -78,6 +135,24 @@ class Spai_REST_MCP extends Spai_REST_API {
 		foreach ( Spai_Integration::resolve_all() as $integration ) {
 			$tools = array_merge( $tools, $integration->get_tools() );
 		}
+
+		// Filter out tools whose required plugins are not active.
+		$reqs = $this->get_all_required_capabilities();
+		if ( ! empty( $reqs ) ) {
+			$tools = array_values(
+				array_filter(
+					$tools,
+					function ( $tool ) use ( $reqs ) {
+						$name = isset( $tool['name'] ) ? $tool['name'] : '';
+						if ( ! isset( $reqs[ $name ] ) ) {
+							return true; // No requirement, always show.
+						}
+						return $this->is_capability_active( $reqs[ $name ] );
+					}
+				)
+			);
+		}
+
 		return $tools;
 	}
 
@@ -500,6 +575,23 @@ class Spai_REST_MCP extends Spai_REST_API {
 
 		if ( ! isset( $tool_map[ $tool_name ] ) ) {
 			return $this->jsonrpc_error( $id, -32602, 'Unknown tool: ' . $tool_name );
+		}
+
+		// Check if the tool's required plugin is installed.
+		$reqs = $this->get_all_required_capabilities();
+		if ( isset( $reqs[ $tool_name ] ) && ! $this->is_capability_active( $reqs[ $tool_name ] ) ) {
+			$plugin_names = array(
+				'elementor' => 'Elementor',
+				'seo'       => 'an SEO plugin (Yoast, RankMath, AIOSEO, or SEOPress)',
+				'forms'     => 'a forms plugin (Contact Form 7, WPForms, Gravity Forms, or Ninja Forms)',
+			);
+			$req       = $reqs[ $tool_name ];
+			$human     = isset( $plugin_names[ $req ] ) ? $plugin_names[ $req ] : $req;
+			return $this->jsonrpc_error(
+				$id,
+				-32003,
+				sprintf( 'Tool "%s" requires %s to be installed and active on this WordPress site.', $tool_name, $human )
+			);
 		}
 
 		$mapping = $tool_map[ $tool_name ];

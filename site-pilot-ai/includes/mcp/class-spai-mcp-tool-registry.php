@@ -165,4 +165,17 @@ abstract class Spai_MCP_Tool_Registry {
 	protected function get_open_world_tools() {
 		return array();
 	}
+
+	/**
+	 * Get required capabilities for tools.
+	 *
+	 * Returns a map of tool name => capability key. Tools whose capability
+	 * is not active on this site will be hidden from tools/list and rejected
+	 * on tools/call with a helpful message.
+	 *
+	 * @return array Map of tool_name => capability_key.
+	 */
+	public function get_required_capabilities() {
+		return array();
+	}
 }
