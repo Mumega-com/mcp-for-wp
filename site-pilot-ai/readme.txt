@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.64
+Stable tag: 1.0.65
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,10 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.65 =
+* Add: wp_get_custom_css / wp_set_custom_css MCP tools for managing Additional CSS via API
+* Add: REST endpoint /custom-css (GET and POST) with append/replace modes
 
 = 1.0.64 =
 * Add: Support slug updates via pages PUT endpoint

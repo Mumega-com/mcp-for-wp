@@ -132,6 +132,31 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Custom CSS
+		$tools[] = $this->define_tool(
+			'wp_get_custom_css',
+			'Get the Additional CSS from the WordPress Customizer. Returns the full CSS string currently applied to the site.',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_set_custom_css',
+			'Set or append CSS to the WordPress Customizer Additional CSS. Use mode "append" to add new rules without removing existing ones, or "replace" to overwrite all custom CSS. CSS is applied site-wide immediately.',
+			array(
+				'css' => array(
+					'type'        => 'string',
+					'description' => 'CSS code to set or append',
+					'required'    => true,
+				),
+				'mode' => array(
+					'type'        => 'string',
+					'description' => 'How to apply: "replace" overwrites all CSS, "append" adds to existing (default)',
+					'enum'        => array( 'replace', 'append' ),
+					'default'     => 'append',
+				),
+			)
+		);
+
 		$tools[] = $this->define_tool(
 			'wp_list_menus',
 			'List all navigation menus (including unassigned ones) with id, name, slug, and item count',
@@ -1200,6 +1225,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_options' => array(
 				'method' => 'POST',
 				'route'  => '/options',
+			),
+			'wp_get_custom_css' => array(
+				'method' => 'GET',
+				'route'  => '/custom-css',
+			),
+			'wp_set_custom_css' => array(
+				'method' => 'POST',
+				'route'  => '/custom-css',
 			),
 			'wp_list_menus'          => array(
 				'method' => 'GET',

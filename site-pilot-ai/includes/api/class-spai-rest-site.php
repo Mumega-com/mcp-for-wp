@@ -453,6 +453,37 @@ class Spai_REST_Site extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Custom CSS (Additional CSS from Customizer).
+		register_rest_route(
+			$this->namespace,
+			'/custom-css',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_custom_css' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'set_custom_css' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'css'  => array(
+							'description' => __( 'CSS code to set or append.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'mode' => array(
+							'description' => __( 'How to apply: "replace" overwrites all CSS, "append" adds to existing.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'default'     => 'append',
+							'enum'        => array( 'replace', 'append' ),
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -1660,5 +1691,58 @@ class Spai_REST_Site extends Spai_REST_API {
 	 */
 	private function can_manage_api_keys() {
 		return function_exists( 'current_user_can' ) && current_user_can( 'spai_manage_settings' );
+	}
+
+	/**
+	 * Get the Additional CSS from the Customizer.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_custom_css( $request ) {
+		$this->log_activity( 'get_custom_css', $request );
+
+		$css = wp_get_custom_css();
+
+		return $this->success_response( array(
+			'css'    => $css,
+			'length' => strlen( $css ),
+		) );
+	}
+
+	/**
+	 * Set or append to the Additional CSS in the Customizer.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function set_custom_css( $request ) {
+		$this->log_activity( 'set_custom_css', $request );
+
+		$new_css = $request->get_param( 'css' );
+		$mode    = $request->get_param( 'mode' ) ?: 'append';
+
+		if ( 'append' === $mode ) {
+			$existing = wp_get_custom_css();
+			$css      = $existing . "\n\n" . $new_css;
+		} else {
+			$css = $new_css;
+		}
+
+		$result = wp_update_custom_css_post( $css );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response(
+				'css_update_failed',
+				$result->get_error_message(),
+				500
+			);
+		}
+
+		return $this->success_response( array(
+			'css'    => $css,
+			'length' => strlen( $css ),
+			'mode'   => $mode,
+		) );
 	}
 }
