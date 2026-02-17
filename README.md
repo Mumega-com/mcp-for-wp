@@ -36,9 +36,8 @@ Claude: *Creates page, builds Elementor layout, sets SEO metadata*
 1. **Install Site Pilot AI** on your WordPress site (from Plugins → Add New or upload manually)
 2. **Copy your API key** from WP Admin → Site Pilot AI
 3. **Connect Claude Desktop, Claude Code, or ChatGPT:**
-   - **Native MCP endpoint**: `/wp-json/site-pilot-ai/v1/mcp` (no external server needed)
+   - **Native MCP endpoint**: `/wp-json/site-pilot-ai/v1/mcp` (recommended, no external server needed)
    - **npm MCP server**: `npm install -g wp-ai-operator` → `wp-ai-operator --setup`
-   - **Cloudflare Worker**: Deploy gateway for caching and multi-site management
 
 That's it! Now your AI assistant can control WordPress directly.
 
@@ -82,17 +81,16 @@ WP AI Operator is a complete solution for controlling WordPress sites with AI as
 
 ## Distribution Channels
 
-Site Pilot AI is available through **3 distribution channels**:
+Site Pilot AI is available through **2 distribution channels**:
 
 | Channel | Purpose | When to Use |
 |---------|---------|-------------|
-| **Native MCP Endpoint** | Direct WordPress connection | Simple setup, single site, no caching needed |
+| **Native MCP Endpoint** | Direct WordPress connection | Recommended for all setups |
 | **npm MCP Server** | Local MCP server with multi-site config | Multiple sites, local development |
-| **Cloudflare Worker** | Edge caching and analytics | Production, global sites, high traffic |
 
 ### Native MCP Endpoint
 
-Built-in MCP server at `/wp-json/site-pilot-ai/v1/mcp` - no external dependencies.
+Built-in MCP server at `/wp-json/site-pilot-ai/v1/mcp` — no external dependencies needed.
 
 ```json
 {
@@ -115,10 +113,6 @@ npm install -g wp-ai-operator
 wp-ai-operator --setup    # Interactive setup
 wp-ai-operator --test     # Test connection
 ```
-
-### Cloudflare Worker Gateway
-
-Deploy to Cloudflare Workers for edge caching, analytics, and multi-site batch operations.
 
 ## Features
 
@@ -312,78 +306,6 @@ You: "List all forms on the blog site"
 You: "Publish this post to production and staging"
 ```
 
-## Cloudflare Gateway (Optional)
-
-Deploy a Cloudflare Worker for smart caching and analytics:
-
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  Claude Desktop  │────▶│   MCP Server     │────▶│ Cloudflare Worker│
-│     (stdio)      │     │   (Node.js)      │     │    (Gateway)     │
-└──────────────────┘     └──────────────────┘     └────────┬─────────┘
-                                                           │
-                         ┌─────────────────────────────────┼─────────────────────────────────┐
-                         │                                 │                                 │
-                         ▼                                 ▼                                 ▼
-                  ┌──────────────┐                 ┌──────────────┐                 ┌──────────────┐
-                  │   KV Cache   │                 │ D1 Database  │                 │  WordPress   │
-                  │  (Responses) │                 │  (Analytics) │                 │    Sites     │
-                  └──────────────┘                 └──────────────┘                 └──────────────┘
-```
-
-### Benefits
-
-| Feature | Impact |
-|---------|--------|
-| **KV Caching** | 70-90% reduction in WordPress API calls |
-| **Edge Delivery** | Lower latency globally |
-| **Analytics** | Request logs, cache hit rates, slow endpoints |
-| **Batch Operations** | Execute across all sites in parallel |
-| **Cost** | Free tier covers 100k requests/day |
-
-### Quick Setup
-
-```bash
-cd cloudflare-worker
-npm install
-wrangler login
-npm run setup        # Creates KV + D1
-# Update wrangler.toml with IDs
-npm run db:migrate
-npm run deploy
-```
-
-### Configure MCP Server
-
-```json
-{
-  "mcpServers": {
-    "site-pilot-ai": {
-      "command": "node",
-      "args": ["/path/to/mcp-server/dist/index.js"],
-      "env": {
-        "USE_GATEWAY": "true",
-        "GATEWAY_URL": "https://wp-ai-gateway.yourname.workers.dev",
-        "GATEWAY_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-### Gateway Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /health` | Health check |
-| `GET /sites` | List configured sites |
-| `ANY /proxy/{site}/{endpoint}` | Proxy to WordPress (cached) |
-| `POST /batch` | Execute multiple operations |
-| `GET /analytics?days=7` | Request analytics |
-| `GET /cache/stats` | Cache hit rates |
-
-See `cloudflare-worker/SETUP.md` for detailed instructions.
-
 ## Python Client
 
 For scripting and automation:
@@ -544,7 +466,6 @@ wp-ai-operator/
 ├── mcp-server/                    # MCP Server (Node.js/TypeScript)
 │   ├── src/
 │   │   ├── index.ts              # Main entry point
-│   │   ├── gateway-client.ts     # Cloudflare Gateway client
 │   │   ├── kernel/               # Microkernel core
 │   │   │   └── index.ts
 │   │   ├── extensions/           # Pluggable extensions
@@ -559,18 +480,17 @@ wp-ai-operator/
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── cloudflare-worker/             # Cloudflare Gateway (Optional)
-│   ├── src/
-│   │   └── index.ts              # Worker entry point
-│   ├── migrations/
-│   │   └── 0001_initial.sql      # D1 schema
-│   ├── wrangler.toml             # Worker configuration
-│   ├── SETUP.md                  # Deployment guide
-│   └── package.json
+├── site-pilot-ai/                 # WordPress Plugin (PHP)
+│   ├── site-pilot-ai.php         # Bootstrap + version
+│   ├── includes/
+│   │   ├── api/                  # REST endpoints + native MCP
+│   │   ├── core/                 # Posts, pages, media, Elementor
+│   │   ├── mcp/                  # Tool registries + Integration SDK
+│   │   ├── pro/                  # Pro modules (premium package)
+│   │   └── admin/                # Admin UI
+│   └── readme.txt
 │
-├── site-pilot-ai/                 # WordPress Plugin (PHP) v1.0.15
-│   └── site-pilot-ai.php         # All REST endpoints + native MCP
-│
+├── docs/                          # API docs, widget reference, OpenAPI spec
 └── README.md
 
 # OpenClaw Skill (installed separately)
@@ -647,8 +567,9 @@ The plugin auto-detects CF7, WPForms, Gravity Forms, and Ninja Forms. Ensure at 
 
 ## Roadmap
 
-- [x] Cloudflare Gateway (KV caching, D1 analytics)
 - [x] Native MCP endpoint (v1.0.15)
+- [x] Integration Registry — third-party plugin SDK (v1.0.58)
+- [x] Capability-aware tool filtering (v1.0.60)
 - [ ] WooCommerce extension (products, orders, customers)
 - [ ] ACF (Advanced Custom Fields) support
 - [ ] Gutenberg blocks manipulation
