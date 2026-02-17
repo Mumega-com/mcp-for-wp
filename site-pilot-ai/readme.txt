@@ -112,11 +112,10 @@ Each site needs its own plugin installation and API key. The Pro version include
 
 == Screenshots ==
 
-1. Admin dashboard with API key management
-2. Detected plugins and capabilities
-3. Available API endpoints
-4. Creating a post with Claude
-5. Elementor integration in action
+1. Setup tab — Activity log showing recent API requests
+2. Connect AI tab — One-click configuration for Claude Desktop and Claude Code
+3. Settings tab — Free vs Pro feature comparison and license management
+4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
 
