@@ -7,7 +7,7 @@ info:
 
     This API allows ChatGPT to manage content on your WordPress site. All endpoints require
     authentication via API key (found in WordPress Admin > Site Pilot AI > Settings).
-  version: 1.0.14
+  version: 1.0.60
   contact:
     name: DigID Inc
     url: https://digid.ca
@@ -59,6 +59,101 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SiteInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /detect-plugins:
+    get:
+      tags: [Site]
+      operationId: detectPlugins
+      summary: Detect installed plugins
+      description: |
+        Detect which plugins are installed and active on the site, including
+        Elementor, SEO plugins, form plugins, WooCommerce, etc.
+
+        Use this to understand what features and integrations are available.
+      responses:
+        '200':
+          description: Plugin detection results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  elementor:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      version:
+                        type: string
+                      pro:
+                        type: boolean
+                  seo:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      version:
+                        type: string
+                      slug:
+                        type: string
+                  forms:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        slug:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /search:
+    get:
+      tags: [Content]
+      operationId: searchContent
+      summary: Search posts and pages
+      description: |
+        Search across all posts and pages by keyword. Returns matching content
+        with title, excerpt, and URL.
+
+        Use this when the user asks "find posts about X" or "do I have a page about Y".
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search keyword or phrase
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Filter by content type
+          schema:
+            type: string
+            enum: [post, page, any]
+            default: any
+        - name: per_page
+          in: query
+          description: Results per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  total:
+                    type: integer
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -346,6 +441,40 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+    delete:
+      tags: [Pages]
+      operationId: deletePage
+      summary: Delete a page
+      description: |
+        Delete a page. By default moves to trash (can be restored).
+        Use force=true to permanently delete.
+
+        ALWAYS confirm with the user before deleting.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+        - name: force
+          in: query
+          description: Permanently delete (bypass trash)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Page deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                  id:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ============ CONTENT MANAGEMENT ============
   /drafts:
     get:
@@ -430,6 +559,98 @@ paths:
                   sizes:
                     type: object
                     description: Available image sizes (for images)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /drafts/delete-all:
+    delete:
+      tags: [Content]
+      operationId: deleteAllDrafts
+      summary: Delete all drafts
+      description: |
+        Bulk delete all draft posts and pages. Permanently removes all drafts.
+
+        WARNING: This is destructive and cannot be undone. ALWAYS confirm with the user first.
+      parameters:
+        - name: type
+          in: query
+          description: Filter by content type
+          schema:
+            type: string
+            enum: [post, page, all]
+            default: all
+      responses:
+        '200':
+          description: Drafts deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+                    description: Number of drafts deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /media/url:
+    post:
+      tags: [Media]
+      operationId: uploadMediaFromUrl
+      summary: Upload media from URL
+      description: |
+        Import an image or file from a URL into the WordPress media library.
+        This is the preferred upload method for ChatGPT since you can provide a URL
+        rather than a file upload.
+
+        The file is downloaded server-side and added to the media library.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL of the file to import
+                filename:
+                  type: string
+                  description: Custom filename (optional, defaults to URL filename)
+                title:
+                  type: string
+                  description: Media title
+                alt:
+                  type: string
+                  description: Alt text for images
+            examples:
+              image:
+                summary: Import an image
+                value:
+                  url: "https://example.com/photo.jpg"
+                  title: "Mountain trail view"
+                  alt: "A scenic mountain biking trail"
+      responses:
+        '201':
+          description: Media imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  url:
+                    type: string
+                    format: uri
+                  title:
+                    type: string
+                  mime_type:
+                    type: string
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -678,6 +899,143 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /elementor/templates:
+    get:
+      tags: [Elementor]
+      operationId: listElementorTemplates
+      summary: List Elementor templates
+      description: |
+        Get all saved Elementor templates (sections, pages, etc.) from the template library.
+        Templates can be applied to pages to quickly build consistent layouts.
+
+        Pro feature — requires Site Pilot AI Pro license.
+      parameters:
+        - name: type
+          in: query
+          description: Filter by template type
+          schema:
+            type: string
+            enum: [page, section, header, footer, single, archive, popup, loop-item]
+      responses:
+        '200':
+          description: Templates list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        title:
+                          type: string
+                        type:
+                          type: string
+                        date:
+                          type: string
+                          format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /elementor/templates/{id}/apply:
+    post:
+      tags: [Elementor]
+      operationId: applyElementorTemplate
+      summary: Apply template to a page
+      description: |
+        Apply a saved Elementor template to a page. This copies the template's
+        Elementor data to the target page, replacing its current content.
+
+        Pro feature — requires Site Pilot AI Pro license.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Template ID to apply
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page_id]
+              properties:
+                page_id:
+                  type: integer
+                  description: Target page ID to apply the template to
+            examples:
+              apply:
+                summary: Apply template to page
+                value:
+                  page_id: 42
+      responses:
+        '200':
+          description: Template applied successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  page_id:
+                    type: integer
+                  template_id:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /elementor/{id}/clone:
+    post:
+      tags: [Elementor]
+      operationId: cloneElementorPage
+      summary: Clone an Elementor page
+      description: |
+        Create a copy of an Elementor page with all its design and content.
+        The clone is created as a draft with "(Copy)" appended to the title.
+
+        Pro feature — requires Site Pilot AI Pro license.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Custom title for the clone (optional)
+      responses:
+        '201':
+          description: Page cloned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: New page ID
+                  title:
+                    type: string
+                  url:
+                    type: string
+                  edit_url:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ============ ANALYTICS ============
   /analytics:
