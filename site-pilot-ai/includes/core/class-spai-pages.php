@@ -170,6 +170,10 @@ class Spai_Pages {
 			$page_data['menu_order'] = absint( $data['menu_order'] );
 		}
 
+		if ( isset( $data['slug'] ) ) {
+			$page_data['post_name'] = sanitize_title( $data['slug'] );
+		}
+
 		$result = wp_update_post( $page_data, true );
 
 		if ( is_wp_error( $result ) ) {
