@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 /**
- * WP AI Operator - MCP Server
- * Microkernel architecture for WordPress control via AI
+ * Site Pilot AI - MCP Server (Proxy Mode)
  *
- * Features:
- * - Pluggable extension system
- * - Multi-site support
- * - Built-in extensions: Core, SEO, Forms, Elementor
+ * Thin stdio-to-HTTP proxy: forwards all MCP requests to the PHP plugin's
+ * /wp-json/site-pilot-ai/v1/mcp endpoint. Tools are always in sync with
+ * the WordPress plugin — zero local tool definitions needed.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -18,21 +16,33 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { createKernel, WPKernel } from "./kernel/index.js";
-import { createAllExtensions } from "./extensions/index.js";
-import { runSetup } from './setup.js';
+import { loadConfig, getActiveSite } from "./config.js";
+import { McpProxy } from "./proxy.js";
+import { runSetup } from "./setup.js";
 
-// CLI argument handling
+const VERSION = "2.1.0";
+
+function log(level: string, message: string, data?: any): void {
+  const ts = new Date().toISOString();
+  if (data !== undefined) {
+    console.error(`[${ts}] [${level}] ${message}`, data);
+  } else {
+    console.error(`[${ts}] [${level}] ${message}`);
+  }
+}
+
+// ─── CLI argument handling ───────────────────────────────────────────
+
 const args = process.argv.slice(2);
 
-if (args.includes('--version') || args.includes('-v')) {
-  console.log('site-pilot-ai v2.0.0');
+if (args.includes("--version") || args.includes("-v")) {
+  console.log(`site-pilot-ai v${VERSION}`);
   process.exit(0);
 }
 
-if (args.includes('--help') || args.includes('-h')) {
+if (args.includes("--help") || args.includes("-h")) {
   console.log(`
-site-pilot-ai - MCP Server for WordPress
+site-pilot-ai - MCP Server for WordPress (proxy mode)
 
 Usage:
   site-pilot-ai              Start MCP server (stdio transport)
@@ -54,51 +64,35 @@ Documentation:
   process.exit(0);
 }
 
-if (args.includes('--setup')) {
+if (args.includes("--setup")) {
   await runSetup();
   process.exit(0);
 }
 
-if (args.includes('--test')) {
-  const url = process.env.WP_URL;
-  const key = process.env.WP_API_KEY;
-
-  if (!url || !key) {
-    // Try loading from config
-    const { readFileSync, existsSync } = await import('fs');
-    const { homedir } = await import('os');
-    const { join } = await import('path');
-    const configPath = join(homedir(), '.wp-ai-operator', 'config.json');
-
-    if (existsSync(configPath)) {
-      const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-      const siteName = process.env.WP_SITE_NAME || config.defaultSite || Object.keys(config.sites)[0];
-      const site = config.sites[siteName];
-      if (site) {
-        process.env.WP_URL = site.url;
-        process.env.WP_API_KEY = site.apiKey;
-      }
-    }
-  }
-
-  const testUrl = process.env.WP_URL;
-  const testKey = process.env.WP_API_KEY;
-
-  if (!testUrl || !testKey) {
-    console.log('❌ No configuration found. Run: site-pilot-ai --setup');
+if (args.includes("--test")) {
+  // Load config (env vars + file)
+  const config = loadConfig();
+  let site;
+  try {
+    site = getActiveSite(config);
+  } catch {
+    console.log("❌ No configuration found. Run: site-pilot-ai --setup");
     process.exit(1);
   }
 
-  console.log(`🔍 Testing connection to ${testUrl}...`);
+  console.log(`🔍 Testing connection to ${site.url}...`);
   try {
-    const response = await fetch(`${testUrl}/wp-json/site-pilot-ai/v1/site-info`, {
-      headers: { 'X-API-Key': testKey },
-    });
+    const response = await fetch(
+      `${site.url.replace(/\/+$/, "")}/wp-json/site-pilot-ai/v1/site-info`,
+      { headers: { "X-API-Key": site.apiKey } }
+    );
     if (response.ok) {
-      const data = await response.json() as any;
-      console.log(`✅ Connected! ${data.site_name} (WordPress ${data.wordpress_version})`);
-      console.log(`   Plugin: Site Pilot AI v${data.plugin_version}`);
-      console.log(`   Posts: ${data.post_count}, Pages: ${data.page_count}`);
+      const data = (await response.json()) as any;
+      console.log(
+        `✅ Connected! ${data.name} (WordPress ${data.wp_version})`
+      );
+      console.log(`   Plugin: Site Pilot AI v${data.plugin?.version}`);
+      console.log(`   Elementor: ${data.capabilities?.elementor ? "yes" : "no"}, Pro: ${data.capabilities?.elementor_pro ? "yes" : "no"}`);
     } else {
       console.log(`❌ HTTP ${response.status}: Check your API key`);
     }
@@ -108,180 +102,73 @@ if (args.includes('--test')) {
   process.exit(0);
 }
 
-// Initialize MCP server
+// ─── MCP Server (proxy mode) ────────────────────────────────────────
+
+const config = loadConfig();
+const site = getActiveSite(config);
+const proxy = new McpProxy(site);
+
 const server = new Server(
-  {
-    name: "site-pilot-ai",
-    version: "2.0.0",
-  },
-  {
-    capabilities: {
-      tools: {},
-      resources: {},
-    },
-  }
+  { name: "site-pilot-ai", version: VERSION },
+  { capabilities: { tools: {}, resources: {} } }
 );
 
-// Global kernel instance
-let kernel: WPKernel;
-
-// Initialize kernel and load extensions
-async function initializeKernel(): Promise<void> {
-  kernel = createKernel();
-
-  // Load all built-in extensions
-  const extensions = createAllExtensions();
-  for (const ext of extensions) {
-    try {
-      await kernel.loadExtension(ext);
-    } catch (error: any) {
-      kernel.log("error", `Failed to load extension ${ext.metadata.name}: ${error.message}`);
-    }
-  }
-
-  kernel.log("info", `Kernel initialized with ${kernel.getLoadedExtensions().length} extensions`);
-}
-
-// List all available tools from all extensions
+// tools/list → proxy
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  // Default to "not pro" to avoid advertising tools that will 404.
-  let proActive = false;
   try {
-    const plugins = await kernel.request("GET", "plugins");
-    const caps = (plugins as any)?.capabilities;
-    proActive = Boolean(caps?.pro_active);
+    const result = await proxy.call("tools/list");
+    return { tools: result?.tools ?? [] };
   } catch (error: any) {
-    kernel.log("warn", "Failed to detect pro status via /plugins; hiding PRO-only tools by default", error?.message);
+    log("error", "tools/list failed", error.message);
+    return { tools: [] };
   }
-
-  const proOnlyTools = new Set<string>([
-    // SEO (Pro)
-    "wp_get_seo",
-    "wp_set_seo",
-    "wp_analyze_seo",
-    "wp_bulk_seo",
-    "wp_get_seo_plugin",
-
-    // Forms (Pro)
-    "wp_list_forms",
-    "wp_get_form",
-    "wp_get_form_submissions",
-    "wp_get_form_plugin",
-
-    // Elementor advanced (Pro)
-    "wp_list_elementor_templates",
-    "wp_apply_elementor_template",
-    "wp_create_landing_page",
-    "wp_get_elementor_globals",
-    "wp_clone_elementor_page",
-  ]);
-
-  const tools = kernel.getAllTools().filter((tool) => {
-    if (proActive) return true;
-    return !proOnlyTools.has(tool.name);
-  });
-
-  return { tools };
 });
 
-// Handle tool calls - route to appropriate extension
+// tools/call → proxy
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  const { name, arguments: toolArgs } = request.params;
 
   try {
-    const result = await kernel.callTool(name, args || {});
+    const result = await proxy.call("tools/call", { name, arguments: toolArgs ?? {} });
+    // The PHP endpoint returns { content: [...] } or a raw result
+    if (result?.content) {
+      return result;
+    }
     return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(result, null, 2),
-        },
-      ],
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
   } catch (error: any) {
-    kernel.log("error", `Tool error: ${name}`, error.message);
+    log("error", `tools/call ${name} failed`, error.message);
     return {
-      content: [
-        {
-          type: "text",
-          text: `Error: ${error.message}`,
-        },
-      ],
+      content: [{ type: "text", text: `Error: ${error.message}` }],
       isError: true,
     };
   }
 });
 
-// Resources for site info and extension status
+// resources/list → proxy
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  return {
-    resources: [
-      {
-        uri: "wp://site-info",
-        name: "WordPress Site Info",
-        description: "Current site configuration and stats",
-        mimeType: "application/json",
-      },
-      {
-        uri: "wp://extensions",
-        name: "Loaded Extensions",
-        description: "List of loaded extensions and their tools",
-        mimeType: "application/json",
-      },
-      {
-        uri: "wp://config",
-        name: "Configuration",
-        description: "Current kernel configuration",
-        mimeType: "application/json",
-      },
-    ],
-  };
+  try {
+    const result = await proxy.call("resources/list");
+    return { resources: result?.resources ?? [] };
+  } catch (error: any) {
+    log("error", "resources/list failed", error.message);
+    return { resources: [] };
+  }
 });
 
+// resources/read → proxy
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
   try {
-    let content: any;
-
-    switch (uri) {
-      case "wp://site-info":
-        content = await kernel.request("GET", "site-info");
-        break;
-
-      case "wp://extensions":
-        content = kernel.getLoadedExtensions().map((ext) => ({
-          name: ext.metadata.name,
-          version: ext.metadata.version,
-          description: ext.metadata.description,
-          tools: ext.getTools().map((t) => t.name),
-          wpPlugins: ext.metadata.wpPlugins || [],
-        }));
-        break;
-
-      case "wp://config":
-        const config = kernel.getConfig();
-        content = {
-          sites: Object.keys(config.sites).map((name) => ({
-            name,
-            url: config.sites[name].url,
-          })),
-          defaultSite: config.defaultSite,
-          enabledExtensions: config.enabledExtensions,
-        };
-        break;
-
-      default:
-        throw new Error(`Unknown resource: ${uri}`);
+    const result = await proxy.call("resources/read", { uri });
+    if (result?.contents) {
+      return result;
     }
-
     return {
       contents: [
-        {
-          uri,
-          mimeType: "application/json",
-          text: JSON.stringify(content, null, 2),
-        },
+        { uri, mimeType: "application/json", text: JSON.stringify(result, null, 2) },
       ],
     };
   } catch (error: any) {
@@ -289,16 +176,14 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   }
 });
 
-// Start server
+// ─── Start ───────────────────────────────────────────────────────────
+
 async function main() {
   try {
-    await initializeKernel();
-
     const transport = new StdioServerTransport();
     await server.connect(transport);
-
-    kernel.log("info", "Site Pilot AI MCP Server v2.0 running");
-    kernel.log("info", `Tools available: ${kernel.getAllTools().length}`);
+    log("info", `Site Pilot AI MCP Server v${VERSION} running (proxy mode)`);
+    log("info", `Proxying to: ${site.url}`);
   } catch (error: any) {
     console.error("Failed to start server:", error.message);
     process.exit(1);
