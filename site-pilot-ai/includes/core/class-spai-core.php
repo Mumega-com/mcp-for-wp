@@ -106,6 +106,13 @@ class Spai_Core {
 			$capabilities = apply_filters( 'spai_site_capabilities', $capabilities );
 		}
 
+		// Merge capabilities from third-party integrations.
+		if ( class_exists( 'Spai_Integration' ) ) {
+			foreach ( Spai_Integration::resolve_all() as $integration ) {
+				$capabilities = array_merge( $capabilities, $integration->get_capabilities() );
+			}
+		}
+
 		// Cache for 1 hour
 		set_transient( 'spai_capabilities_cache', $capabilities, HOUR_IN_SECONDS );
 

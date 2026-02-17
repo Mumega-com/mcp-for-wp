@@ -96,6 +96,12 @@ class Spai_REST_MCP extends Spai_REST_API {
 			$tool_map = array_merge( $tool_map, $this->pro_registry->get_tool_map() );
 		}
 
+		// Merge third-party integration tools.
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			$tools    = array_merge( $tools, $integration->get_tools() );
+			$tool_map = array_merge( $tool_map, $integration->get_tool_map() );
+		}
+
 		// Enrich each tool with route/method + annotations.
 		foreach ( $tools as &$tool ) {
 			$name = isset( $tool['name'] ) ? (string) $tool['name'] : '';
@@ -117,6 +123,15 @@ class Spai_REST_MCP extends Spai_REST_API {
 			$free_map = $this->free_registry->get_tool_map();
 			if ( ! isset( $free_map[ $name ] ) && $this->is_pro_active() ) {
 				$registry = $this->pro_registry;
+			}
+			// Fallback to third-party integration registries.
+			if ( ! isset( $free_map[ $name ] ) && ( ! $this->is_pro_active() || ! isset( $this->pro_registry->get_tool_map()[ $name ] ) ) ) {
+				foreach ( Spai_Integration::resolve_all() as $int_registry ) {
+					if ( isset( $int_registry->get_tool_map()[ $name ] ) ) {
+						$registry = $int_registry;
+						break;
+					}
+				}
 			}
 			$tool['annotations'] = $registry->get_tool_annotations( $name );
 		}
@@ -384,6 +399,10 @@ class Spai_REST_MCP extends Spai_REST_API {
 			if ( $this->is_pro_active() ) {
 				$tools = array_merge( $tools, $this->pro_registry->get_tools() );
 			}
+			// Third-party integrations.
+			foreach ( Spai_Integration::resolve_all() as $integration ) {
+				$tools = array_merge( $tools, $integration->get_tools() );
+			}
 			$this->tools_cache = $tools;
 		}
 
@@ -459,6 +478,10 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$tool_map = $this->free_registry->get_tool_map();
 		if ( $this->is_pro_active() ) {
 			$tool_map = array_merge( $tool_map, $this->pro_registry->get_tool_map() );
+		}
+		// Third-party integrations.
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			$tool_map = array_merge( $tool_map, $integration->get_tool_map() );
 		}
 
 		if ( ! isset( $tool_map[ $tool_name ] ) ) {
@@ -550,6 +573,14 @@ class Spai_REST_MCP extends Spai_REST_API {
 				|| defined( 'WPSEO_VERSION' ),
 			'pro_active'  => $this->is_pro_active(),
 		);
+
+		// Third-party integrations.
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			$info = $integration->get_info();
+			if ( ! empty( $info['slug'] ) ) {
+				$integrations[ $info['slug'] ] = true;
+			}
+		}
 
 		return $integrations;
 	}

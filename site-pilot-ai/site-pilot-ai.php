@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        http://sitepilotai.mumega.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.57
+ * Version:           1.0.58
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -86,7 +86,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.57' );
+define( 'SPAI_VERSION', '1.0.58' );
 
 /**
  * Plugin directory path.
@@ -239,6 +239,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 
 	// Load MCP tool registries
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-tool-registry.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-integration.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-free-tools.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-pro-tools.php';
 

@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.57
+Stable tag: 1.0.58
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 5. Elementor integration in action
 
 == Changelog ==
+
+= 1.0.58 =
+* New: Integration Registry — third-party plugins can register MCP tools, REST endpoints, and capabilities via `spai_integrations` filter
+* New: `Spai_Integration` abstract base class — extend to add AI support to any WordPress plugin
+* New: Third-party tools automatically appear in MCP tools/list, /site-info capabilities, and detected integrations
+* New: Integrations inherit API key auth via `Spai_Api_Auth` trait — use `$this->verify_api_key($request)` in permission callbacks
 
 = 1.0.57 =
 * New: Full element tree validation on Elementor save — auto-generates missing element IDs, validates widget types, checks nesting rules

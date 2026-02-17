@@ -238,6 +238,13 @@ class Spai_Loader {
 		 * Used by Pro add-on to register additional endpoints.
 		 */
 		do_action( 'spai_register_rest_routes' );
+
+		// Register routes from third-party integrations.
+		if ( class_exists( 'Spai_Integration' ) ) {
+			foreach ( Spai_Integration::resolve_all() as $integration ) {
+				$integration->register_routes();
+			}
+		}
 	}
 
 	/**
