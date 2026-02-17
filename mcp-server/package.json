@@ -8,9 +8,10 @@
     "site-pilot-ai": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "bun build src/index.ts --target=node --outdir=dist --format=esm",
+    "build:tsc": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "bun run src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -21,7 +22,7 @@
     "node": ">=18"
   },
   "files": [
-    "dist",
+    "dist/index.js",
     "README.md",
     "LICENSE"
   ],
@@ -35,14 +36,12 @@
     "chatgpt",
     "site-pilot"
   ],
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "dotenv": "^16.4.5"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "@types/node": "^20.11.0",
-    "typescript": "^5.3.3",
-    "tsx": "^4.7.0"
+    "dotenv": "^16.4.5",
+    "typescript": "^5.3.3"
   },
   "author": "DigID",
   "license": "MIT"
