@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1544 500" width="1544" height="500">
+  <defs>
+    <linearGradient id="bannerbg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0B1220;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1B4DFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0B1220;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="1544" height="500" fill="url(#bannerbg)" />
+  <!-- Subtle grid pattern -->
+  <g opacity="0.06" stroke="white" stroke-width="1">
+    <line x1="200" y1="0" x2="200" y2="500"/>
+    <line x1="400" y1="0" x2="400" y2="500"/>
+    <line x1="600" y1="0" x2="600" y2="500"/>
+    <line x1="800" y1="0" x2="800" y2="500"/>
+    <line x1="1000" y1="0" x2="1000" y2="500"/>
+    <line x1="1200" y1="0" x2="1200" y2="500"/>
+    <line x1="1400" y1="0" x2="1400" y2="500"/>
+    <line x1="0" y1="100" x2="1544" y2="100"/>
+    <line x1="0" y1="200" x2="1544" y2="200"/>
+    <line x1="0" y1="300" x2="1544" y2="300"/>
+    <line x1="0" y1="400" x2="1544" y2="400"/>
+  </g>
+  <!-- Icon (compass) on left side -->
+  <g transform="translate(320,250) scale(1.4)">
+    <circle cx="0" cy="0" r="80" fill="white" opacity="0.1"/>
+    <polygon points="0,-55 16,-8 0,-20 -16,-8" fill="white" opacity="0.9"/>
+    <polygon points="0,55 16,8 0,20 -16,8" fill="white" opacity="0.35"/>
+    <polygon points="55,0 8,16 20,0 8,-16" fill="white" opacity="0.35"/>
+    <polygon points="-55,0 -8,16 -20,0 -8,-16" fill="white" opacity="0.35"/>
+    <circle cx="0" cy="0" r="6" fill="white" opacity="0.85"/>
+  </g>
+  <!-- Text -->
+  <text x="772" y="220" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="72" fill="white" letter-spacing="2">Site Pilot AI</text>
+  <text x="772" y="290" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="normal" font-size="28" fill="white" opacity="0.7">Control WordPress with AI</text>
+  <!-- Decorative dots -->
+  <circle cx="772" cy="340" r="4" fill="white" opacity="0.3"/>
+  <circle cx="752" cy="340" r="3" fill="white" opacity="0.2"/>
+  <circle cx="792" cy="340" r="3" fill="white" opacity="0.2"/>
+</svg>

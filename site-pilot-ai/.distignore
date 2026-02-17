@@ -1,0 +1,17 @@
+/.git
+/.github
+/tests
+/vendor
+/node_modules
+/.editorconfig
+/.gitignore
+/.phpcs.xml
+/phpunit.xml
+/composer.json
+/composer.lock
+/package.json
+/package-lock.json
+/scripts
+/docs
+*.zip
+.distignore

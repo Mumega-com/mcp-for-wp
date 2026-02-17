@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.61
+Stable tag: 1.0.62
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,10 @@ Each site needs its own plugin installation and API key. The Pro version include
 
 == Changelog ==
 
+= 1.0.62 =
+* WordPress.org submission prep: HTTPS Plugin/Author URIs, .distignore, external service disclosure, plugin assets
+* Condensed changelog for internal development releases
+
 = 1.0.61 =
 * Fix: REST update endpoint now clears Freemius SDK cache before checking — updates appear immediately via API
 * Fix: OpenAPI spec version bumped to match plugin
@@ -161,6 +165,9 @@ Each site needs its own plugin installation and API key. The Pro version include
 * New: Purge page cache after Elementor data update — supports SG Optimizer, WP Super Cache, W3TC, WP Rocket, LiteSpeed (#89)
 * Improved: Elementor data saved via `update_post_meta` with verification, replacing unreliable `Document->save()` in REST context (#93)
 
+= 1.0.44 - 1.0.54 =
+* Internal development releases: Elementor validation improvements, security hardening, cache purging
+
 = 1.0.43 =
 * Fix: Pro MCP tools now unlock based on active license (single-plugin distribution), not a separate Pro add-on
 
@@ -169,6 +176,9 @@ Each site needs its own plugin installation and API key. The Pro version include
 
 = 1.0.41 =
 * New: MCP tools for Elementor Theme Builder templates (get/create/update/delete)
+
+= 1.0.21 - 1.0.40 =
+* Internal development releases: Freemius integration, licensing, admin UI improvements
 
 = 1.0.20 =
 * New: MCP tool annotations (`readOnlyHint`, `openWorldHint`, `destructiveHint`) for safer AI tool usage
@@ -285,7 +295,17 @@ Initial release of Site Pilot AI. Control WordPress with AI assistants!
 
 == Privacy Policy ==
 
-Site Pilot AI does not collect or transmit any data to external servers. All data stays on your WordPress installation. Activity logs are stored locally and can be configured or disabled in settings.
+Site Pilot AI does not collect or transmit any user content to external servers. All content data stays on your WordPress installation. Activity logs are stored locally and can be configured or disabled in settings.
+
+== External Services ==
+
+This plugin connects to the following external services:
+
+= Freemius =
+Site Pilot AI uses [Freemius](https://freemius.com/) for license management, analytics, and plugin updates.
+* Data sent: Plugin version, WordPress version, PHP version, site URL (for license validation and update checks)
+* Terms of Service: https://freemius.com/terms/
+* Privacy Policy: https://freemius.com/privacy/
 
 == Support ==
 

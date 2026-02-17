@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1B4DFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0B1220;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="120" fill="url(#bg)" />
+  <!-- Compass rose / navigation motif -->
+  <g transform="translate(128,128)" fill="white">
+    <!-- Main compass arrow pointing up-right (navigation/pilot) -->
+    <polygon points="0,-70 20,-10 0,-25 -20,-10" opacity="0.95"/>
+    <!-- South pointer -->
+    <polygon points="0,70 20,10 0,25 -20,10" opacity="0.4"/>
+    <!-- East pointer -->
+    <polygon points="70,0 10,20 25,0 10,-20" opacity="0.4"/>
+    <!-- West pointer -->
+    <polygon points="-70,0 -10,20 -25,0 -10,-20" opacity="0.4"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="8" opacity="0.9"/>
+    <!-- AI circuit lines -->
+    <rect x="-1.5" y="-45" width="3" height="12" rx="1.5" opacity="0.3"/>
+    <rect x="-1.5" y="33" width="3" height="12" rx="1.5" opacity="0.3"/>
+    <rect x="-45" y="-1.5" width="12" height="3" rx="1.5" opacity="0.3"/>
+    <rect x="33" y="-1.5" width="12" height="3" rx="1.5" opacity="0.3"/>
+  </g>
+  <!-- Outer ring -->
+  <circle cx="128" cy="128" r="115" fill="none" stroke="white" stroke-width="2" opacity="0.2"/>
+</svg>

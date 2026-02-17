@@ -12,13 +12,13 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Site Pilot AI
- * Plugin URI:        http://sitepilotai.mumega.com/
+ * Plugin URI:        https://sitepilotai.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.61
+ * Version:           1.0.62
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
- * Author URI:        http://sitepilotai.mumega.com/
+ * Author URI:        https://sitepilotai.com/
  * Text Domain:       site-pilot-ai
  * Domain Path:       /languages
  * License:           GPL v2 or later
@@ -86,7 +86,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.61' );
+define( 'SPAI_VERSION', '1.0.62' );
 
 /**
  * Plugin directory path.
