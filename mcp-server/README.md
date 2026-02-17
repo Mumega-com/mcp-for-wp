@@ -3,13 +3,32 @@
 [![npm version](https://img.shields.io/npm/v/site-pilot-ai.svg)](https://www.npmjs.com/package/site-pilot-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**MCP Server for WordPress** - Manage posts, pages, SEO, forms & Elementor from Claude Desktop, Cursor, Windsurf and any MCP client.
+**MCP Server for WordPress** — Manage posts, pages, SEO, forms & Elementor from Claude Desktop, Cursor, Windsurf and any MCP client.
 
-Control your WordPress sites with AI through the Model Context Protocol. Built on a microkernel architecture with pluggable extensions.
+A thin stdio-to-HTTP proxy that forwards all MCP requests to your WordPress site's built-in MCP endpoint. Tools are always in sync with the plugin — zero local definitions, zero maintenance.
+
+## How It Works
+
+```
+MCP Client (stdio) → site-pilot-ai (proxy) → WordPress Plugin (JSON-RPC over HTTP)
+```
+
+The WordPress plugin exposes a complete MCP endpoint at `/wp-json/site-pilot-ai/v1/mcp`. This npm package connects to it and proxies `tools/list`, `tools/call`, `resources/list`, and `resources/read` — so every tool the plugin provides is automatically available to your AI client.
+
+- **65+ tools** — content, Elementor, SEO, forms, media, settings, and more
+- **Zero dependencies** — single-file bundle, runs on Node 18+
+- **Always in sync** — update the plugin, tools appear instantly
 
 ## Quick Start
 
-### 1. Run Setup Wizard
+### 1. Install WordPress Plugin
+
+Install **Site Pilot AI** on your WordPress site:
+1. Download from [GitHub releases](https://github.com/Digidinc/wp-ai-operator/releases)
+2. Upload to WordPress: **WP Admin > Plugins > Add New > Upload Plugin**
+3. Activate and copy your API key from **Site Pilot AI** (top-level admin menu)
+
+### 2. Run Setup Wizard
 
 ```bash
 npx -y site-pilot-ai --setup
@@ -19,18 +38,11 @@ This will:
 - Prompt for your WordPress URL and API key
 - Test the connection
 - Save configuration to `~/.wp-ai-operator/config.json`
-- Show Claude Desktop config
+- Show Claude Desktop config snippet
 
-### 2. Install WordPress Plugin
+### 3. Configure Your MCP Client
 
-Install the **Site Pilot AI** plugin on your WordPress site:
-1. Download from [GitHub releases](https://github.com/Digidinc/wp-ai-operator/releases)
-2. Upload to WordPress: **WP Admin > Plugins > Add New > Upload Plugin**
-3. Activate and copy your API key from **Site Pilot AI** (top-level admin menu)
-
-### 3. Configure Claude Desktop
-
-Add to your `claude_desktop_config.json`:
+**Claude Desktop** — add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -47,59 +59,42 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-### 4. Restart Claude Desktop
+**Cursor / Windsurf** — same format in their MCP settings.
 
-Tools will appear automatically. Try: "Show me my site info"
+### 4. Restart Your Client
 
-## Features
+Tools appear automatically. Try: *"Show me my site info"*
 
-30 tools across 4 extensions:
+## Available Tools
 
-### Core (14 tools)
-- `wp_site_info` - Site information (theme, plugins, stats)
-- `wp_analytics` - API activity logs
-- `wp_detect_plugins` - Detect installed plugins
-- `wp_list_posts` / `wp_create_post` / `wp_update_post` / `wp_delete_post` - Post management
-- `wp_list_pages` / `wp_create_page` / `wp_update_page` - Page management
-- `wp_upload_media` / `wp_upload_media_from_url` - Media library
-- `wp_list_drafts` / `wp_delete_all_drafts` - Draft cleanup
+All tools come from the WordPress plugin. Update the plugin to get new tools — no npm update needed.
 
-### SEO (5 tools)
-Works with **Yoast SEO, RankMath, All-in-One SEO, SEOPress**:
-- `wp_get_seo` / `wp_set_seo` - SEO metadata (title, description, Open Graph)
-- `wp_analyze_seo` - SEO quality analysis with suggestions
-- `wp_bulk_seo` - Batch SEO updates
-- `wp_get_seo_plugin` - Detect active SEO plugin
+**Content Management** — `wp_list_posts`, `wp_create_post`, `wp_update_post`, `wp_delete_post`, `wp_list_pages`, `wp_create_page`, `wp_update_page`, `wp_delete_page`, `wp_search`, `wp_list_drafts`, `wp_delete_all_drafts`
 
-### Forms (8 tools)
-Works with **Contact Form 7, WPForms, Gravity Forms, Elementor Forms, Ninja Forms**:
-- `wp_list_forms` / `wp_get_form` - Browse forms
-- `wp_create_form` / `wp_update_form` / `wp_delete_form` - Form builder
-- `wp_get_form_submissions` - View submissions
-- `wp_submit_form` - Programmatic submissions
-- `wp_get_form_plugin` - Detect active form plugin
+**Site & Settings** — `wp_site_info`, `wp_introspect`, `wp_analytics`, `wp_detect_plugins`, `wp_get_options`, `wp_update_options`, `wp_get_settings`, `wp_update_settings`
 
-### Elementor (9 tools)
-Full page builder control:
-- `wp_get_elementor` / `wp_set_elementor` - Page data (sections, widgets)
-- `wp_list_elementor_templates` / `wp_apply_elementor_template` - Template system
-- `wp_create_landing_page` - Complete landing pages (hero, features, CTA)
-- `wp_add_elementor_section` - Add sections to pages
-- `wp_update_elementor_widget` - Modify widgets
-- `wp_get_elementor_globals` - Global colors/typography
-- `wp_clone_elementor_page` - Duplicate pages
+**Media** — `wp_upload_media`, `wp_upload_media_from_url`, `wp_list_media`, `wp_delete_media`
+
+**Elementor** — `wp_get_elementor`, `wp_set_elementor`, `wp_list_elementor_templates`, `wp_apply_elementor_template`, `wp_create_landing_page`, `wp_add_elementor_section`, `wp_update_elementor_widget`, `wp_get_elementor_globals`, `wp_clone_elementor_page`
+
+**SEO** (requires Yoast / RankMath / AIOSEO / SEOPress) — `wp_get_seo`, `wp_set_seo`, `wp_analyze_seo`, `wp_bulk_seo`, `wp_get_seo_plugin`
+
+**Forms** (requires CF7 / WPForms / Gravity Forms / Elementor Pro) — `wp_list_forms`, `wp_get_form`, `wp_create_form`, `wp_update_form`, `wp_delete_form`, `wp_get_form_submissions`, `wp_submit_form`, `wp_get_form_plugin`
+
+**...and more.** Run `npx site-pilot-ai --test` to connect and see the full list.
 
 ## Configuration
 
 ### Environment Variables
 
 ```bash
-WP_URL=https://your-site.com
-WP_API_KEY=your-api-key
-WP_SITE_NAME=default  # Optional, for multi-site configs
+WP_URL=https://your-site.com       # WordPress site URL
+WP_API_KEY=spai_...                 # Site Pilot AI API key
+WP_SITE_NAME=default                # Optional, for multi-site configs
+WP_CONFIG_PATH=~/custom/config.json # Optional, custom config path
 ```
 
-### Config File Format
+### Config File
 
 Location: `~/.wp-ai-operator/config.json`
 
@@ -108,169 +103,70 @@ Location: `~/.wp-ai-operator/config.json`
   "sites": {
     "default": {
       "url": "https://your-site.com",
-      "apiKey": "your-api-key",
+      "apiKey": "spai_...",
       "name": "My Site"
     },
     "staging": {
       "url": "https://staging.your-site.com",
-      "apiKey": "staging-key",
+      "apiKey": "spai_...",
       "name": "Staging"
     }
   },
-  "defaultSite": "default",
-  "enabledExtensions": ["core", "seo", "forms", "elementor"]
+  "defaultSite": "default"
 }
 ```
 
-### Multi-Site Management
-
-Use the `site` parameter in tool calls:
-
-```json
-{
-  "tool": "wp_create_post",
-  "arguments": {
-    "site": "staging",
-    "title": "Test Post",
-    "content": "<p>Hello world</p>"
-  }
-}
-```
-
-Or set `WP_SITE_NAME` environment variable.
+Environment variables take priority over the config file.
 
 ## CLI Commands
 
 ```bash
-# Start MCP server (stdio transport)
-site-pilot-ai
-
-# Run interactive setup wizard
-site-pilot-ai --setup
-
-# Test WordPress connection
-site-pilot-ai --test
-
-# Show version
-site-pilot-ai --version
-
-# Show help
-site-pilot-ai --help
+npx site-pilot-ai              # Start MCP server (stdio transport)
+npx site-pilot-ai --setup      # Interactive setup wizard
+npx site-pilot-ai --test       # Test WordPress connection
+npx site-pilot-ai --version    # Show version
+npx site-pilot-ai --help       # Show help
 ```
-
-## Tool Reference
-
-| Tool | Extension | Purpose | Key Parameters |
-|------|-----------|---------|----------------|
-| **Site Management** | | | |
-| `wp_site_info` | Core | Site info (theme, plugins, stats) | `site?` |
-| `wp_analytics` | Core | API activity logs | `days?, site?` |
-| `wp_detect_plugins` | Core | Detect installed plugins | `site?` |
-| **Posts** | | | |
-| `wp_list_posts` | Core | List posts | `per_page?, status?, site?` |
-| `wp_create_post` | Core | Create post | `title, content, status?, categories?, tags?, site?` |
-| `wp_update_post` | Core | Update post | `id, title?, content?, status?, site?` |
-| `wp_delete_post` | Core | Delete post | `id, force?, site?` |
-| **Pages** | | | |
-| `wp_list_pages` | Core | List pages | `per_page?, status?, site?` |
-| `wp_create_page` | Core | Create page | `title, content?, status?, template?, site?` |
-| `wp_update_page` | Core | Update page | `id, title?, content?, status?, site?` |
-| **Media** | | | |
-| `wp_upload_media` | Core | Upload file | `file_path, site?` |
-| `wp_upload_media_from_url` | Core | Upload from URL | `url, filename, site?` |
-| **Drafts** | | | |
-| `wp_list_drafts` | Core | List drafts | `site?` |
-| `wp_delete_all_drafts` | Core | Bulk delete drafts | `site?` |
-| **SEO** | | | |
-| `wp_get_seo` | SEO | Get SEO metadata | `post_id, site?` |
-| `wp_set_seo` | SEO | Set SEO metadata | `post_id, title?, description?, focus_keyword?, og_*, site?` |
-| `wp_analyze_seo` | SEO | Analyze SEO quality | `post_id, keyword?, site?` |
-| `wp_bulk_seo` | SEO | Batch SEO updates | `updates[], site?` |
-| `wp_get_seo_plugin` | SEO | Detect SEO plugin | `site?` |
-| **Forms** | | | |
-| `wp_list_forms` | Forms | List all forms | `plugin?, site?` |
-| `wp_get_form` | Forms | Get form details | `form_id, plugin?, site?` |
-| `wp_create_form` | Forms | Create form | `title, plugin, fields[], settings?, site?` |
-| `wp_update_form` | Forms | Update form | `form_id, plugin, fields?, settings?, site?` |
-| `wp_delete_form` | Forms | Delete form | `form_id, plugin, site?` |
-| `wp_get_form_submissions` | Forms | View submissions | `form_id, plugin?, limit?, site?` |
-| `wp_submit_form` | Forms | Submit form data | `form_id, plugin, data, site?` |
-| `wp_get_form_plugin` | Forms | Detect form plugin | `site?` |
-| **Elementor** | | | |
-| `wp_get_elementor` | Elementor | Get page data | `page_id, site?` |
-| `wp_set_elementor` | Elementor | Set page data | `page_id, elementor_data, site?` |
-| `wp_list_elementor_templates` | Elementor | List templates | `type?, site?` |
-| `wp_apply_elementor_template` | Elementor | Apply template | `page_id, template_id, mode?, site?` |
-| `wp_create_landing_page` | Elementor | Create landing page | `title, headline, cta_text, cta_url, features?, testimonials?, colors?, site?` |
-| `wp_add_elementor_section` | Elementor | Add section | `page_id, position?, section_data, site?` |
-| `wp_update_elementor_widget` | Elementor | Update widget | `page_id, widget_id, settings, site?` |
-| `wp_get_elementor_globals` | Elementor | Get global styles | `site?` |
-| `wp_clone_elementor_page` | Elementor | Clone page | `page_id, new_title, site?` |
 
 ## Troubleshooting
 
 ### Connection Failed
 
 ```bash
-# Test connection
-site-pilot-ai --test
-
-# Verify:
-# 1. WordPress site is accessible
-# 2. Site Pilot AI plugin is active
-# 3. API key is correct
-# 4. Firewall allows REST API access
+npx site-pilot-ai --test
 ```
 
-### Invalid API Key
+Verify:
+1. WordPress site is accessible
+2. Site Pilot AI plugin is activated
+3. API key is correct (regenerate in WP Admin if needed)
+4. REST API is not blocked by firewall or security plugin
 
-- Check **WP Admin > Site Pilot AI**
-- Regenerate key if needed
-- Update config: `site-pilot-ai --setup`
+### No Tools Appearing
+
+1. Restart your MCP client
+2. Check config: `cat ~/.wp-ai-operator/config.json`
+3. Test connection: `WP_URL=... WP_API_KEY=... npx site-pilot-ai --test`
+4. Check client logs for MCP errors
 
 ### Plugin Requirements
 
 **Required:**
-- Site Pilot AI plugin (included with package)
+- WordPress 5.9+
+- Site Pilot AI plugin
 
-**Optional (for extensions):**
-- **SEO:** Yoast SEO / RankMath / All-in-One SEO / SEOPress
-- **Forms:** Contact Form 7 / WPForms / Gravity Forms / Elementor Pro / Ninja Forms
-- **Elementor:** Elementor / Elementor Pro
-
-### Missing Tools
-
-If tools don't appear:
-1. Restart Claude Desktop
-2. Check config file exists: `~/.wp-ai-operator/config.json`
-3. Verify env vars: `echo $WP_URL $WP_API_KEY`
-4. Check MCP server logs in Claude Desktop
-
-### Permission Errors
-
-Ensure WordPress user has:
-- `edit_posts`, `edit_pages` - For content management
-- `manage_options` - For site settings
-- `upload_files` - For media uploads
-
-## Architecture
-
-**Microkernel design:**
-- **Kernel** - Core API client, config management, multi-site routing
-- **Extensions** - Pluggable modules (Core, SEO, Forms, Elementor)
-- **Gateway** - MCP protocol adapter (stdio transport)
-
-Extensions are loaded dynamically and can be enabled/disabled in config.
+**Optional (enables more tools):**
+- **Elementor** / Elementor Pro — page builder tools
+- **Yoast SEO** / RankMath / AIOSEO / SEOPress — SEO tools
+- **Contact Form 7** / WPForms / Gravity Forms — form tools
 
 ## Development
 
 ```bash
 git clone https://github.com/Digidinc/wp-ai-operator.git
 cd wp-ai-operator/mcp-server
-npm install
-npm run build
-
-# Test locally
+bun install
+bun run build       # Single-file bundle to dist/index.js
 node dist/index.js --test
 ```
 

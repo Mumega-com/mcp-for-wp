@@ -20,7 +20,7 @@ import { loadConfig, getActiveSite } from "./config.js";
 import { McpProxy } from "./proxy.js";
 import { runSetup } from "./setup.js";
 
-const VERSION = "2.1.0";
+const VERSION = "2.1.1";
 
 function log(level: string, message: string, data?: any): void {
   const ts = new Date().toISOString();

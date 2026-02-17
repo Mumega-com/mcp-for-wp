@@ -1,6 +1,6 @@
 {
   "name": "site-pilot-ai",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "MCP Server for WordPress - Manage posts, pages, SEO, forms & Elementor from Claude Desktop, Cursor, Windsurf and any MCP client",
   "main": "dist/index.js",
   "type": "module",
