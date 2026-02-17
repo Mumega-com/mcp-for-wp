@@ -948,7 +948,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_screenshot_url',
-			'Take a screenshot of a URL using WordPress mshots service. Returns a screenshot URL immediately. Optionally saves to media library.',
+			'Take a screenshot of a URL. Uses Cloudflare Browser Rendering (headless Chromium) if configured, otherwise falls back to WordPress mshots. Returns base64 PNG from Cloudflare or a URL from mshots. Optionally saves to media library.',
 			array(
 				'url' => array(
 					'type'        => 'string',

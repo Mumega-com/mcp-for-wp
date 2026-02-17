@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.65
+Stable tag: 1.0.66
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.66 =
+* Add: Cloudflare Browser Rendering support for wp_screenshot_url (headless Chromium screenshots)
+* Add: Settings for screenshot worker URL and auth token
+* Add: Base64 screenshot saving to media library
+* Fallback to WordPress mshots when Cloudflare worker not configured
 
 = 1.0.65 =
 * Add: wp_get_custom_css / wp_set_custom_css MCP tools for managing Additional CSS via API

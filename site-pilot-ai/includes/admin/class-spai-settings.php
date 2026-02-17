@@ -250,6 +250,32 @@ class Spai_Settings {
 			)
 		);
 
+		// Screenshot Worker.
+		add_settings_field(
+			'screenshot_worker_url',
+			__( 'Screenshot Worker URL', 'site-pilot-ai' ),
+			array( $this, 'render_text_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'screenshot_worker_url',
+				'description' => __( 'Cloudflare Browser Rendering Worker URL for high-quality screenshots. Leave empty to use WordPress mshots.', 'site-pilot-ai' ),
+				'placeholder' => 'https://spai-screenshot.your-subdomain.workers.dev',
+			)
+		);
+
+		add_settings_field(
+			'screenshot_worker_token',
+			__( 'Screenshot Worker Token', 'site-pilot-ai' ),
+			array( $this, 'render_secret_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'screenshot_worker_token',
+				'description' => __( 'Auth token for the screenshot worker. Leave empty to keep existing value.', 'site-pilot-ai' ),
+			)
+		);
+
 		// Rate-limiting section.
 		add_settings_section(
 			'spai_rate_limit_section',
@@ -479,6 +505,18 @@ class Spai_Settings {
 		$sanitized['alerts_auth_threshold'] = isset( $input['alerts_auth_threshold'] )
 			? min( 10000, max( 1, absint( $input['alerts_auth_threshold'] ) ) )
 			: 10;
+
+		// Screenshot worker.
+		$sanitized['screenshot_worker_url'] = isset( $input['screenshot_worker_url'] )
+			? esc_url_raw( trim( $input['screenshot_worker_url'] ) )
+			: ( isset( $current['screenshot_worker_url'] ) ? $current['screenshot_worker_url'] : '' );
+
+		$new_worker_token = isset( $input['screenshot_worker_token'] ) ? trim( (string) $input['screenshot_worker_token'] ) : '';
+		if ( '' !== $new_worker_token ) {
+			$sanitized['screenshot_worker_token'] = sanitize_text_field( $new_worker_token );
+		} else {
+			$sanitized['screenshot_worker_token'] = isset( $current['screenshot_worker_token'] ) ? (string) $current['screenshot_worker_token'] : '';
+		}
 
 		return $sanitized;
 	}
