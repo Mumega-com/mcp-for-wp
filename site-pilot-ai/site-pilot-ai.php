@@ -18,7 +18,7 @@
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
- * Author URI:        https://sitepilotai.mumega.com/
+ * Author URI:        https://mumega.com/
  * Text Domain:       site-pilot-ai
  * Domain Path:       /languages
  * License:           GPL v2 or later
