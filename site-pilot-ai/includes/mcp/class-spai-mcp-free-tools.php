@@ -33,6 +33,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_revoke_api_key',
 			'wp_reset_rate_limit',
 			'wp_delete_webhook',
+			'wp_delete_media',
 		);
 	}
 
@@ -114,6 +115,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_upload_media'            => 'media',
 			'wp_upload_media_from_url'   => 'media',
 			'wp_upload_media_b64'        => 'media',
+			'wp_delete_media'            => 'media',
 			'wp_screenshot_url'          => 'media',
 
 			// Taxonomy
@@ -125,6 +127,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 			// Elementor
 			'wp_get_elementor'           => 'elementor',
+			'wp_get_elementor_summary'   => 'elementor',
 			'wp_set_elementor'           => 'elementor',
 			'wp_elementor_status'        => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
@@ -167,6 +170,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	public function get_required_capabilities() {
 		return array(
 			'wp_get_elementor'            => 'elementor',
+			'wp_get_elementor_summary'    => 'elementor',
 			'wp_set_elementor'            => 'elementor',
 			'wp_elementor_status'         => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
@@ -1054,6 +1058,23 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		$tools[] = $this->define_tool(
+			'wp_delete_media',
+			'Delete a media attachment from the WordPress media library',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Attachment ID',
+					'required'    => true,
+				),
+				'force' => array(
+					'type'        => 'boolean',
+					'description' => 'Permanently delete instead of trashing (default: false)',
+					'default'     => false,
+				),
+			)
+		);
+
 		// Drafts
 		$tools[] = $this->define_tool(
 			'wp_list_drafts',
@@ -1088,6 +1109,18 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		$tools[] = $this->define_tool(
 			'wp_get_elementor',
 			'Get Elementor page data for a specific page or post',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Page or post ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_elementor_summary',
+			'Get a lightweight structural summary of Elementor page data (section types, widget types, key settings). Use this instead of wp_get_elementor when you only need to understand the page structure.',
 			array(
 				'id' => array(
 					'type'        => 'number',
@@ -1866,6 +1899,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'POST',
 				'route'  => '/media/from-base64',
 			),
+			'wp_delete_media'          => array(
+				'method' => 'DELETE',
+				'route'  => '/media/{id}',
+			),
 
 			// Drafts
 			'wp_list_drafts'           => array(
@@ -1881,6 +1918,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_elementor'         => array(
 				'method' => 'GET',
 				'route'  => '/elementor/{id}',
+			),
+			'wp_get_elementor_summary' => array(
+				'method' => 'GET',
+				'route'  => '/elementor/{id}/summary',
 			),
 			'wp_set_elementor'         => array(
 				'method' => 'POST',

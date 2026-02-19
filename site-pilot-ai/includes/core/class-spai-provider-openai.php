@@ -2,7 +2,7 @@
 /**
  * OpenAI Provider
  *
- * DALL-E 3 image generation, GPT-4o vision analysis, and text generation.
+ * GPT-Image-1-Mini image generation, GPT-4o vision analysis, and text generation.
  *
  * @package SitePilotAI
  * @since   1.1.0
@@ -41,43 +41,43 @@ class Spai_Provider_OpenAI {
 	}
 
 	/**
-	 * Generate an image with DALL-E 3.
+	 * Generate an image with GPT-Image-1-Mini.
 	 *
-	 * @param string $prompt Image prompt.
-	 * @param string $size   Image size (1024x1024, 1792x1024, 1024x1792).
-	 * @param string $style  Style (vivid, natural).
-	 * @return array|WP_Error {url: string, revised_prompt: string} or error.
+	 * @param string $prompt  Image prompt.
+	 * @param string $size    Image size (1024x1024, 1536x1024, 1024x1536).
+	 * @param string $quality Quality (low, medium, high).
+	 * @return array|WP_Error {b64_json: string, revised_prompt: string} or error.
 	 */
-	public function generate_image( $prompt, $size = '1024x1024', $style = 'vivid' ) {
-		$allowed_sizes = array( '1024x1024', '1792x1024', '1024x1792' );
+	public function generate_image( $prompt, $size = '1024x1024', $quality = 'medium' ) {
+		$allowed_sizes = array( '1024x1024', '1536x1024', '1024x1536' );
 		if ( ! in_array( $size, $allowed_sizes, true ) ) {
 			$size = '1024x1024';
 		}
 
-		$allowed_styles = array( 'vivid', 'natural' );
-		if ( ! in_array( $style, $allowed_styles, true ) ) {
-			$style = 'vivid';
+		$allowed_qualities = array( 'low', 'medium', 'high' );
+		if ( ! in_array( $quality, $allowed_qualities, true ) ) {
+			$quality = 'medium';
 		}
 
 		$response = $this->post( 'images/generations', array(
-			'model'           => 'dall-e-3',
-			'prompt'          => $prompt,
-			'n'               => 1,
-			'size'            => $size,
-			'style'           => $style,
-			'response_format' => 'url',
-		), 60 );
+			'model'         => 'gpt-image-1-mini',
+			'prompt'        => $prompt,
+			'n'             => 1,
+			'size'          => $size,
+			'quality'       => $quality,
+			'output_format' => 'png',
+		), 90 );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
 
-		if ( empty( $response['data'][0]['url'] ) ) {
+		if ( empty( $response['data'][0]['b64_json'] ) ) {
 			return new WP_Error( 'openai_no_image', __( 'No image returned from OpenAI.', 'site-pilot-ai' ) );
 		}
 
 		return array(
-			'url'             => $response['data'][0]['url'],
+			'b64_json'        => $response['data'][0]['b64_json'],
 			'revised_prompt'  => isset( $response['data'][0]['revised_prompt'] ) ? $response['data'][0]['revised_prompt'] : '',
 		);
 	}
@@ -86,26 +86,27 @@ class Spai_Provider_OpenAI {
 	 * Generate image and upload to media library.
 	 *
 	 * @param string $prompt Image prompt.
-	 * @param array  $args   Optional. {size, style, alt, title}.
+	 * @param array  $args   Optional. {size, quality, alt, title}.
 	 * @return array|WP_Error Attachment data or error.
 	 */
 	public function generate_image_to_media( $prompt, $args = array() ) {
-		$size  = isset( $args['size'] ) ? $args['size'] : '1024x1024';
-		$style = isset( $args['style'] ) ? $args['style'] : 'vivid';
+		$size    = isset( $args['size'] ) ? $args['size'] : '1024x1024';
+		$quality = isset( $args['quality'] ) ? $args['quality'] : ( isset( $args['style'] ) ? 'medium' : 'medium' );
 
-		$result = $this->generate_image( $prompt, $size, $style );
+		$result = $this->generate_image( $prompt, $size, $quality );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		$media       = new Spai_Media();
-		$upload_args = array(
-			'title'    => ! empty( $args['title'] ) ? $args['title'] : substr( $prompt, 0, 100 ),
-			'alt'      => ! empty( $args['alt'] ) ? $args['alt'] : substr( $prompt, 0, 125 ),
-			'filename' => sanitize_file_name( substr( $prompt, 0, 50 ) ) . '.png',
-		);
+		$media    = new Spai_Media();
+		$filename = sanitize_file_name( substr( $prompt, 0, 50 ) ) . '.png';
+		$title    = ! empty( $args['title'] ) ? $args['title'] : substr( $prompt, 0, 100 );
+		$alt      = ! empty( $args['alt'] ) ? $args['alt'] : substr( $prompt, 0, 125 );
 
-		$attachment = $media->upload_from_url( $result['url'], $upload_args );
+		$attachment = $media->upload_from_base64( $result['b64_json'], $filename, array(
+			'title' => $title,
+			'alt'   => $alt,
+		) );
 		if ( is_wp_error( $attachment ) ) {
 			return $attachment;
 		}

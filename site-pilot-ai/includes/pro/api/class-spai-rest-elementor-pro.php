@@ -196,6 +196,17 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
+
+		// Build page from section blueprints.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/build-page',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'build_page' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
 	}
 
 	/**
@@ -710,5 +721,28 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 			'settings' => $updated,
 			'message'  => __( 'Elementor globals updated.', 'site-pilot-ai' ),
 		) );
+	}
+
+	/**
+	 * Build a page from section blueprints.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function build_page( $request ) {
+		$this->log_activity( 'build_page', $request );
+
+		$title    = $request->get_param( 'title' );
+		$sections = $request->get_param( 'sections' );
+		$status   = $request->get_param( 'status' ) ?: 'draft';
+
+		$builder = new Spai_Page_Builder();
+		$result  = $builder->build( $title, $sections, $status );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result, 201 );
 	}
 }

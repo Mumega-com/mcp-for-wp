@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.1.0
+**Version:** 1.1.2
 
 ## Table of Contents
 
@@ -67,9 +67,49 @@ curl -X POST "https://your-site.com/wp-json/site-pilot-ai/v1/mcp" \
 
 **Supported Methods:**
 - `initialize` - Initialize MCP session
-- `tools/list` - List all available tools (50+ tools, varies by license)
+- `tools/list` - List all available tools (85+ tools, varies by license)
 - `tools/call` - Execute a tool
 - Batch requests - Execute up to 10 requests in parallel
+
+### Tool Categories
+
+Every tool includes an `annotations.category` field. Tools are organized into 11 categories:
+
+| Category | Description | Example Tools |
+|----------|-------------|---------------|
+| `content` | Posts, pages, drafts, search, clone | `wp_list_posts`, `wp_create_page`, `wp_search` |
+| `media` | Upload, list, manage media files | `wp_upload_media`, `wp_list_media` |
+| `elementor` | Elementor page builder data | `wp_get_elementor`, `wp_set_elementor` |
+| `seo` | SEO meta, analysis (Pro) | `wp_get_seo`, `wp_set_seo` |
+| `forms` | Form plugins integration (Pro) | `wp_list_forms`, `wp_get_form_submissions` |
+| `gutenberg` | Block editor content | `wp_get_blocks`, `wp_set_blocks` |
+| `taxonomy` | Categories, tags, terms | `wp_create_term`, `wp_list_categories` |
+| `site` | Site info, plugins, themes, health | `wp_site_info`, `wp_list_plugins` |
+| `webhooks` | Webhook management | `wp_list_webhooks`, `wp_create_webhook` |
+| `admin` | API keys, rate limits, feedback | `wp_get_rate_limit_status`, `wp_submit_feedback` |
+| `ai` | AI-powered tools (stock photos, TTS) | `wp_search_stock_photos`, `wp_generate_tts` |
+
+### Category Filtering
+
+Filter `tools/list` by category to reduce context noise:
+
+```bash
+curl -X POST "https://your-site.com/wp-json/site-pilot-ai/v1/mcp" \
+  -H "X-API-Key: spai_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {"category": "elementor"}
+  }'
+```
+
+### Disabling Tool Categories (Admin)
+
+Site administrators can disable entire tool categories from **WordPress Admin → Tools → MCP Tools**. Disabled categories are excluded from `tools/list` responses, reducing token usage for AI assistants.
+
+Disabled categories are stored in the `spai_disabled_tool_categories` WordPress option.
 
 **Direct Claude Desktop/Code Connection:**
 

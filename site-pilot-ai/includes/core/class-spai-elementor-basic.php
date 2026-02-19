@@ -119,6 +119,171 @@ class Spai_Elementor_Basic {
 	}
 
 	/**
+	 * Get a lightweight structural summary of Elementor data for a page.
+	 *
+	 * Returns section/container structure with widget types and key display
+	 * settings, typically <1K tokens vs 64K+ for full data.
+	 *
+	 * @param int $page_id Page ID.
+	 * @return array|WP_Error Summary or error.
+	 */
+	public function get_elementor_summary( $page_id ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error(
+				'elementor_not_active',
+				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$page = $this->validate_post( $page_id );
+		if ( is_wp_error( $page ) ) {
+			return $page;
+		}
+
+		$elementor_data = get_post_meta( $page_id, '_elementor_data', true );
+		if ( empty( $elementor_data ) ) {
+			return array(
+				'page_id'       => $page_id,
+				'title'         => $page->post_title,
+				'has_elementor' => false,
+				'sections'      => array(),
+			);
+		}
+
+		$elements = json_decode( $elementor_data, true );
+		if ( ! is_array( $elements ) ) {
+			return array(
+				'page_id'       => $page_id,
+				'title'         => $page->post_title,
+				'has_elementor' => false,
+				'sections'      => array(),
+			);
+		}
+
+		$sections      = array();
+		$widget_count  = 0;
+		$section_count = 0;
+
+		foreach ( $elements as $element ) {
+			$section_summary = $this->summarize_element( $element, $widget_count );
+			if ( $section_summary ) {
+				$sections[] = $section_summary;
+				$section_count++;
+			}
+		}
+
+		return array(
+			'page_id'       => $page_id,
+			'title'         => $page->post_title,
+			'has_elementor' => true,
+			'section_count' => $section_count,
+			'widget_count'  => $widget_count,
+			'sections'      => $sections,
+		);
+	}
+
+	/**
+	 * Summarize a single Elementor element recursively.
+	 *
+	 * @param array $element      The element.
+	 * @param int   $widget_count Running widget count (by reference).
+	 * @return array|null Summary or null.
+	 */
+	private function summarize_element( $element, &$widget_count ) {
+		if ( ! is_array( $element ) || empty( $element['elType'] ) ) {
+			return null;
+		}
+
+		$summary = array(
+			'type' => $element['elType'],
+		);
+
+		if ( ! empty( $element['widgetType'] ) ) {
+			$summary['widget'] = $element['widgetType'];
+			$widget_count++;
+
+			// Extract key display settings based on widget type.
+			$settings = isset( $element['settings'] ) ? $element['settings'] : array();
+			$key_settings = array();
+
+			$display_keys = $this->get_widget_display_keys( $element['widgetType'] );
+			foreach ( $display_keys as $key ) {
+				if ( isset( $settings[ $key ] ) && '' !== $settings[ $key ] ) {
+					$value = $settings[ $key ];
+					// Truncate long strings to keep summary compact.
+					if ( is_string( $value ) && strlen( $value ) > 100 ) {
+						$value = substr( $value, 0, 100 ) . '...';
+					}
+					$key_settings[ $key ] = $value;
+				}
+			}
+
+			if ( ! empty( $key_settings ) ) {
+				$summary['settings'] = $key_settings;
+			}
+		}
+
+		// Recurse into child elements.
+		if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
+			$children = array();
+			foreach ( $element['elements'] as $child ) {
+				$child_summary = $this->summarize_element( $child, $widget_count );
+				if ( $child_summary ) {
+					$children[] = $child_summary;
+				}
+			}
+			if ( ! empty( $children ) ) {
+				$summary['children'] = $children;
+			}
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Get key display setting names for a widget type.
+	 *
+	 * @param string $widget_type Widget type name.
+	 * @return array Setting key names.
+	 */
+	private function get_widget_display_keys( $widget_type ) {
+		$map = array(
+			'heading'       => array( 'title', 'header_size', 'align' ),
+			'text-editor'   => array( 'editor' ),
+			'image'         => array( 'image' ),
+			'button'        => array( 'text', 'link' ),
+			'icon-box'      => array( 'title_text', 'description_text', 'selected_icon' ),
+			'image-box'     => array( 'title_text', 'description_text' ),
+			'icon-list'     => array(),
+			'counter'       => array( 'starting_number', 'ending_number', 'title' ),
+			'progress-bar'  => array( 'title', 'percent' ),
+			'testimonial'   => array( 'testimonial_name', 'testimonial_job', 'testimonial_content' ),
+			'tabs'          => array(),
+			'accordion'     => array(),
+			'toggle'        => array(),
+			'social-icons'  => array(),
+			'alert'         => array( 'alert_title', 'alert_description' ),
+			'html'          => array(),
+			'video'         => array( 'youtube_url', 'vimeo_url' ),
+			'google-maps'   => array( 'address' ),
+			'form'          => array( 'form_name' ),
+			'nav-menu'      => array( 'menu' ),
+			'sitemap'       => array(),
+			'flip-box'      => array( 'title_text_a', 'title_text_b' ),
+			'call-to-action' => array( 'title', 'description', 'button' ),
+			'price-table'   => array( 'heading', 'sub_heading', 'price' ),
+			'price-list'    => array(),
+			'countdown'     => array( 'due_date' ),
+			'share-buttons' => array(),
+			'blockquote'    => array( 'blockquote_content' ),
+			'template'      => array( 'template_id' ),
+		);
+
+		return isset( $map[ $widget_type ] ) ? $map[ $widget_type ] : array( 'title', 'text', 'heading' );
+	}
+
+	/**
 	 * Set Elementor data for a page.
 	 *
 	 * @param int   $page_id Page ID.

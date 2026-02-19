@@ -163,6 +163,26 @@ class Spai_REST_Media extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Delete media.
+		register_rest_route(
+			$this->namespace,
+			'/media/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_media' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'force' => array(
+							'description' => __( 'Permanently delete instead of trashing.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -372,5 +392,26 @@ class Spai_REST_Media extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result, 201 );
+	}
+
+	/**
+	 * Delete a media attachment.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function delete_media( $request ) {
+		$this->log_activity( 'delete_media', $request );
+
+		$attachment_id = absint( $request->get_param( 'id' ) );
+		$force = (bool) $request->get_param( 'force' );
+
+		$result = $this->media->delete_media( $attachment_id, $force );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
 	}
 }

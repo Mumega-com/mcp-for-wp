@@ -80,6 +80,19 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			)
 		);
 
+		// Get Elementor summary (lightweight).
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/summary',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_elementor_summary' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Create Elementor page
 		register_rest_route(
 			$this->namespace,
@@ -207,6 +220,25 @@ class Spai_REST_Elementor extends Spai_REST_API {
 
 		$page_id = $request->get_param( 'id' );
 		$result = $this->elementor->get_elementor_data( $page_id );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
+	}
+
+	/**
+	 * Get lightweight Elementor summary for page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_elementor_summary( $request ) {
+		$this->log_activity( 'get_elementor_summary', $request );
+
+		$page_id = $request->get_param( 'id' );
+		$result = $this->elementor->get_elementor_summary( $page_id );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;

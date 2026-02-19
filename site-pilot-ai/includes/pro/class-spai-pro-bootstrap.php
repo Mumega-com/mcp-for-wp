@@ -51,6 +51,7 @@ class Spai_Pro_Bootstrap {
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-themes.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-woocommerce.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-multilang.php';
+		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-page-builder.php';
 
 		// REST controllers.
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-elementor-pro.php';

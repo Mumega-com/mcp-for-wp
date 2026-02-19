@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,16 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.3 =
+* Fix: wp_generate_image timeout increased from 60s to 90s for GPT-Image-1-Mini and Imagen 3
+* Fix: wp_bulk_seo triple bug — now accepts flat `{id, title, description}` format (normalizes to internal format automatically)
+* New: wp_build_page — build pages from semantic section blueprints (hero, features, cta, pricing, faq, testimonials, text, gallery)
+* New: wp_create_theme_template — create and assign a Theme Builder template (header/footer/single/archive) in one call
+* New: wp_get_elementor_summary — lightweight structural summary of Elementor pages (<1K tokens vs 64K+ full data)
+* New: wp_delete_media — delete media attachments (with trash/force option)
+* Update: OpenAI image generation switched from DALL-E 3 to GPT-Image-1-Mini (faster, cheaper, base64 output)
+* Update: Gemini vision/text models upgraded from 2.0-flash to 2.5-flash
 
 = 1.1.2 =
 * New: Tool categories — every MCP tool now has an `annotations.category` field (content, media, elementor, seo, forms, gutenberg, taxonomy, site, webhooks, admin, ai)

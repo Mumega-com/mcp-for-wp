@@ -66,7 +66,7 @@ class Spai_Provider_Gemini {
 					'aspectRatio'  => $aspect_ratio,
 				),
 			),
-			60
+			90
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -109,7 +109,7 @@ class Spai_Provider_Gemini {
 	}
 
 	/**
-	 * Analyze an image using Gemini 2.0 Flash.
+	 * Analyze an image using Gemini 2.5 Flash.
 	 *
 	 * @param string $image_url   URL of the image.
 	 * @param string $instruction Analysis instruction.
@@ -117,7 +117,7 @@ class Spai_Provider_Gemini {
 	 */
 	public function analyze_image( $image_url, $instruction = 'Describe this image concisely.' ) {
 		$response = $this->post(
-			'models/gemini-2.0-flash:generateContent',
+			'models/gemini-2.5-flash:generateContent',
 			array(
 				'contents' => array(
 					array(
@@ -151,7 +151,7 @@ class Spai_Provider_Gemini {
 	}
 
 	/**
-	 * Generate text using Gemini 2.0 Flash.
+	 * Generate text using Gemini 2.5 Flash.
 	 *
 	 * @param string $prompt     Text prompt.
 	 * @param int    $max_tokens Maximum tokens.
@@ -159,7 +159,7 @@ class Spai_Provider_Gemini {
 	 */
 	public function generate_text( $prompt, $max_tokens = 500 ) {
 		$response = $this->post(
-			'models/gemini-2.0-flash:generateContent',
+			'models/gemini-2.5-flash:generateContent',
 			array(
 				'contents' => array(
 					array(

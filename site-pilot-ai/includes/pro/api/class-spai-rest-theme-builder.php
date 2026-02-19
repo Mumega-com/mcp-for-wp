@@ -69,14 +69,21 @@ class Spai_REST_Theme_Builder extends Spai_REST_API {
 			)
 		);
 
-		// Templates list.
+		// Templates list + create.
 		register_rest_route(
 			$this->namespace,
 			'/theme-builder/templates',
 			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_templates' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_templates' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_theme_template' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
 			)
 		);
 
@@ -302,6 +309,35 @@ class Spai_REST_Theme_Builder extends Spai_REST_API {
 			'conditions'  => array(),
 			'removed'     => true,
 		) );
+	}
+
+	/**
+	 * Create a Theme Builder template and assign to a location.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function create_theme_template( $request ) {
+		$data = array(
+			'title'          => $request->get_param( 'title' ),
+			'type'           => $request->get_param( 'type' ),
+			'elementor_data' => $request->get_param( 'elementor_data' ),
+			'scope'          => $request->get_param( 'scope' ),
+		);
+
+		$result = $this->theme_builder->create_theme_template( $data );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
+		}
+
+		$this->log_activity( 'create_theme_template', $request, array(
+			'template_id' => $result['id'] ?? null,
+			'type'        => $data['type'],
+			'scope'       => $data['scope'] ?? 'entire_site',
+		) );
+
+		return $this->success_response( $result );
 	}
 
 	/**

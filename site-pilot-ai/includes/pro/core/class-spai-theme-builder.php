@@ -372,6 +372,84 @@ class Spai_Theme_Builder {
 	}
 
 	/**
+	 * Create a Theme Builder template and assign it to a location in one step.
+	 *
+	 * @param array $data {
+	 *     @type string $title          Template title (required).
+	 *     @type string $type           Template type: header, footer, single, archive (required).
+	 *     @type array  $elementor_data Elementor JSON data (optional).
+	 *     @type string $scope          Display scope: entire_site, singular, archive, front_page, 404 (default: entire_site).
+	 * }
+	 * @return array|WP_Error Created template with conditions.
+	 */
+	public function create_theme_template( $data ) {
+		if ( ! $this->is_available() ) {
+			return new WP_Error( 'not_available', __( 'Elementor Pro Theme Builder is not available.', 'site-pilot-ai' ) );
+		}
+
+		$title = ! empty( $data['title'] ) ? sanitize_text_field( $data['title'] ) : '';
+		$type  = ! empty( $data['type'] ) ? sanitize_text_field( $data['type'] ) : '';
+		$scope = ! empty( $data['scope'] ) ? sanitize_text_field( $data['scope'] ) : 'entire_site';
+
+		if ( empty( $title ) ) {
+			return new WP_Error( 'missing_title', __( 'Template title is required.', 'site-pilot-ai' ) );
+		}
+
+		$valid_types = array( 'header', 'footer', 'single', 'archive' );
+		if ( ! in_array( $type, $valid_types, true ) ) {
+			return new WP_Error( 'invalid_type', sprintf(
+				__( 'Invalid template type. Must be one of: %s', 'site-pilot-ai' ),
+				implode( ', ', $valid_types )
+			) );
+		}
+
+		// Create the template post.
+		$post_data = array(
+			'post_title'  => $title,
+			'post_status' => 'publish',
+			'post_type'   => 'elementor_library',
+		);
+
+		$template_id = wp_insert_post( $post_data );
+		if ( is_wp_error( $template_id ) ) {
+			return $template_id;
+		}
+
+		// Set Elementor meta for Theme Builder.
+		update_post_meta( $template_id, '_elementor_template_type', $type );
+		update_post_meta( $template_id, '_elementor_edit_mode', 'builder' );
+
+		// Set Elementor data if provided.
+		if ( ! empty( $data['elementor_data'] ) ) {
+			$elementor_data = $data['elementor_data'];
+			if ( is_array( $elementor_data ) ) {
+				$elementor_data = wp_json_encode( $elementor_data );
+			}
+			update_post_meta( $template_id, '_elementor_data', wp_slash( $elementor_data ) );
+		}
+
+		// Assign to location. The type maps to the Elementor location name.
+		$result = $this->assign_to_location( $template_id, $type, $scope );
+		if ( is_wp_error( $result ) ) {
+			// Template was created but conditions failed — still return the template.
+			$template = $this->get_template( $template_id );
+			if ( is_wp_error( $template ) ) {
+				return $template;
+			}
+			$template['conditions_error'] = $result->get_error_message();
+			return $template;
+		}
+
+		$template = $this->get_template( $template_id );
+		if ( is_wp_error( $template ) ) {
+			return $template;
+		}
+
+		$template['assigned'] = true;
+		return $template;
+	}
+
+	/**
 	 * Get available condition options.
 	 *
 	 * @return array Available conditions.

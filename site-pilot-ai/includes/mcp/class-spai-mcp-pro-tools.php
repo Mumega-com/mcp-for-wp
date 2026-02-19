@@ -88,6 +88,8 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_theme_template'              => 'elementor',
 			'wp_set_template_conditions'         => 'elementor',
 			'wp_assign_template'                 => 'elementor',
+			'wp_create_theme_template'           => 'elementor',
+			'wp_build_page'                      => 'elementor',
 
 			// Menu Management (Pro)
 			'wp_get_menu'                        => 'site',
@@ -149,6 +151,8 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_theme_template'               => 'elementor',
 			'wp_set_template_conditions'          => 'elementor',
 			'wp_assign_template'                  => 'elementor',
+			'wp_create_theme_template'            => 'elementor',
+			'wp_build_page'                       => 'elementor',
 		);
 	}
 
@@ -290,7 +294,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			array(
 				'updates' => array(
 					'type'        => 'array',
-					'description' => 'Array of objects with id (required) and SEO fields: title, description, focus_keyword, canonical_url, noindex, nofollow',
+					'description' => 'Array of objects. Each must have id (post/page ID) plus any SEO fields: title, description, focus_keyword, canonical_url, noindex (bool), nofollow (bool), og_title, og_description, og_image',
 					'required'    => true,
 				),
 			)
@@ -477,6 +481,28 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 		);
 
 		$pro_tools[] = $this->define_tool(
+			'wp_build_page',
+			'Build a page from semantic section blueprints. Generates valid Elementor data automatically. Supported section types: hero, features, cta, pricing, faq, testimonials, text, gallery.',
+			array(
+				'title' => array(
+					'type'        => 'string',
+					'description' => 'Page title',
+					'required'    => true,
+				),
+				'sections' => array(
+					'type'        => 'array',
+					'description' => 'Array of section objects. Each has "type" (hero/features/cta/pricing/faq/testimonials/text/gallery) plus type-specific params. Hero: heading, subheading, cta_text, cta_url, background (color/#hex/gradient), image_url. Features: heading, columns, items[{icon, title, desc}]. CTA: heading, subheading, button_text, button_url, background. Pricing: heading, plans[{title, price, period, features[], button_text, button_url}]. FAQ: heading, items[{question, answer}]. Testimonials: heading, items[{text, name, title, image}]. Text: heading, content. Gallery: heading, images[], columns.',
+					'required'    => true,
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Page status: draft (default), publish, private',
+					'default'     => 'draft',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
 			'wp_get_elementor_globals',
 			'Get Elementor global settings (colors, fonts, etc.)',
 			array()
@@ -643,6 +669,32 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				'post_ids' => array(
 					'type'        => 'array',
 					'description' => 'Array of post IDs for specific_posts scope',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_create_theme_template',
+			'Create a Theme Builder template (header, footer, single, archive) and assign it to a display scope in one step',
+			array(
+				'title' => array(
+					'type'        => 'string',
+					'description' => 'Template title',
+					'required'    => true,
+				),
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Template type: header, footer, single, archive',
+					'required'    => true,
+				),
+				'elementor_data' => array(
+					'type'        => 'array',
+					'description' => 'Optional Elementor JSON data for the template content',
+				),
+				'scope' => array(
+					'type'        => 'string',
+					'description' => 'Display scope: entire_site (default), singular, archive, front_page, 404',
+					'default'     => 'entire_site',
 				),
 			)
 		);
@@ -949,6 +1001,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'POST',
 				'route'  => '/elementor/clone',
 			),
+			'wp_build_page'                  => array(
+				'method' => 'POST',
+				'route'  => '/elementor/build-page',
+			),
 			'wp_get_elementor_globals'       => array(
 				'method' => 'GET',
 				'route'  => '/elementor/globals',
@@ -998,6 +1054,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_assign_template'           => array(
 				'method' => 'POST',
 				'route'  => '/theme-builder/templates/{id}/assign',
+			),
+			'wp_create_theme_template'     => array(
+				'method' => 'POST',
+				'route'  => '/theme-builder/templates',
 			),
 
 			// Menu Management (Pro)

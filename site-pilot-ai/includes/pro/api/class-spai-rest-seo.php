@@ -266,6 +266,33 @@ class Spai_REST_SEO extends Spai_REST_API {
 			return $this->error_response( 'invalid_data', __( 'Updates array is required.', 'site-pilot-ai' ), 400 );
 		}
 
+		// Normalize items: accept both MCP flat format {id, title, description, ...}
+		// and legacy format {post_id, data: {title, description, ...}}.
+		$seo_fields = array( 'title', 'description', 'focus_keyword', 'canonical_url', 'canonical',
+			'noindex', 'nofollow', 'robots_noindex', 'robots_nofollow',
+			'og_title', 'og_description', 'og_image',
+			'twitter_title', 'twitter_description', 'twitter_image' );
+
+		foreach ( $updates as $i => $item ) {
+			// Accept 'id' as alias for 'post_id'.
+			if ( isset( $item['id'] ) && ! isset( $item['post_id'] ) ) {
+				$updates[ $i ]['post_id'] = $item['id'];
+			}
+
+			// If flat SEO fields are present (no 'data' wrapper), collect them into 'data'.
+			if ( ! isset( $item['data'] ) ) {
+				$data = array();
+				foreach ( $seo_fields as $field ) {
+					if ( isset( $updates[ $i ][ $field ] ) ) {
+						$data[ $field ] = $updates[ $i ][ $field ];
+					}
+				}
+				if ( ! empty( $data ) ) {
+					$updates[ $i ]['data'] = $data;
+				}
+			}
+		}
+
 		$results = $this->seo->bulk_update( $updates );
 
 		$success_count = count( array_filter( $results, function( $r ) {

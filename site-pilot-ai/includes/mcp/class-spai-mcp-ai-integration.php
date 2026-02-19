@@ -134,7 +134,7 @@ class Spai_MCP_AI_Integration extends Spai_Integration {
 		if ( $is_pro ) {
 			$tools[] = $this->define_tool(
 				'wp_generate_image',
-				'Generate an AI image using DALL-E 3 (OpenAI) or Imagen 3 (Gemini) and upload to WordPress media library.',
+				'Generate an AI image using GPT-Image-1-Mini (OpenAI) or Imagen 3 (Gemini) and upload to WordPress media library.',
 				array(
 					'prompt'   => array(
 						'type'        => 'string',
@@ -147,13 +147,13 @@ class Spai_MCP_AI_Integration extends Spai_Integration {
 					),
 					'size'     => array(
 						'type'        => 'string',
-						'description' => 'Image size: 1024x1024, 1792x1024 (landscape), 1024x1792 (portrait)',
+						'description' => 'Image size: 1024x1024, 1536x1024 (landscape), 1024x1536 (portrait)',
 						'default'     => '1024x1024',
 					),
-					'style'    => array(
+					'quality'  => array(
 						'type'        => 'string',
-						'description' => 'OpenAI only: vivid or natural (default: vivid)',
-						'default'     => 'vivid',
+						'description' => 'OpenAI quality: low, medium, high (default: medium)',
+						'default'     => 'medium',
 					),
 					'alt'      => array(
 						'type'        => 'string',

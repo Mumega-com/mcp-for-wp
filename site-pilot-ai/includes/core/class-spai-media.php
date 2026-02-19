@@ -418,6 +418,43 @@ class Spai_Media {
 	}
 
 	/**
+	 * Delete a media attachment.
+	 *
+	 * @param int  $attachment_id Attachment ID.
+	 * @param bool $force         True to permanently delete (skip trash).
+	 * @return array|WP_Error Deleted attachment info or error.
+	 */
+	public function delete_media( $attachment_id, $force = false ) {
+		$attachment = get_post( $attachment_id );
+
+		if ( ! $attachment || 'attachment' !== $attachment->post_type ) {
+			return new WP_Error(
+				'not_found',
+				__( 'Attachment not found.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// Capture info before deletion.
+		$info = $this->format_attachment( $attachment_id );
+
+		$result = wp_delete_attachment( $attachment_id, $force );
+
+		if ( ! $result ) {
+			return new WP_Error(
+				'delete_failed',
+				__( 'Failed to delete attachment.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		$info['deleted'] = true;
+		$info['force']   = $force;
+
+		return $info;
+	}
+
+	/**
 	 * Convert mime type to file extension.
 	 *
 	 * @param string $mime Mime type.
