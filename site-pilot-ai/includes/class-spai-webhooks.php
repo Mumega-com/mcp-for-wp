@@ -205,6 +205,7 @@ class Spai_Webhooks {
 		if ( ! empty( $invalid_events ) ) {
 			return new WP_Error(
 				'invalid_events',
+				/* translators: %s: comma-separated list of invalid event names */
 				sprintf( __( 'Invalid events: %s', 'site-pilot-ai' ), implode( ', ', $invalid_events ) )
 			);
 		}
@@ -342,6 +343,7 @@ class Spai_Webhooks {
 			if ( ! empty( $invalid_events ) ) {
 				return new WP_Error(
 					'invalid_events',
+					/* translators: %s: comma-separated list of invalid event names */
 					sprintf( __( 'Invalid events: %s', 'site-pilot-ai' ), implode( ', ', $invalid_events ) )
 				);
 			}

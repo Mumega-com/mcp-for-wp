@@ -138,6 +138,7 @@ class Spai_Rate_Limiter {
 			return new WP_Error(
 				'rate_limit_exceeded',
 				sprintf(
+					/* translators: 1: burst request limit 2: burst window in seconds 3: seconds until retry */
 					__( 'Burst limit exceeded. %1$d requests per %2$d seconds allowed. Try again in %3$d seconds.', 'site-pilot-ai' ),
 					$this->settings['burst_limit'],
 					$burst_window,
@@ -168,7 +169,8 @@ class Spai_Rate_Limiter {
 			return new WP_Error(
 				'rate_limit_exceeded',
 				sprintf(
-					__( 'Rate limit exceeded. %d requests per minute allowed. Try again in %d seconds.', 'site-pilot-ai' ),
+					/* translators: 1: request limit per minute 2: seconds until retry */
+					__( 'Rate limit exceeded. %1$d requests per minute allowed. Try again in %2$d seconds.', 'site-pilot-ai' ),
 					$this->settings['requests_per_minute'],
 					$retry_after
 				),
@@ -197,7 +199,8 @@ class Spai_Rate_Limiter {
 			return new WP_Error(
 				'rate_limit_exceeded',
 				sprintf(
-					__( 'Rate limit exceeded. %d requests per hour allowed. Try again in %d seconds.', 'site-pilot-ai' ),
+					/* translators: 1: request limit per hour 2: seconds until retry */
+					__( 'Rate limit exceeded. %1$d requests per hour allowed. Try again in %2$d seconds.', 'site-pilot-ai' ),
 					$this->settings['requests_per_hour'],
 					$retry_after
 				),

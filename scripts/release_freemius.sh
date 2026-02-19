@@ -160,7 +160,21 @@ PREMIUM_ZIP="site-pilot-ai-premium-$VERSION.zip"
 echo "Building zip package"
 (
 	BUILD_DIR="$(mktemp -d)"
-	cp -R "site-pilot-ai" "$BUILD_DIR/site-pilot-ai"
+	DISTIGNORE="site-pilot-ai/.distignore"
+
+	# Build rsync exclude list from .distignore
+	RSYNC_EXCLUDES=()
+	if [[ -f "$DISTIGNORE" ]]; then
+		while IFS= read -r line; do
+			line="$(echo "$line" | sed 's/#.*//' | xargs)"
+			[[ -z "$line" ]] && continue
+			RSYNC_EXCLUDES+=("--exclude=$line")
+		done < "$DISTIGNORE"
+	fi
+	# Always exclude .sh files (test scripts) and hidden files
+	RSYNC_EXCLUDES+=("--exclude=*.sh" "--exclude=.git" "--exclude=.github")
+
+	rsync -a "${RSYNC_EXCLUDES[@]}" "site-pilot-ai/" "$BUILD_DIR/site-pilot-ai/"
 	cd "$BUILD_DIR"
 	zip -qr "$ROOT_DIR/$FREE_ZIP" "site-pilot-ai"
 	rm -rf "$BUILD_DIR" || true

@@ -185,6 +185,7 @@ class Spai_REST_Multilang extends Spai_REST_API {
 		return rest_ensure_response( array(
 			'success'          => true,
 			'current_language' => $language,
+			/* translators: %s: language code (e.g. en, fr, de) */
 			'message'          => sprintf( __( 'Language set to %s.', 'site-pilot-ai' ), $language ),
 		) );
 	}

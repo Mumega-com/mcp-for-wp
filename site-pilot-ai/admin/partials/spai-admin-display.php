@@ -128,10 +128,16 @@ if ( isset( $new_key ) && $new_key ) {
 	<div class="spai-license-banner spai-license-active">
 		<div class="spai-license-content">
 			<span class="dashicons dashicons-yes-alt"></span>
-			<strong><?php printf( esc_html__( '%s Plan Active', 'site-pilot-ai' ), esc_html( ucfirst( $plan ) ) ); ?></strong>
+			<strong><?php
+			/* translators: %s: plan name (e.g. Pro, Agency) */
+			printf( esc_html__( '%s Plan Active', 'site-pilot-ai' ), esc_html( ucfirst( $plan ) ) );
+		?></strong>
 			<?php if ( $license && $license->get_expiration() ) : ?>
 				<span class="spai-license-expiry">
-					<?php printf( esc_html__( 'Renews: %s', 'site-pilot-ai' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $license->get_expiration() ) ) ) ); ?>
+					<?php
+					/* translators: %s: license renewal date */
+					printf( esc_html__( 'Renews: %s', 'site-pilot-ai' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $license->get_expiration() ) ) ) );
+				?>
 				</span>
 			<?php endif; ?>
 		</div>
@@ -569,8 +575,9 @@ if ( isset( $new_key ) && $new_key ) {
 			</div>
 			<p class="description" style="margin-top: 10px;">
 				<?php
+				/* translators: 1: header name HTML 2: number of free tools 3: pro tools suffix */
 				printf(
-					esc_html__( 'Protocol: JSON-RPC 2.0 over HTTP POST. Auth: %s header. Tools available: %d free%s.', 'site-pilot-ai' ),
+					esc_html__( 'Protocol: JSON-RPC 2.0 over HTTP POST. Auth: %1$s header. Tools available: %2$d free%3$s.', 'site-pilot-ai' ),
 					'<code>X-API-Key</code>',
 					17,
 					$is_pro ? ' + 13 Pro' : ''
