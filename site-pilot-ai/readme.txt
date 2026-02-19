@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.5 =
+* Fix: wp_fetch no longer wraps response in `item` key — data is now at top level like all other tools
+* Fix: wp_create_theme_template and wp_build_page now auto-regenerate Elementor CSS after saving data
+* Change: Default burst rate limit increased from 10 to 30 requests per 10 seconds
 
 = 1.1.4 =
 * Fix: Theme Builder conditions now update the global `elementor_pro_theme_builder_conditions` index — templates render correctly on the frontend

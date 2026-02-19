@@ -833,7 +833,7 @@ class Spai_REST_Site extends Spai_REST_API {
 	public function get_analytics( $request ) {
 		$this->log_activity( 'analytics', $request );
 
-		$days = $request->get_param( 'days' );
+		$days      = $request->get_param( 'days' );
 		$analytics = $this->core->get_analytics( $days );
 
 		return $this->success_response( $analytics );
@@ -850,10 +850,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$plugins = $this->core->detect_plugins();
 
-		return $this->success_response( array(
-			'plugins'      => $plugins,
-			'capabilities' => $this->core->get_capabilities(),
-		) );
+		return $this->success_response(
+			array(
+				'plugins'      => $plugins,
+				'capabilities' => $this->core->get_capabilities(),
+			)
+		);
 	}
 
 	/**
@@ -902,15 +904,17 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$post_types = 'any' === $type ? array( 'post', 'page' ) : array( $type );
 
-		$search_query = new WP_Query( array(
-			'post_type'           => $post_types,
-			'post_status'         => $status,
-			's'                   => $query,
-			'posts_per_page'      => $per_page,
-			'paged'               => $page,
-			'ignore_sticky_posts' => true,
-			'no_found_rows'       => false,
-		) );
+		$search_query = new WP_Query(
+			array(
+				'post_type'           => $post_types,
+				'post_status'         => $status,
+				's'                   => $query,
+				'posts_per_page'      => $per_page,
+				'paged'               => $page,
+				'ignore_sticky_posts' => true,
+				'no_found_rows'       => false,
+			)
+		);
 
 		$items = array();
 		foreach ( $search_query->posts as $post ) {
@@ -919,18 +923,20 @@ class Spai_REST_Site extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'query'      => $query,
-			'type'       => $type,
-			'status'     => $status,
-			'items'      => $items,
-			'pagination' => array(
-				'page'        => $page,
-				'per_page'    => $per_page,
-				'total'       => (int) $search_query->found_posts,
-				'total_pages' => (int) $search_query->max_num_pages,
-			),
-		) );
+		return $this->success_response(
+			array(
+				'query'      => $query,
+				'type'       => $type,
+				'status'     => $status,
+				'items'      => $items,
+				'pagination' => array(
+					'page'        => $page,
+					'per_page'    => $per_page,
+					'total'       => (int) $search_query->found_posts,
+					'total_pages' => (int) $search_query->max_num_pages,
+				),
+			)
+		);
 	}
 
 	/**
@@ -987,9 +993,9 @@ class Spai_REST_Site extends Spai_REST_API {
 		$include_content = $request->get_param( 'include_content' );
 		$include_content = null === $include_content ? true : (bool) $include_content;
 
-		return $this->success_response( array(
-			'item' => $this->format_content_item( $post, $include_content ),
-		) );
+		return $this->success_response(
+			$this->format_content_item( $post, $include_content )
+		);
 	}
 
 	/**
@@ -1052,20 +1058,20 @@ class Spai_REST_Site extends Spai_REST_API {
 		$this->log_activity( 'get_settings', $request );
 
 		$settings = array(
-			'title'              => get_option( 'blogname' ),
-			'tagline'            => get_option( 'blogdescription' ),
-			'url'                => get_option( 'siteurl' ),
-			'home'               => get_option( 'home' ),
-			'admin_email'        => get_option( 'admin_email' ),
-			'timezone'           => get_option( 'timezone_string' ) ?: 'UTC',
-			'date_format'        => get_option( 'date_format' ),
-			'time_format'        => get_option( 'time_format' ),
-			'language'           => get_option( 'WPLANG' ) ?: 'en_US',
-			'posts_per_page'     => (int) get_option( 'posts_per_page' ),
+			'title'               => get_option( 'blogname' ),
+			'tagline'             => get_option( 'blogdescription' ),
+			'url'                 => get_option( 'siteurl' ),
+			'home'                => get_option( 'home' ),
+			'admin_email'         => get_option( 'admin_email' ),
+			'timezone'            => get_option( 'timezone_string' ) ?: 'UTC',
+			'date_format'         => get_option( 'date_format' ),
+			'time_format'         => get_option( 'time_format' ),
+			'language'            => get_option( 'WPLANG' ) ?: 'en_US',
+			'posts_per_page'      => (int) get_option( 'posts_per_page' ),
 			'permalink_structure' => get_option( 'permalink_structure' ),
-			'show_on_front'      => get_option( 'show_on_front' ),
-			'page_on_front'      => (int) get_option( 'page_on_front' ),
-			'page_for_posts'     => (int) get_option( 'page_for_posts' ),
+			'show_on_front'       => get_option( 'show_on_front' ),
+			'page_on_front'       => (int) get_option( 'page_on_front' ),
+			'page_for_posts'      => (int) get_option( 'page_for_posts' ),
 		);
 
 		return $this->success_response( $settings );
@@ -1132,10 +1138,12 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'updated'  => $updated,
-			'settings' => $this->get_settings( $request )->get_data(),
-		) );
+		return $this->success_response(
+			array(
+				'updated'  => $updated,
+				'settings' => $this->get_settings( $request )->get_data(),
+			)
+		);
 	}
 
 	/**
@@ -1158,12 +1166,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		// Include page names for context
 		if ( $options['page_on_front'] ) {
-			$page = get_post( $options['page_on_front'] );
+			$page                           = get_post( $options['page_on_front'] );
 			$options['page_on_front_title'] = $page ? $page->post_title : null;
 		}
 
 		if ( $options['page_for_posts'] ) {
-			$page = get_post( $options['page_for_posts'] );
+			$page                            = get_post( $options['page_for_posts'] );
 			$options['page_for_posts_title'] = $page ? $page->post_title : null;
 		}
 
@@ -1251,10 +1259,12 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'updated' => $updated,
-			'options' => $this->get_options( $request )->get_data(),
-		) );
+		return $this->success_response(
+			array(
+				'updated' => $updated,
+				'options' => $this->get_options( $request )->get_data(),
+			)
+		);
 	}
 
 	/**
@@ -1269,15 +1279,17 @@ class Spai_REST_Site extends Spai_REST_API {
 		$site_icon_id = get_option( 'site_icon' );
 
 		if ( ! $site_icon_id ) {
-			return $this->success_response( array(
-				'has_favicon' => false,
-				'id'          => null,
-				'url'         => null,
-				'sizes'       => array(),
-			) );
+			return $this->success_response(
+				array(
+					'has_favicon' => false,
+					'id'          => null,
+					'url'         => null,
+					'sizes'       => array(),
+				)
+			);
 		}
 
-		$sizes = array();
+		$sizes      = array();
 		$icon_sizes = array( 32, 180, 192, 270, 512 );
 
 		foreach ( $icon_sizes as $size ) {
@@ -1287,12 +1299,14 @@ class Spai_REST_Site extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'has_favicon' => true,
-			'id'          => (int) $site_icon_id,
-			'url'         => get_site_icon_url( 512 ),
-			'sizes'       => $sizes,
-		) );
+		return $this->success_response(
+			array(
+				'has_favicon' => true,
+				'id'          => (int) $site_icon_id,
+				'url'         => get_site_icon_url( 512 ),
+				'sizes'       => $sizes,
+			)
+		);
 	}
 
 	/**
@@ -1330,10 +1344,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 			update_option( 'site_icon', $attachment_id );
 
-			return $this->success_response( array(
-				'updated' => true,
-				'favicon' => $this->get_favicon( $request )->get_data(),
-			) );
+			return $this->success_response(
+				array(
+					'updated' => true,
+					'favicon' => $this->get_favicon( $request )->get_data(),
+				)
+			);
 		}
 
 		// Option 2: Upload from URL
@@ -1381,11 +1397,14 @@ class Spai_REST_Site extends Spai_REST_API {
 
 			update_option( 'site_icon', $attachment_id );
 
-			return $this->success_response( array(
-				'updated'  => true,
-				'uploaded' => true,
-				'favicon'  => $this->get_favicon( $request )->get_data(),
-			), 201 );
+			return $this->success_response(
+				array(
+					'updated'  => true,
+					'uploaded' => true,
+					'favicon'  => $this->get_favicon( $request )->get_data(),
+				),
+				201
+			);
 		}
 
 		return $this->error_response(
@@ -1407,18 +1426,22 @@ class Spai_REST_Site extends Spai_REST_API {
 		$site_icon_id = get_option( 'site_icon' );
 
 		if ( ! $site_icon_id ) {
-			return $this->success_response( array(
-				'deleted' => false,
-				'message' => __( 'No favicon was set.', 'site-pilot-ai' ),
-			) );
+			return $this->success_response(
+				array(
+					'deleted' => false,
+					'message' => __( 'No favicon was set.', 'site-pilot-ai' ),
+				)
+			);
 		}
 
 		delete_option( 'site_icon' );
 
-		return $this->success_response( array(
-			'deleted'     => true,
-			'previous_id' => (int) $site_icon_id,
-		) );
+		return $this->success_response(
+			array(
+				'deleted'     => true,
+				'previous_id' => (int) $site_icon_id,
+			)
+		);
 	}
 
 	/**
@@ -1431,25 +1454,29 @@ class Spai_REST_Site extends Spai_REST_API {
 		$this->log_activity( 'rate_limit_status', $request );
 
 		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
-			return $this->success_response( array(
-				'enabled' => false,
-				'message' => __( 'Rate limiting is not available.', 'site-pilot-ai' ),
-			) );
+			return $this->success_response(
+				array(
+					'enabled' => false,
+					'message' => __( 'Rate limiting is not available.', 'site-pilot-ai' ),
+				)
+			);
 		}
 
 		$limiter  = Spai_Rate_Limiter::get_instance();
 		$settings = $limiter->get_settings();
 		$usage    = $limiter->get_usage();
 
-		return $this->success_response( array(
-			'enabled'  => $settings['enabled'],
-			'limits'   => array(
-				'burst'      => $settings['burst_limit'],
-				'per_minute' => $settings['requests_per_minute'],
-				'per_hour'   => $settings['requests_per_hour'],
-			),
-			'usage'    => $usage,
-		) );
+		return $this->success_response(
+			array(
+				'enabled' => $settings['enabled'],
+				'limits'  => array(
+					'burst'      => $settings['burst_limit'],
+					'per_minute' => $settings['requests_per_minute'],
+					'per_hour'   => $settings['requests_per_hour'],
+				),
+				'usage'   => $usage,
+			)
+		);
 	}
 
 	/**
@@ -1509,10 +1536,12 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'updated'  => true,
-			'settings' => $limiter->get_settings(),
-		) );
+		return $this->success_response(
+			array(
+				'updated'  => true,
+				'settings' => $limiter->get_settings(),
+			)
+		);
 	}
 
 	/**
@@ -1551,10 +1580,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		Spai_Rate_Limiter::get_instance()->reset_limit( $identifier );
 
-		return $this->success_response( array(
-			'reset'      => true,
-			'identifier' => $identifier,
-		) );
+		return $this->success_response(
+			array(
+				'reset'      => true,
+				'identifier' => $identifier,
+			)
+		);
 	}
 
 	/**
@@ -1577,10 +1608,12 @@ class Spai_REST_Site extends Spai_REST_API {
 		$include_revoked = (bool) $request->get_param( 'include_revoked' );
 		$keys            = $this->list_scoped_api_keys( $include_revoked );
 
-		return $this->success_response( array(
-			'keys'  => $keys,
-			'total' => count( $keys ),
-		) );
+		return $this->success_response(
+			array(
+				'keys'  => $keys,
+				'total' => count( $keys ),
+			)
+		);
 	}
 
 	/**
@@ -1606,9 +1639,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$created = $this->create_scoped_api_key( $label, $scopes );
 
-		return $this->success_response( array(
-			'api_key' => $created,
-		), 201 );
+		return $this->success_response(
+			array(
+				'api_key' => $created,
+			),
+			201
+		);
 	}
 
 	/**
@@ -1639,10 +1675,12 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'revoked' => true,
-			'id'      => sanitize_key( $key_id ),
-		) );
+		return $this->success_response(
+			array(
+				'revoked' => true,
+				'id'      => sanitize_key( $key_id ),
+			)
+		);
 	}
 
 	/**
@@ -1696,12 +1734,14 @@ class Spai_REST_Site extends Spai_REST_API {
 			$update_available = ! empty( $new_version ) && version_compare( $new_version, $current_version, '>' );
 		}
 
-		return $this->success_response( array(
-			'current_version'  => $current_version,
-			'update_available' => $update_available,
-			'new_version'      => $new_version,
-			'has_package'      => ! empty( $package ),
-		) );
+		return $this->success_response(
+			array(
+				'current_version'  => $current_version,
+				'update_available' => $update_available,
+				'new_version'      => $new_version,
+				'has_package'      => ! empty( $package ),
+			)
+		);
 	}
 
 	/**
@@ -1750,11 +1790,13 @@ class Spai_REST_Site extends Spai_REST_API {
 		$update_plugins = get_site_transient( 'update_plugins' );
 
 		if ( empty( $update_plugins->response[ $plugin_file ] ) ) {
-			return $this->success_response( array(
-				'updated' => false,
-				'message' => __( 'No update available.', 'site-pilot-ai' ),
-				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
-			) );
+			return $this->success_response(
+				array(
+					'updated' => false,
+					'message' => __( 'No update available.', 'site-pilot-ai' ),
+					'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+				)
+			);
 		}
 
 		$plugin_update = $update_plugins->response[ $plugin_file ];
@@ -1793,11 +1835,13 @@ class Spai_REST_Site extends Spai_REST_API {
 			activate_plugin( $plugin_file );
 		}
 
-		return $this->success_response( array(
-			'updated'     => true,
-			'new_version' => is_object( $plugin_update ) ? $plugin_update->new_version : null,
-			'message'     => __( 'Plugin updated successfully.', 'site-pilot-ai' ),
-		) );
+		return $this->success_response(
+			array(
+				'updated'     => true,
+				'new_version' => is_object( $plugin_update ) ? $plugin_update->new_version : null,
+				'message'     => __( 'Plugin updated successfully.', 'site-pilot-ai' ),
+			)
+		);
 	}
 
 	/**
@@ -1834,10 +1878,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$items = array_map( array( $this, 'format_term' ), $terms );
 
-		return $this->success_response( array(
-			'categories' => $items,
-			'total'      => count( $items ),
-		) );
+		return $this->success_response(
+			array(
+				'categories' => $items,
+				'total'      => count( $items ),
+			)
+		);
 	}
 
 	/**
@@ -1869,10 +1915,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$items = array_map( array( $this, 'format_term' ), $terms );
 
-		return $this->success_response( array(
-			'tags'  => $items,
-			'total' => count( $items ),
-		) );
+		return $this->success_response(
+			array(
+				'tags'  => $items,
+				'total' => count( $items ),
+			)
+		);
 	}
 
 	/**
@@ -1902,11 +1950,13 @@ class Spai_REST_Site extends Spai_REST_API {
 
 			$value = get_post_meta( $post_id, $key, true );
 
-			return $this->success_response( array(
-				'id'    => $post_id,
-				'key'   => $key,
-				'value' => $value,
-			) );
+			return $this->success_response(
+				array(
+					'id'    => $post_id,
+					'key'   => $key,
+					'value' => $value,
+				)
+			);
 		}
 
 		// Return all non-blocked meta
@@ -1919,10 +1969,12 @@ class Spai_REST_Site extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'id'   => $post_id,
-			'meta' => $safe_meta,
-		) );
+		return $this->success_response(
+			array(
+				'id'   => $post_id,
+				'meta' => $safe_meta,
+			)
+		);
 	}
 
 	/**
@@ -1959,12 +2011,14 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$result = update_post_meta( $post_id, $key, $value );
 
-		return $this->success_response( array(
-			'id'      => $post_id,
-			'key'     => $key,
-			'value'   => $value,
-			'updated' => false !== $result,
-		) );
+		return $this->success_response(
+			array(
+				'id'      => $post_id,
+				'key'     => $key,
+				'value'   => $value,
+				'updated' => false !== $result,
+			)
+		);
 	}
 
 	/**
@@ -2061,10 +2115,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$value = get_option( $key );
 
-		return $this->success_response( array(
-			'key'   => $key,
-			'value' => $value,
-		) );
+		return $this->success_response(
+			array(
+				'key'   => $key,
+				'value' => $value,
+			)
+		);
 	}
 
 	/**
@@ -2120,12 +2176,14 @@ class Spai_REST_Site extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'key'       => $key,
-			'value'     => get_option( $key ),
-			'old_value' => $old_value,
-			'updated'   => true,
-		) );
+		return $this->success_response(
+			array(
+				'key'       => $key,
+				'value'     => get_option( $key ),
+				'old_value' => $old_value,
+				'updated'   => true,
+			)
+		);
 	}
 
 	/**
@@ -2203,7 +2261,7 @@ class Spai_REST_Site extends Spai_REST_API {
 		);
 
 		if ( $include_content ) {
-			$raw_content = (string) $post->post_content;
+			$raw_content     = (string) $post->post_content;
 			$item['content'] = array(
 				'raw'      => $raw_content,
 				'rendered' => apply_filters( 'the_content', $raw_content ),
@@ -2273,10 +2331,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$css = wp_get_custom_css();
 
-		return $this->success_response( array(
-			'css'    => $css,
-			'length' => strlen( $css ),
-		) );
+		return $this->success_response(
+			array(
+				'css'    => $css,
+				'length' => strlen( $css ),
+			)
+		);
 	}
 
 	/**
@@ -2308,11 +2368,13 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'css'    => $css,
-			'length' => strlen( $css ),
-			'mode'   => $mode,
-		) );
+		return $this->success_response(
+			array(
+				'css'    => $css,
+				'length' => strlen( $css ),
+				'mode'   => $mode,
+			)
+		);
 	}
 
 	/**
@@ -2328,15 +2390,15 @@ class Spai_REST_Site extends Spai_REST_API {
 		$parent = $theme->parent();
 
 		$info = array(
-			'name'        => $theme->get( 'Name' ),
-			'version'     => $theme->get( 'Version' ),
-			'author'      => $theme->get( 'Author' ),
-			'author_uri'  => $theme->get( 'AuthorURI' ),
-			'theme_uri'   => $theme->get( 'ThemeURI' ),
-			'description' => $theme->get( 'Description' ),
-			'text_domain' => $theme->get( 'TextDomain' ),
-			'is_child'    => (bool) $parent,
-			'parent'      => $parent ? array(
+			'name'           => $theme->get( 'Name' ),
+			'version'        => $theme->get( 'Version' ),
+			'author'         => $theme->get( 'Author' ),
+			'author_uri'     => $theme->get( 'AuthorURI' ),
+			'theme_uri'      => $theme->get( 'ThemeURI' ),
+			'description'    => $theme->get( 'Description' ),
+			'text_domain'    => $theme->get( 'TextDomain' ),
+			'is_child'       => (bool) $parent,
+			'parent'         => $parent ? array(
 				'name'    => $parent->get( 'Name' ),
 				'version' => $parent->get( 'Version' ),
 			) : null,
@@ -2346,7 +2408,7 @@ class Spai_REST_Site extends Spai_REST_API {
 		);
 
 		// Page templates
-		$templates = $theme->get_page_templates();
+		$templates              = $theme->get_page_templates();
 		$info['page_templates'] = array();
 		foreach ( $templates as $slug => $name ) {
 			$info['page_templates'][] = array(
@@ -2383,11 +2445,13 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		flush_rewrite_rules();
 
-		return $this->success_response( array(
-			'success'   => true,
-			'message'   => __( 'Permalink rewrite rules flushed.', 'site-pilot-ai' ),
-			'structure' => get_option( 'permalink_structure' ),
-		) );
+		return $this->success_response(
+			array(
+				'success'   => true,
+				'message'   => __( 'Permalink rewrite rules flushed.', 'site-pilot-ai' ),
+				'structure' => get_option( 'permalink_structure' ),
+			)
+		);
 	}
 
 	/**
@@ -2402,7 +2466,7 @@ class Spai_REST_Site extends Spai_REST_API {
 		// Content counts by status.
 		$post_counts = array();
 		foreach ( array( 'post', 'page' ) as $type ) {
-			$counts = (array) wp_count_posts( $type );
+			$counts               = (array) wp_count_posts( $type );
 			$post_counts[ $type ] = array();
 			foreach ( $counts as $status => $count ) {
 				if ( (int) $count > 0 ) {
@@ -2413,7 +2477,7 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		// Pages not in any menu.
 		$menu_page_ids = array();
-		$menus = wp_get_nav_menus();
+		$menus         = wp_get_nav_menus();
 		foreach ( $menus as $menu ) {
 			$items = wp_get_nav_menu_items( $menu->term_id );
 			if ( $items ) {
@@ -2426,12 +2490,14 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 		$menu_page_ids = array_unique( $menu_page_ids );
 
-		$all_pages = get_posts( array(
-			'post_type'      => 'page',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-		) );
+		$all_pages = get_posts(
+			array(
+				'post_type'      => 'page',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			)
+		);
 
 		$orphan_pages = array_diff( $all_pages, $menu_page_ids );
 		$orphan_list  = array();
@@ -2444,19 +2510,21 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		// Pages missing featured images.
-		$no_thumb = array();
-		$pages_query = get_posts( array(
-			'post_type'      => 'page',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+		$no_thumb    = array();
+		$pages_query = get_posts(
+			array(
+				'post_type'      => 'page',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				array(
 					'key'     => '_thumbnail_id',
 					'compare' => 'NOT EXISTS',
 				),
-			),
-		) );
+				),
+			)
+		);
 		foreach ( array_slice( $pages_query, 0, 20 ) as $pid ) {
 			$no_thumb[] = array(
 				'id'    => $pid,
@@ -2480,21 +2548,23 @@ class Spai_REST_Site extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'content_counts'          => $post_counts,
-			'orphan_pages'            => array(
-				'count' => count( $orphan_pages ),
-				'items' => $orphan_list,
-			),
-			'pages_missing_thumbnail' => array(
-				'count' => count( $pages_query ),
-				'items' => $no_thumb,
-			),
-			'active_plugins'          => $plugins_list,
-			'wp_version'              => get_bloginfo( 'version' ),
-			'php_version'             => PHP_VERSION,
-			'permalink_structure'     => get_option( 'permalink_structure' ),
-		) );
+		return $this->success_response(
+			array(
+				'content_counts'          => $post_counts,
+				'orphan_pages'            => array(
+					'count' => count( $orphan_pages ),
+					'items' => $orphan_list,
+				),
+				'pages_missing_thumbnail' => array(
+					'count' => count( $pages_query ),
+					'items' => $no_thumb,
+				),
+				'active_plugins'          => $plugins_list,
+				'wp_version'              => get_bloginfo( 'version' ),
+				'php_version'             => PHP_VERSION,
+				'permalink_structure'     => get_option( 'permalink_structure' ),
+			)
+		);
 	}
 
 	/**
@@ -2532,15 +2602,18 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$term = get_term( $result['term_id'], $taxonomy );
 
-		return $this->success_response( array(
-			'id'          => $term->term_id,
-			'name'        => $term->name,
-			'slug'        => $term->slug,
-			'taxonomy'    => $term->taxonomy,
-			'description' => $term->description,
-			'parent'      => $term->parent,
-			'count'       => $term->count,
-		), 201 );
+		return $this->success_response(
+			array(
+				'id'          => $term->term_id,
+				'name'        => $term->name,
+				'slug'        => $term->slug,
+				'taxonomy'    => $term->taxonomy,
+				'description' => $term->description,
+				'parent'      => $term->parent,
+				'count'       => $term->count,
+			),
+			201
+		);
 	}
 
 	/**
@@ -2587,15 +2660,17 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$term = get_term( $result['term_id'], $taxonomy );
 
-		return $this->success_response( array(
-			'id'          => $term->term_id,
-			'name'        => $term->name,
-			'slug'        => $term->slug,
-			'taxonomy'    => $term->taxonomy,
-			'description' => $term->description,
-			'parent'      => $term->parent,
-			'count'       => $term->count,
-		) );
+		return $this->success_response(
+			array(
+				'id'          => $term->term_id,
+				'name'        => $term->name,
+				'slug'        => $term->slug,
+				'taxonomy'    => $term->taxonomy,
+				'description' => $term->description,
+				'parent'      => $term->parent,
+				'count'       => $term->count,
+			)
+		);
 	}
 
 	/**
@@ -2629,9 +2704,11 @@ class Spai_REST_Site extends Spai_REST_API {
 			return $this->error_response( 'delete_failed', __( 'Failed to delete term.', 'site-pilot-ai' ), 500 );
 		}
 
-		return $this->success_response( array(
-			'deleted' => true,
-			'term_id' => $term_id,
-		) );
+		return $this->success_response(
+			array(
+				'deleted' => true,
+				'term_id' => $term_id,
+			)
+		);
 	}
 }

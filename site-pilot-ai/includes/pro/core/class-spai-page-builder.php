@@ -94,6 +94,13 @@ class Spai_Page_Builder {
 		update_post_meta( $page_id, '_elementor_template_type', 'wp-page' );
 		update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
 
+		// Regenerate CSS so the page renders immediately.
+		delete_post_meta( $page_id, '_elementor_css' );
+		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+			$css_file->update();
+		}
+
 		$page = get_post( $page_id );
 
 		return array(

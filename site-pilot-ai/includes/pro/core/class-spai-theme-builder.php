@@ -431,6 +431,13 @@ class Spai_Theme_Builder {
 				$elementor_data = wp_json_encode( $elementor_data );
 			}
 			update_post_meta( $template_id, '_elementor_data', wp_slash( $elementor_data ) );
+
+			// Regenerate CSS so the template renders immediately.
+			delete_post_meta( $template_id, '_elementor_css' );
+			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+				$css_file = \Elementor\Core\Files\CSS\Post::create( $template_id );
+				$css_file->update();
+			}
 		}
 
 		// Assign to location. The type maps to the Elementor location name.

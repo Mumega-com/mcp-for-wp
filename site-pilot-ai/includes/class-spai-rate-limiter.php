@@ -62,7 +62,7 @@ class Spai_Rate_Limiter {
 			'enabled'            => true,
 			'requests_per_minute' => 60,
 			'requests_per_hour'   => 1000,
-			'burst_limit'         => 10,
+			'burst_limit'         => 30,
 			'whitelist'           => array(),
 		);
 
