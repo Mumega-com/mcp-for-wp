@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.0.70
+**Version:** 1.0.71
 
 ## Table of Contents
 
@@ -26,6 +26,7 @@
   - [Menus](#menus)
   - [Settings](#settings)
   - [Options](#options)
+  - [Site Context](#site-context)
   - [Favicon](#favicon)
   - [Widgets](#widgets)
   - [Themes](#themes)
@@ -1500,7 +1501,72 @@ Update a single WordPress option. Only whitelisted keys are allowed.
 }
 ```
 
-**Whitelisted Keys:** Only safe, non-sensitive options are allowed. These include site identity options (`blogname`, `blogdescription`), reading settings (`show_on_front`, `page_on_front`, `page_for_posts`, `posts_per_page`), and other general settings. Attempting to read or write a non-whitelisted key returns a `permission_denied` error.
+**Whitelisted Keys:** Only safe, non-sensitive options are allowed. These include site identity options (`blogname`, `blogdescription`), reading settings (`show_on_front`, `page_on_front`, `page_for_posts`, `posts_per_page`), site context keys (`spai_site_context`, `spai_site_context_updated`), and other general settings. Attempting to read or write a non-whitelisted key returns a `permission_denied` error.
+
+---
+
+### Site Context
+
+A master prompt / style guide stored in the plugin. AI assistants read this on connect via `wp_introspect` and follow the design rules automatically. Stores design rules, header/footer structure, color palette, predefined sections, and page templates.
+
+#### Get Site Context
+
+```http
+GET /site-context
+```
+
+Returns the site context (AI brief / style guide).
+
+**Response (configured):**
+
+```json
+{
+  "context": "# My Site Style Guide\n\n## Colors\n- Primary: #0B1220\n- Accent: #1B4DFF\n\n## Typography\n- Headings: Poppins 600\n- Body: Poppins 400\n\n## Header\n- Logo left, menu right\n- Sticky on scroll\n\n## Sections\n- Hero: full-width background image with overlay...",
+  "updated_at": "2026-02-19T10:30:00+00:00"
+}
+```
+
+**Response (not configured):**
+
+```json
+{
+  "context": "",
+  "updated_at": null,
+  "hint": "No site context configured. Set one via POST /site-context or the Settings tab in wp-admin."
+}
+```
+
+#### Set Site Context
+
+```http
+POST /site-context
+```
+
+**Body:**
+
+```json
+{
+  "context": "# My Site Style Guide\n\n## Colors\n- Primary: #0B1220\n- Accent: #1B4DFF\n..."
+}
+```
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `context` | string | Yes | Markdown text, max 50 KB |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "length": 1234,
+  "updated_at": "2026-02-19T10:30:00+00:00"
+}
+```
+
+#### Site Context in Introspect
+
+When a site context is configured, the `GET /introspect` response (and `wp_introspect` MCP tool) includes a `site_context` field containing the full style guide text. AI assistants should read this first when building or editing pages.
 
 ---
 
@@ -2653,7 +2719,7 @@ On `initialize`, the server returns:
 {
   "serverInfo": {
     "name": "site-pilot-ai:Your Site Name",
-    "version": "1.0.70"
+    "version": "1.0.71"
   }
 }
 ```
@@ -2693,6 +2759,8 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_detect_plugins` | Detect active plugins and capabilities |
 | `wp_get_options` | Get WordPress reading options |
 | `wp_update_options` | Update reading options (front page, posts page, visibility) |
+| `wp_get_site_context` | Get the site context — a master prompt / style guide that defines design rules, header/footer structure, color palette, typography, predefined sections, and page layout guidelines. Always read this first when building or editing pages |
+| `wp_set_site_context` | Set the site context (AI brief). A markdown document that tells AI assistants how to build pages for this site. Included automatically in `wp_introspect` |
 | `wp_get_custom_css` | Get Additional CSS from Customizer |
 | `wp_set_custom_css` | Set/append CSS (mode: replace or append) |
 | **Content** | |
