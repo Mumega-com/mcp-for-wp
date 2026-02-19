@@ -34,7 +34,7 @@ if ( ! function_exists( 'spa_fs' ) ) {
 				'public_key'          => 'pk_24f806380f2ccf8a5e3283dac895b',
 				// Single-plugin distribution: paid plans unlock features via license gates.
 				// This avoids the "download premium zip" step after checkout.
-				'is_premium'          => true,
+				'is_premium'          => basename( dirname( __DIR__ ) ) === 'site-pilot-ai-premium',
 				'is_premium_only'     => false,
 				'has_premium_version' => false,
 				'has_addons'          => false,

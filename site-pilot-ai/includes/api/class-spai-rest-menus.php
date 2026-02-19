@@ -173,6 +173,15 @@ class Spai_REST_Menus extends Spai_REST_API {
 							'items'       => array( 'type' => 'string' ),
 							'default'     => array(),
 						),
+						'target'    => array(
+							'description' => __( 'Link target: _blank or _self.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'enum'        => array( '_blank', '_self' ),
+						),
+						'description' => array(
+							'description' => __( 'Item description or tooltip.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
 					),
 				),
 			)
@@ -208,6 +217,15 @@ class Spai_REST_Menus extends Spai_REST_API {
 							'description' => __( 'CSS classes.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'items'       => array( 'type' => 'string' ),
+						),
+						'target'    => array(
+							'description' => __( 'Link target: _blank or _self.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'enum'        => array( '_blank', '_self' ),
+						),
+						'description' => array(
+							'description' => __( 'Item description or tooltip.', 'site-pilot-ai' ),
+							'type'        => 'string',
 						),
 					),
 				),
@@ -563,7 +581,9 @@ class Spai_REST_Menus extends Spai_REST_API {
 		$object_id = absint( $request->get_param( 'object_id' ) );
 		$parent_id = absint( $request->get_param( 'parent_id' ) );
 		$position  = $request->get_param( 'position' );
-		$classes   = (array) $request->get_param( 'classes' );
+		$classes     = (array) $request->get_param( 'classes' );
+		$target      = $request->get_param( 'target' );
+		$description = $request->get_param( 'description' );
 
 		if ( '' === $title ) {
 			return $this->error_response(
@@ -579,6 +599,14 @@ class Spai_REST_Menus extends Spai_REST_API {
 			'menu-item-parent-id' => $parent_id,
 			'menu-item-classes'   => implode( ' ', array_map( 'sanitize_html_class', $classes ) ),
 		);
+
+		if ( null !== $target ) {
+			$item_data['menu-item-target'] = sanitize_text_field( $target );
+		}
+
+		if ( null !== $description ) {
+			$item_data['menu-item-description'] = sanitize_text_field( $description );
+		}
 
 		if ( null !== $position ) {
 			$item_data['menu-item-position'] = absint( $position );
@@ -681,6 +709,8 @@ class Spai_REST_Menus extends Spai_REST_API {
 			'menu-item-position'  => $nav_item->menu_order,
 			'menu-item-status'    => 'publish',
 			'menu-item-classes'   => is_array( $nav_item->classes ) ? implode( ' ', $nav_item->classes ) : '',
+			'menu-item-target'    => isset( $nav_item->target ) ? (string) $nav_item->target : '',
+			'menu-item-description' => isset( $nav_item->description ) ? (string) $nav_item->description : '',
 		);
 
 		$title = $request->get_param( 'title' );
@@ -706,6 +736,16 @@ class Spai_REST_Menus extends Spai_REST_API {
 		$classes = $request->get_param( 'classes' );
 		if ( null !== $classes ) {
 			$item_data['menu-item-classes'] = implode( ' ', array_map( 'sanitize_html_class', (array) $classes ) );
+		}
+
+		$target = $request->get_param( 'target' );
+		if ( null !== $target ) {
+			$item_data['menu-item-target'] = sanitize_text_field( $target );
+		}
+
+		$description = $request->get_param( 'description' );
+		if ( null !== $description ) {
+			$item_data['menu-item-description'] = sanitize_text_field( $description );
 		}
 
 		$result = wp_update_nav_menu_item( $menu_id, $item_id, $item_data );
@@ -858,7 +898,9 @@ class Spai_REST_Menus extends Spai_REST_API {
 			'object_id' => (int) $item->object_id,
 			'parent'    => (int) $item->menu_item_parent,
 			'position'  => (int) $item->menu_order,
-			'classes'   => is_array( $item->classes ) ? array_values( array_filter( $item->classes ) ) : array(),
+			'classes'     => is_array( $item->classes ) ? array_values( array_filter( $item->classes ) ) : array(),
+			'target'      => isset( $item->target ) ? (string) $item->target : '',
+			'description' => isset( $item->description ) ? (string) $item->description : '',
 		);
 	}
 }

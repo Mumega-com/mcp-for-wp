@@ -1648,6 +1648,15 @@ class Spai_REST_Site extends Spai_REST_API {
 				'raw'      => $raw_content,
 				'rendered' => apply_filters( 'the_content', $raw_content ),
 			);
+
+			// Flag Elementor pages so callers know to use wp_get_elementor.
+			$elementor_data = get_post_meta( $post->ID, '_elementor_data', true );
+			if ( ! empty( $elementor_data ) ) {
+				$item['elementor'] = true;
+				if ( '' === trim( $raw_content ) ) {
+					$item['content']['note'] = 'This page is built with Elementor. Use wp_get_elementor to retrieve the layout data.';
+				}
+			}
 		}
 
 		return $item;

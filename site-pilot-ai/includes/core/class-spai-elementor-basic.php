@@ -503,6 +503,12 @@ class Spai_Elementor_Basic {
 		'stripe-button', 'progress-tracker', 'code-highlight',
 		'video-playlist', 'mega-menu', 'loop-grid', 'loop-carousel',
 		'taxonomy-filter',
+		// Theme Builder widgets (theme- prefix).
+		'theme-post-title', 'theme-post-content', 'theme-post-excerpt',
+		'theme-post-featured-image', 'theme-post-info', 'theme-post-navigation',
+		'theme-archive-title', 'theme-archive-posts', 'theme-site-logo',
+		'theme-site-title', 'theme-page-title', 'theme-builder-comments',
+		'theme-search-form', 'theme-author-box',
 	);
 
 	/**
@@ -513,22 +519,21 @@ class Spai_Elementor_Basic {
 	 * @return array Widget type names.
 	 */
 	private function get_registered_widgets() {
-		// Try live registry first.
+		// Start with live registry if available.
+		$widgets = array();
 		if ( class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->widgets_manager ) ) {
 			$manager = \Elementor\Plugin::$instance->widgets_manager;
 			if ( method_exists( $manager, 'get_widget_types' ) ) {
 				$types = $manager->get_widget_types();
 				if ( ! empty( $types ) && is_array( $types ) ) {
-					return array_keys( $types );
+					$widgets = array_keys( $types );
 				}
 			}
 		}
 
-		// Fallback to hardcoded list.
-		$widgets = self::$known_free_widgets;
-		if ( $this->is_pro_active() ) {
-			$widgets = array_merge( $widgets, self::$known_pro_widgets );
-		}
+		// Always merge both hardcoded lists so known widgets never trigger false warnings.
+		// Pro widgets are harmless to allow — they simply won't render without Pro.
+		$widgets = array_unique( array_merge( $widgets, self::$known_free_widgets, self::$known_pro_widgets ) );
 		return $widgets;
 	}
 

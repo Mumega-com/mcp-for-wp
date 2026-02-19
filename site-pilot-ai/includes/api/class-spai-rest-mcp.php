@@ -33,7 +33,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 *
 	 * @var string
 	 */
-	private $server_name = 'site-pilot-ai';
+	private $server_name;
 
 	/**
 	 * Server version.
@@ -287,6 +287,8 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 */
 	public function __construct() {
 		$this->server_version = defined( 'SPAI_VERSION' ) ? SPAI_VERSION : '1.0.0';
+		$site_name            = function_exists( 'get_bloginfo' ) ? get_bloginfo( 'name' ) : '';
+		$this->server_name    = 'site-pilot-ai' . ( '' !== $site_name ? ':' . $site_name : '' );
 		$this->free_registry  = new Spai_MCP_Free_Tools();
 		$this->pro_registry   = new Spai_MCP_Pro_Tools();
 	}
@@ -619,9 +621,14 @@ class Spai_REST_MCP extends Spai_REST_API {
 		// Build internal REST request
 		$internal_request = new WP_REST_Request( $method, '/site-pilot-ai/v1' . $route );
 
-		// Set remaining arguments as params
+		// Set remaining arguments as params.
+		// For write methods, also set body params so get_param() finds them
+		// in the body bucket (higher priority than defaults).
 		foreach ( $arguments as $key => $value ) {
 			$internal_request->set_param( $key, $value );
+		}
+		if ( 'GET' !== $method ) {
+			$internal_request->set_body_params( $arguments );
 		}
 
 		// Copy authentication from current request

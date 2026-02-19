@@ -248,6 +248,19 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'number',
 					'description' => 'Menu order position',
 				),
+				'classes'   => array(
+					'type'        => 'array',
+					'description' => 'CSS classes for styling this menu item',
+					'items'       => array( 'type' => 'string' ),
+				),
+				'target'    => array(
+					'type'        => 'string',
+					'description' => 'Link target: _blank (new tab) or _self (same tab)',
+				),
+				'description' => array(
+					'type'        => 'string',
+					'description' => 'Item description (used as tooltip or subtitle by some themes)',
+				),
 			)
 		);
 
@@ -280,6 +293,19 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'position'  => array(
 					'type'        => 'number',
 					'description' => 'New menu order position',
+				),
+				'classes'   => array(
+					'type'        => 'array',
+					'description' => 'CSS classes for styling this menu item',
+					'items'       => array( 'type' => 'string' ),
+				),
+				'target'    => array(
+					'type'        => 'string',
+					'description' => 'Link target: _blank (new tab) or _self (same tab)',
+				),
+				'description' => array(
+					'type'        => 'string',
+					'description' => 'Item description (used as tooltip or subtitle by some themes)',
 				),
 			)
 		);

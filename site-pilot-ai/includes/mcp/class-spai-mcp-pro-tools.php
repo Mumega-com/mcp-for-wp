@@ -71,6 +71,12 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_disable_elementor_custom_code'    => 'elementor',
 			'wp_enable_elementor_custom_code'     => 'elementor',
 			'wp_sanitize_elementor_custom_code'   => 'elementor',
+			// Theme Builder tools.
+			'wp_theme_builder_status'             => 'elementor',
+			'wp_list_theme_templates'             => 'elementor',
+			'wp_get_theme_template'               => 'elementor',
+			'wp_set_template_conditions'          => 'elementor',
+			'wp_assign_template'                  => 'elementor',
 		);
 	}
 
@@ -469,6 +475,131 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Theme Builder Tools
+		$pro_tools[] = $this->define_tool(
+			'wp_theme_builder_status',
+			'Get Theme Builder availability, registered locations, and which templates are assigned',
+			array()
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_list_theme_templates',
+			'List Theme Builder templates (header, footer, single, archive, etc.) with their display conditions',
+			array(
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Filter by template type: header, footer, single, single-post, single-page, archive, search-results, error-404',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_theme_template',
+			'Get a single Theme Builder template with its current display conditions',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Template post ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_set_template_conditions',
+			'Set display conditions on a Theme Builder template. Conditions are arrays like ["include","general","singular","post"] or ["exclude","general","singular","page"]',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Template post ID',
+					'required'    => true,
+				),
+				'conditions' => array(
+					'type'        => 'array',
+					'description' => 'Array of condition arrays, e.g. [["include","general","singular","post"],["exclude","general","singular","page"]]',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_assign_template',
+			'Shortcut to assign a Theme Builder template to a scope (entire_site, all_singular, all_archive, specific_posts, specific_post_type)',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Template post ID',
+					'required'    => true,
+				),
+				'scope' => array(
+					'type'        => 'string',
+					'description' => 'Assignment scope: entire_site, all_singular, all_archive, specific_posts, specific_post_type',
+					'default'     => 'entire_site',
+				),
+				'post_type' => array(
+					'type'        => 'string',
+					'description' => 'Post type for specific_post_type scope (e.g., post, page)',
+				),
+				'post_ids' => array(
+					'type'        => 'array',
+					'description' => 'Array of post IDs for specific_posts scope',
+				),
+			)
+		);
+
+		// Menu Management Tools (Pro)
+		$pro_tools[] = $this->define_tool(
+			'wp_get_menu',
+			'Get a single menu with all items, assigned locations, and metadata',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Menu ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_create_menu',
+			'Create a navigation menu with initial items and optional location assignment',
+			array(
+				'name' => array(
+					'type'        => 'string',
+					'description' => 'Menu name',
+					'required'    => true,
+				),
+				'location' => array(
+					'type'        => 'string',
+					'description' => 'Theme menu location key to assign (e.g., primary)',
+				),
+				'items' => array(
+					'type'        => 'array',
+					'description' => 'Initial menu items to add (array of {title, url, type, object, object_id} objects)',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_update_menu',
+			'Rename a menu or change its theme location assignment',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Menu ID',
+					'required'    => true,
+				),
+				'name' => array(
+					'type'        => 'string',
+					'description' => 'New menu name',
+				),
+				'location' => array(
+					'type'        => 'string',
+					'description' => 'Theme menu location key to assign',
+				),
+			)
+		);
+
 		// Widget & Sidebar Management Tools
 		$pro_tools[] = $this->define_tool(
 			'wp_list_sidebars',
@@ -720,6 +851,42 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_sanitize_elementor_custom_code' => array(
 				'method' => 'POST',
 				'route'  => '/elementor/custom-code/{id}/sanitize',
+			),
+
+			// Theme Builder
+			'wp_theme_builder_status'      => array(
+				'method' => 'GET',
+				'route'  => '/theme-builder/status',
+			),
+			'wp_list_theme_templates'      => array(
+				'method' => 'GET',
+				'route'  => '/theme-builder/templates',
+			),
+			'wp_get_theme_template'        => array(
+				'method' => 'GET',
+				'route'  => '/theme-builder/templates/{id}',
+			),
+			'wp_set_template_conditions'   => array(
+				'method' => 'POST',
+				'route'  => '/theme-builder/templates/{id}/conditions',
+			),
+			'wp_assign_template'           => array(
+				'method' => 'POST',
+				'route'  => '/theme-builder/templates/{id}/assign',
+			),
+
+			// Menu Management (Pro)
+			'wp_get_menu'           => array(
+				'method' => 'GET',
+				'route'  => '/menus/{id}',
+			),
+			'wp_create_menu'        => array(
+				'method' => 'POST',
+				'route'  => '/menus',
+			),
+			'wp_update_menu'        => array(
+				'method' => 'POST',
+				'route'  => '/menus/{id}',
 			),
 
 			// Widgets & Sidebars

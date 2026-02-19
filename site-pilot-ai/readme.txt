@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.67
+Stable tag: 1.0.68
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,17 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.68 =
+* Add: Full menu MCP control — wp_get_menu, wp_create_menu, wp_update_menu pro tools
+* Add: classes, target, description params on wp_add_menu_item and wp_update_menu_item
+* Add: target and description support in menu REST endpoints
+* Add: 14 Elementor Theme Builder widgets to validator (theme-post-info, theme-post-navigation, etc.)
+* Add: wp_fetch now flags Elementor pages with elementor:true and usage hint
+* Add: MCP server name includes site title (site-pilot-ai:SiteName)
+* Fix: MCP proxy sets body_params on POST/PUT requests (fixes wp_set_seo title/description persistence)
+* Fix: Freemius is_premium flag now dynamic to prevent "download premium" prompt after purchase
+* Fix: Widget validator always merges hardcoded list with live registry to prevent false warnings
 
 = 1.0.67 =
 * Add: AI feedback system — wp_submit_feedback and wp_list_feedback MCP tools
