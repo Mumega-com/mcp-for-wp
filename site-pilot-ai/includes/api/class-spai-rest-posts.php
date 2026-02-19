@@ -107,7 +107,7 @@ class Spai_REST_Posts extends Spai_REST_API {
 			)
 		);
 
-		// Bulk create posts
+		// Bulk create/update posts
 		register_rest_route(
 			$this->namespace,
 			'/posts/bulk',
@@ -119,6 +119,18 @@ class Spai_REST_Posts extends Spai_REST_API {
 					'args'                => array(
 						'posts' => array(
 							'description' => __( 'Array of post objects to create.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'required'    => true,
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'bulk_update_posts' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'posts' => array(
+							'description' => __( 'Array of post objects to update. Each must have id.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'required'    => true,
 						),
@@ -342,6 +354,63 @@ class Spai_REST_Posts extends Spai_REST_API {
 				'total'   => count( $created ),
 			),
 			201
+		);
+	}
+
+	/**
+	 * Bulk update posts.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function bulk_update_posts( $request ) {
+		$this->log_activity( 'bulk_update_posts', $request );
+
+		$posts_data = $request->get_param( 'posts' );
+
+		if ( ! is_array( $posts_data ) || empty( $posts_data ) ) {
+			return $this->error_response( 'invalid_posts', __( 'Posts must be a non-empty array.', 'site-pilot-ai' ), 400 );
+		}
+
+		if ( count( $posts_data ) > 50 ) {
+			return $this->error_response( 'too_many_posts', __( 'Maximum 50 posts per batch.', 'site-pilot-ai' ), 400 );
+		}
+
+		$updated = array();
+		$errors  = array();
+
+		foreach ( $posts_data as $index => $post_item ) {
+			if ( empty( $post_item['id'] ) ) {
+				$errors[] = array(
+					'index'   => $index,
+					'message' => __( 'id is required for each post.', 'site-pilot-ai' ),
+				);
+				continue;
+			}
+
+			$post_id = absint( $post_item['id'] );
+			$data    = $post_item;
+			unset( $data['id'] );
+
+			$result = $this->posts->update_post( $post_id, $data );
+
+			if ( is_wp_error( $result ) ) {
+				$errors[] = array(
+					'index'   => $index,
+					'id'      => $post_id,
+					'message' => $result->get_error_message(),
+				);
+			} else {
+				$updated[] = $result;
+			}
+		}
+
+		return $this->success_response(
+			array(
+				'updated' => $updated,
+				'errors'  => $errors,
+				'total'   => count( $updated ),
+			)
 		);
 	}
 

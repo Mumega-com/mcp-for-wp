@@ -120,7 +120,7 @@ class Spai_REST_Pages extends Spai_REST_API {
 			)
 		);
 
-		// Bulk create pages
+		// Bulk create/update pages
 		register_rest_route(
 			$this->namespace,
 			'/pages/bulk',
@@ -132,6 +132,18 @@ class Spai_REST_Pages extends Spai_REST_API {
 					'args'                => array(
 						'pages' => array(
 							'description' => __( 'Array of page objects to create.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'required'    => true,
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'bulk_update_pages' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'pages' => array(
+							'description' => __( 'Array of page objects to update. Each must have id.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'required'    => true,
 						),
@@ -543,6 +555,63 @@ class Spai_REST_Pages extends Spai_REST_API {
 				'total'   => count( $created ),
 			),
 			201
+		);
+	}
+
+	/**
+	 * Bulk update pages.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function bulk_update_pages( $request ) {
+		$this->log_activity( 'bulk_update_pages', $request );
+
+		$pages_data = $request->get_param( 'pages' );
+
+		if ( ! is_array( $pages_data ) || empty( $pages_data ) ) {
+			return $this->error_response( 'invalid_pages', __( 'Pages must be a non-empty array.', 'site-pilot-ai' ), 400 );
+		}
+
+		if ( count( $pages_data ) > 50 ) {
+			return $this->error_response( 'too_many_pages', __( 'Maximum 50 pages per batch.', 'site-pilot-ai' ), 400 );
+		}
+
+		$updated = array();
+		$errors  = array();
+
+		foreach ( $pages_data as $index => $page_item ) {
+			if ( empty( $page_item['id'] ) ) {
+				$errors[] = array(
+					'index'   => $index,
+					'message' => __( 'id is required for each page.', 'site-pilot-ai' ),
+				);
+				continue;
+			}
+
+			$page_id = absint( $page_item['id'] );
+			$data    = $page_item;
+			unset( $data['id'] );
+
+			$result = $this->pages->update_page( $page_id, $data );
+
+			if ( is_wp_error( $result ) ) {
+				$errors[] = array(
+					'index'   => $index,
+					'id'      => $page_id,
+					'message' => $result->get_error_message(),
+				);
+			} else {
+				$updated[] = $result;
+			}
+		}
+
+		return $this->success_response(
+			array(
+				'updated' => $updated,
+				'errors'  => $errors,
+				'total'   => count( $updated ),
+			)
 		);
 	}
 }

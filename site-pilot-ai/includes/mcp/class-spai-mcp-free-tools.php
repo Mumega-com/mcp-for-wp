@@ -68,6 +68,8 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_set_site_context'        => 'site',
 			'wp_get_custom_css'          => 'site',
 			'wp_set_custom_css'          => 'site',
+			'wp_delete_custom_css'       => 'site',
+			'wp_get_css_length'          => 'site',
 			'wp_list_menus'              => 'site',
 			'wp_list_menu_locations'     => 'site',
 			'wp_setup_menu'              => 'site',
@@ -107,6 +109,8 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_batch_update'            => 'content',
 			'wp_bulk_create_pages'       => 'content',
 			'wp_bulk_create_posts'       => 'content',
+			'wp_bulk_update_posts'       => 'content',
+			'wp_bulk_update_pages'       => 'content',
 			'wp_get_post_meta'           => 'content',
 			'wp_set_post_meta'           => 'content',
 
@@ -294,6 +298,18 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'default'     => 'append',
 				),
 			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_delete_custom_css',
+			'Delete all Additional CSS from the WordPress Customizer. Removes all custom CSS rules. Returns the previous CSS length.',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_css_length',
+			'Get the length and line count of the Additional CSS without returning the full CSS body. Lightweight check to see if custom CSS exists.',
+			array()
 		);
 
 		$tools[] = $this->define_tool(
@@ -1639,6 +1655,32 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Bulk Update Posts
+		$tools[] = $this->define_tool(
+			'wp_bulk_update_posts',
+			'Update multiple posts in one call. Each item must include id plus fields to update. Returns array of updated posts and any errors.',
+			array(
+				'posts' => array(
+					'type'        => 'array',
+					'description' => 'Array of post objects with: id (required), title, content, status, excerpt, slug, categories, tags',
+					'required'    => true,
+				),
+			)
+		);
+
+		// Bulk Update Pages
+		$tools[] = $this->define_tool(
+			'wp_bulk_update_pages',
+			'Update multiple pages in one call. Each item must include id plus fields to update. Returns array of updated pages and any errors.',
+			array(
+				'pages' => array(
+					'type'        => 'array',
+					'description' => 'Array of page objects with: id (required), title, content, status, slug, parent, template',
+					'required'    => true,
+				),
+			)
+		);
+
 		// Taxonomy Management
 		$tools[] = $this->define_tool(
 			'wp_create_term',
@@ -1786,6 +1828,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_set_custom_css' => array(
 				'method' => 'POST',
 				'route'  => '/custom-css',
+			),
+			'wp_delete_custom_css' => array(
+				'method' => 'DELETE',
+				'route'  => '/custom-css',
+			),
+			'wp_get_css_length' => array(
+				'method' => 'GET',
+				'route'  => '/custom-css/length',
 			),
 			'wp_list_menus'          => array(
 				'method' => 'GET',
@@ -2094,6 +2144,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_bulk_create_posts'   => array(
 				'method' => 'POST',
 				'route'  => '/posts/bulk',
+			),
+			'wp_bulk_update_posts'   => array(
+				'method' => 'PUT',
+				'route'  => '/posts/bulk',
+			),
+			'wp_bulk_update_pages'   => array(
+				'method' => 'PUT',
+				'route'  => '/pages/bulk',
 			),
 
 			// Taxonomy Management

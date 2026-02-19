@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.10
+Stable tag: 1.1.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,13 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.11 =
+* Improvement: wp_regenerate_elementor_css now returns detailed confirmation — pages processed, CSS file sizes, method used (regenerated vs cache cleared)
+* New: wp_delete_custom_css — remove all Additional CSS from the Customizer
+* New: wp_get_css_length — lightweight check for CSS length/line count without returning full body
+* New: wp_bulk_update_posts — update multiple posts in one call (up to 50)
+* New: wp_bulk_update_pages — update multiple pages in one call (up to 50)
 
 = 1.1.10 =
 * Fix: Non-Latin site names (Persian, Arabic, CJK) now produce clean hostname-based slugs in Connect tab instead of URL-encoded gibberish

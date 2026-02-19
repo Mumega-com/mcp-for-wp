@@ -951,10 +951,12 @@ class Spai_Elementor_Basic {
 		}
 
 		$plugin = \Elementor\Plugin::$instance;
+		$upload_dir = wp_upload_dir();
+		$css_dir    = $upload_dir['basedir'] . '/elementor/css/';
 
 		if ( $page_id ) {
 			$page_id = absint( $page_id );
-			$page = get_post( $page_id );
+			$page    = get_post( $page_id );
 
 			if ( ! $page ) {
 				return new WP_Error(
@@ -964,38 +966,84 @@ class Spai_Elementor_Basic {
 				);
 			}
 
+			$method = 'cache_clear';
+
 			// Regenerate CSS for specific post.
 			if ( method_exists( $plugin, 'documents' ) ) {
 				$document = $plugin->documents->get( $page_id );
 				if ( $document ) {
-					// Delete existing CSS file to force regeneration.
 					$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 					$css_file->update();
-
-					return array(
-						'success' => true,
-						'page_id' => $page_id,
-						'message' => __( 'CSS regenerated for page.', 'site-pilot-ai' ),
-					);
+					$method = 'css_regenerated';
 				}
 			}
 
-			// Fallback: clear all cache.
-			$plugin->files_manager->clear_cache();
+			if ( 'cache_clear' === $method ) {
+				$plugin->files_manager->clear_cache();
+			}
+
+			// Check resulting CSS file.
+			$css_path = $css_dir . 'post-' . $page_id . '.css';
+			$css_size = file_exists( $css_path ) ? filesize( $css_path ) : 0;
 
 			return array(
-				'success' => true,
-				'page_id' => $page_id,
-				'message' => __( 'Elementor cache cleared.', 'site-pilot-ai' ),
+				'success'  => true,
+				'page_id'  => $page_id,
+				'title'    => get_the_title( $page_id ),
+				'method'   => $method,
+				'css_file' => 'post-' . $page_id . '.css',
+				'css_size' => $css_size,
+				'message'  => 'css_regenerated' === $method
+					? __( 'CSS regenerated for page.', 'site-pilot-ai' )
+					: __( 'Elementor cache cleared (document not found, CSS will regenerate on next page load).', 'site-pilot-ai' ),
 			);
 		}
 
-		// Full site CSS regeneration.
+		// Full site CSS regeneration — find all Elementor posts first.
+		$elementor_posts = get_posts(
+			array(
+				'post_type'      => array( 'post', 'page', 'elementor_library' ),
+				'post_status'    => array( 'publish', 'draft', 'private' ),
+				'meta_key'       => '_elementor_data',
+				'posts_per_page' => 200,
+				'fields'         => 'ids',
+			)
+		);
+
 		$plugin->files_manager->clear_cache();
 
+		$regenerated = array();
+		foreach ( $elementor_posts as $pid ) {
+			if ( method_exists( $plugin, 'documents' ) ) {
+				$document = $plugin->documents->get( $pid );
+				if ( $document ) {
+					$css_file = \Elementor\Core\Files\CSS\Post::create( $pid );
+					$css_file->update();
+
+					$css_path = $css_dir . 'post-' . $pid . '.css';
+					$css_size = file_exists( $css_path ) ? filesize( $css_path ) : 0;
+
+					$regenerated[] = array(
+						'id'       => $pid,
+						'title'    => get_the_title( $pid ),
+						'css_file' => 'post-' . $pid . '.css',
+						'css_size' => $css_size,
+					);
+				}
+			}
+		}
+
 		return array(
-			'success' => true,
-			'message' => __( 'All Elementor CSS regenerated.', 'site-pilot-ai' ),
+			'success'           => true,
+			'pages_found'       => count( $elementor_posts ),
+			'pages_regenerated' => count( $regenerated ),
+			'pages'             => $regenerated,
+			'message'           => sprintf(
+				/* translators: 1: regenerated count 2: total found */
+				__( 'CSS regenerated for %1$d of %2$d Elementor pages. Global cache cleared.', 'site-pilot-ai' ),
+				count( $regenerated ),
+				count( $elementor_posts )
+			),
 		);
 	}
 

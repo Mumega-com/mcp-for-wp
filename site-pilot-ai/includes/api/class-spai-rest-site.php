@@ -482,6 +482,24 @@ class Spai_REST_Site extends Spai_REST_API {
 						),
 					),
 				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_custom_css' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Custom CSS length (lightweight check without full CSS body).
+		register_rest_route(
+			$this->namespace,
+			'/custom-css/length',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_css_length' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
 			)
 		);
 
@@ -2465,6 +2483,55 @@ class Spai_REST_Site extends Spai_REST_API {
 				'css'    => $css,
 				'length' => strlen( $css ),
 				'mode'   => $mode,
+			)
+		);
+	}
+
+	/**
+	 * Delete all custom CSS (clear the Customizer Additional CSS).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function delete_custom_css( $request ) {
+		$this->log_activity( 'delete_custom_css', $request );
+
+		$previous_length = strlen( wp_get_custom_css() );
+		$result          = wp_update_custom_css_post( '' );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response(
+				'css_delete_failed',
+				$result->get_error_message(),
+				500
+			);
+		}
+
+		return $this->success_response(
+			array(
+				'deleted'         => true,
+				'previous_length' => $previous_length,
+				'message'         => __( 'All custom CSS has been removed.', 'site-pilot-ai' ),
+			)
+		);
+	}
+
+	/**
+	 * Get the length of custom CSS without returning the full body.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_css_length( $request ) {
+		$this->log_activity( 'get_css_length', $request );
+
+		$css = wp_get_custom_css();
+
+		return $this->success_response(
+			array(
+				'length'     => strlen( $css ),
+				'line_count' => $css ? substr_count( $css, "\n" ) + 1 : 0,
+				'has_css'    => strlen( $css ) > 0,
 			)
 		);
 	}
