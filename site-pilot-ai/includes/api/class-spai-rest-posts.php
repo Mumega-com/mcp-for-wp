@@ -107,6 +107,26 @@ class Spai_REST_Posts extends Spai_REST_API {
 			)
 		);
 
+		// Bulk create posts
+		register_rest_route(
+			$this->namespace,
+			'/posts/bulk',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'bulk_create_posts' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'posts' => array(
+							'description' => __( 'Array of post objects to create.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Set featured image
 		register_rest_route(
 			$this->namespace,
@@ -269,6 +289,57 @@ class Spai_REST_Posts extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result );
+	}
+
+	/**
+	 * Bulk create posts.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function bulk_create_posts( $request ) {
+		$this->log_activity( 'bulk_create_posts', $request );
+
+		$posts_data = $request->get_param( 'posts' );
+
+		if ( ! is_array( $posts_data ) || empty( $posts_data ) ) {
+			return $this->error_response( 'invalid_posts', __( 'Posts must be a non-empty array.', 'site-pilot-ai' ), 400 );
+		}
+
+		if ( count( $posts_data ) > 50 ) {
+			return $this->error_response( 'too_many_posts', __( 'Maximum 50 posts per batch.', 'site-pilot-ai' ), 400 );
+		}
+
+		$created = array();
+		$errors  = array();
+
+		foreach ( $posts_data as $index => $post_item ) {
+			if ( empty( $post_item['title'] ) ) {
+				$errors[] = array(
+					'index'   => $index,
+					'message' => __( 'Title is required.', 'site-pilot-ai' ),
+				);
+				continue;
+			}
+
+			$result = $this->posts->create_post( $post_item );
+
+			if ( is_wp_error( $result ) ) {
+				$errors[] = array(
+					'index'   => $index,
+					'title'   => $post_item['title'],
+					'message' => $result->get_error_message(),
+				);
+			} else {
+				$created[] = $result;
+			}
+		}
+
+		return $this->success_response( array(
+			'created' => $created,
+			'errors'  => $errors,
+			'total'   => count( $created ),
+		), 201 );
 	}
 
 	/**

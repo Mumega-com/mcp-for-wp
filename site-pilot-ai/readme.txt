@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,13 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.1 =
+* Fix: wp_bulk_seo schema mismatch — tool now correctly sends `updates` param to match REST endpoint
+* New: wp_bulk_create_posts — create multiple blog posts in one call (up to 50 per batch)
+* New: wp_get_elementor_widgets now accepts optional `widget` param to return full controls schema
+* Improved: wp_delete_post and wp_delete_webhook tool descriptions clarify behavior
+* Updated: README with accurate tool counts and AI Integrations section
 
 = 1.1.0 =
 * New: AI Integrations — connect OpenAI, Gemini, ElevenLabs, and Pexels via admin settings page

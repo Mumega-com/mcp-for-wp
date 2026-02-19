@@ -678,7 +678,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_delete_post',
-			'Delete a blog post',
+			'Delete a blog post. Moves to trash by default; set force=true to permanently delete.',
 			array(
 				'id'    => array(
 					'type'        => 'number',
@@ -1222,7 +1222,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_delete_webhook',
-			'Delete a webhook',
+			'Permanently delete a webhook subscription and stop all future deliveries.',
 			array(
 				'id' => array(
 					'type'        => 'number',
@@ -1444,6 +1444,19 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'pages' => array(
 					'type'        => 'array',
 					'description' => 'Array of page objects with: title (required), content, status (default: draft), slug, parent, template',
+					'required'    => true,
+				),
+			)
+		);
+
+		// Bulk Create Posts
+		$tools[] = $this->define_tool(
+			'wp_bulk_create_posts',
+			'Create multiple blog posts in one call. Returns array of created posts with IDs and slugs.',
+			array(
+				'posts' => array(
+					'type'        => 'array',
+					'description' => 'Array of post objects with: title (required), content, status (default: draft), categories (array of IDs), tags (array of strings), excerpt, slug, post_type',
 					'required'    => true,
 				),
 			)
@@ -1886,6 +1899,12 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_bulk_create_pages'   => array(
 				'method' => 'POST',
 				'route'  => '/pages/bulk',
+			),
+
+			// Bulk Posts
+			'wp_bulk_create_posts'   => array(
+				'method' => 'POST',
+				'route'  => '/posts/bulk',
 			),
 
 			// Taxonomy Management

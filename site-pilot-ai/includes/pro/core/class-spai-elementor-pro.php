@@ -63,31 +63,70 @@ class Spai_Elementor_Pro {
 	}
 
 	/**
-	 * Get available widgets.
+	 * Get available widgets, or full controls for a specific widget.
 	 *
-	 * @return array List of available widget types.
+	 * @param string|null $widget_name Optional widget type name to get controls for.
+	 * @return array|WP_Error List of widgets or single widget with controls.
 	 */
-	public function get_available_widgets() {
+	public function get_available_widgets( $widget_name = null ) {
 		if ( ! $this->is_elementor_active() ) {
 			return array();
 		}
 
-		$widgets = array();
+		if ( ! class_exists( '\Elementor\Plugin' ) ) {
+			return array();
+		}
 
-		// Get registered widgets.
-		if ( class_exists( '\Elementor\Plugin' ) ) {
-			$widget_manager = \Elementor\Plugin::instance()->widgets_manager;
-			if ( $widget_manager ) {
-				$registered = $widget_manager->get_widget_types();
-				foreach ( $registered as $widget ) {
-					$widgets[] = array(
-						'name'     => $widget->get_name(),
-						'title'    => $widget->get_title(),
-						'icon'     => $widget->get_icon(),
-						'category' => $widget->get_categories(),
-					);
-				}
+		$widget_manager = \Elementor\Plugin::instance()->widgets_manager;
+		if ( ! $widget_manager ) {
+			return array();
+		}
+
+		// Single widget with controls.
+		if ( $widget_name ) {
+			$widget = $widget_manager->get_widget_types( $widget_name );
+			if ( ! $widget ) {
+				return new \WP_Error( 'widget_not_found', sprintf( 'Widget "%s" not found.', $widget_name ), array( 'status' => 404 ) );
 			}
+
+			$controls = $widget->get_controls();
+			$formatted = array();
+			foreach ( $controls as $key => $control ) {
+				$item = array(
+					'type'  => isset( $control['type'] ) ? $control['type'] : '',
+					'label' => isset( $control['label'] ) ? $control['label'] : '',
+				);
+				if ( ! empty( $control['default'] ) ) {
+					$item['default'] = $control['default'];
+				}
+				if ( ! empty( $control['options'] ) ) {
+					$item['options'] = $control['options'];
+				}
+				if ( ! empty( $control['selectors'] ) ) {
+					$item['selectors'] = $control['selectors'];
+				}
+				$formatted[ $key ] = $item;
+			}
+
+			return array(
+				'name'     => $widget->get_name(),
+				'title'    => $widget->get_title(),
+				'icon'     => $widget->get_icon(),
+				'category' => $widget->get_categories(),
+				'controls' => $formatted,
+			);
+		}
+
+		// List all widgets.
+		$widgets    = array();
+		$registered = $widget_manager->get_widget_types();
+		foreach ( $registered as $widget ) {
+			$widgets[] = array(
+				'name'     => $widget->get_name(),
+				'title'    => $widget->get_title(),
+				'icon'     => $widget->get_icon(),
+				'category' => $widget->get_categories(),
+			);
 		}
 
 		return $widgets;

@@ -126,6 +126,12 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_widgets' ),
 				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'widget' => array(
+						'description' => __( 'Widget type name to get full controls schema.', 'site-pilot-ai' ),
+						'type'        => 'string',
+					),
+				),
 			)
 		);
 
@@ -615,13 +621,24 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 	 * @return WP_REST_Response Response.
 	 */
 	public function get_widgets( $request ) {
-		$widgets = $this->elementor_pro->get_available_widgets();
+		$widget_name = $request->get_param( 'widget' );
+		$result      = $this->elementor_pro->get_available_widgets( $widget_name );
+
+		if ( is_wp_error( $result ) ) {
+			$this->log_activity( 'get_widgets', $request, null, 404 );
+			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 404 );
+		}
 
 		$this->log_activity( 'get_widgets', $request );
 
+		// Single widget returns the widget object directly.
+		if ( $widget_name ) {
+			return $this->success_response( $result );
+		}
+
 		return $this->success_response( array(
-			'widgets' => $widgets,
-			'total'   => count( $widgets ),
+			'widgets' => $result,
+			'total'   => count( $result ),
 		) );
 	}
 

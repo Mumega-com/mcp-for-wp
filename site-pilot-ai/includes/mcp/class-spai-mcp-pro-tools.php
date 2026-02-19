@@ -218,9 +218,9 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_bulk_seo',
 			'Update SEO metadata for multiple posts/pages',
 			array(
-				'items' => array(
+				'updates' => array(
 					'type'        => 'array',
-					'description' => 'Array of items with id and SEO data',
+					'description' => 'Array of objects with id (required) and SEO fields: title, description, focus_keyword, canonical_url, noindex, nofollow',
 					'required'    => true,
 				),
 			)
@@ -437,8 +437,13 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 
 		$pro_tools[] = $this->define_tool(
 			'wp_get_elementor_widgets',
-			'Get list of available Elementor widgets',
-			array()
+			'Get list of available Elementor widgets. Pass a widget name to get its full controls schema.',
+			array(
+				'widget' => array(
+					'type'        => 'string',
+					'description' => 'Widget type name (e.g. "heading", "image", "nav-menu") to get full controls schema. Omit to list all widgets.',
+				),
+			)
 		);
 
 		$pro_tools[] = $this->define_tool(
