@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.0.69
+**Version:** 1.0.70
 
 ## Table of Contents
 
@@ -19,6 +19,7 @@
   - [Media](#media)
   - [Elementor (Free)](#elementor-free)
   - [Elementor Pro](#elementor-pro)
+  - [Gutenberg Blocks](#gutenberg-blocks)
   - [SEO](#seo)
   - [Forms](#forms)
   - [Users](#users)
@@ -248,7 +249,8 @@ Returns WordPress site details and detected capabilities.
     "yoast": true,
     "rankmath": false,
     "cf7": true,
-    "wpforms": false
+    "wpforms": false,
+    "gutenberg": true
   },
   "plugin": {
     "name": "Site Pilot AI",
@@ -828,6 +830,162 @@ Set Elementor global colors, fonts, and typography settings.
 {
   "success": true,
   "updated": ["colors", "typography"]
+}
+```
+
+---
+
+### Gutenberg Blocks
+
+Manage content using the WordPress block editor (Gutenberg). Available when the `gutenberg` capability is `true` in site-info (requires WordPress 5.0+ and Classic Editor not forcing classic mode).
+
+#### Get Blocks
+
+```http
+GET /blocks/{id}
+```
+
+Returns parsed Gutenberg blocks for a post or page.
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `id` | integer | Post or page ID |
+
+**Response:**
+
+```json
+{
+  "post_id": 123,
+  "blocks": [
+    {
+      "blockName": "core/heading",
+      "attrs": {
+        "level": 2
+      },
+      "innerBlocks": [],
+      "innerHTML": "<h2 class=\"wp-block-heading\">Hello World</h2>"
+    },
+    {
+      "blockName": "core/paragraph",
+      "attrs": {},
+      "innerBlocks": [],
+      "innerHTML": "<p>Welcome to my site.</p>"
+    }
+  ],
+  "raw_content": "<!-- wp:heading {\"level\":2} -->\n<h2 class=\"wp-block-heading\">Hello World</h2>\n<!-- /wp:heading -->\n\n<!-- wp:paragraph -->\n<p>Welcome to my site.</p>\n<!-- /wp:paragraph -->"
+}
+```
+
+#### Set Blocks
+
+```http
+POST /blocks/{id}
+```
+
+Set Gutenberg blocks for a post or page. Accepts either a structured blocks array or a raw content string.
+
+**Body (blocks array):**
+
+```json
+{
+  "blocks": [
+    {
+      "blockName": "core/heading",
+      "attrs": {"level": 2},
+      "innerHTML": "<h2 class=\"wp-block-heading\">Hello World</h2>"
+    },
+    {
+      "blockName": "core/paragraph",
+      "attrs": {},
+      "innerHTML": "<p>This is a paragraph.</p>"
+    }
+  ]
+}
+```
+
+**Body (raw content string):**
+
+```json
+{
+  "content": "<!-- wp:heading {\"level\":2} -->\n<h2 class=\"wp-block-heading\">Hello World</h2>\n<!-- /wp:heading -->\n\n<!-- wp:paragraph -->\n<p>This is a paragraph.</p>\n<!-- /wp:paragraph -->"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "post_id": 123
+}
+```
+
+#### List Block Types
+
+```http
+GET /block-types
+```
+
+Returns all registered block types available on the site.
+
+**Response:**
+
+```json
+{
+  "block_types": [
+    {
+      "name": "core/heading",
+      "title": "Heading",
+      "category": "text",
+      "description": "Introduce new sections and organize content to help visitors find what they're looking for.",
+      "keywords": ["title", "subtitle"],
+      "supports": {
+        "align": ["wide", "full"],
+        "color": true,
+        "typography": true
+      }
+    },
+    {
+      "name": "core/paragraph",
+      "title": "Paragraph",
+      "category": "text",
+      "description": "Start with the basic building block of all narrative.",
+      "keywords": ["text"],
+      "supports": {
+        "color": true,
+        "typography": true
+      }
+    }
+  ],
+  "total": 150
+}
+```
+
+#### List Block Patterns
+
+```http
+GET /block-patterns
+```
+
+Returns all registered block patterns available on the site.
+
+**Response:**
+
+```json
+{
+  "block_patterns": [
+    {
+      "name": "core/text-two-columns",
+      "title": "Two columns of text",
+      "categories": ["text"],
+      "description": "Two columns of regular text.",
+      "keywords": ["columns", "text"],
+      "content": "<!-- wp:columns --><div class=\"wp-block-columns\">..."
+    }
+  ],
+  "total": 45
 }
 ```
 
@@ -2495,7 +2653,7 @@ On `initialize`, the server returns:
 {
   "serverInfo": {
     "name": "site-pilot-ai:Your Site Name",
-    "version": "1.0.69"
+    "version": "1.0.70"
   }
 }
 ```
@@ -2579,6 +2737,11 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_elementor_status` | Check Elementor status |
 | `wp_regenerate_elementor_css` | Regenerate CSS after API edits |
 | `wp_bulk_find_replace` | Search/replace in Elementor JSON |
+| **Gutenberg Blocks** | |
+| `wp_get_blocks` | Get parsed Gutenberg blocks for a post or page |
+| `wp_set_blocks` | Set Gutenberg blocks (blocks array or raw content string) |
+| `wp_list_block_types` | List all registered block types |
+| `wp_list_block_patterns` | List all registered block patterns |
 | **Media** | |
 | `wp_list_media` | List media library items |
 | `wp_upload_media` | Upload media (base64 or URL) |
