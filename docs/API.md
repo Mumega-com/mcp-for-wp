@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.1.3
+**Version:** 1.1.8
 
 ## Table of Contents
 
@@ -45,10 +45,11 @@
 ## Native MCP Endpoint
 
 **POST** `/wp-json/site-pilot-ai/v1/mcp`
+**GET** `/wp-json/site-pilot-ai/v1/mcp` *(v1.1.8+ — server info / health check)*
 
-Direct JSON-RPC 2.0 MCP endpoint. Supports `initialize`, `tools/list`, `tools/call`, and batch requests.
+Direct JSON-RPC 2.0 MCP endpoint. Supports `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, and batch requests.
 
-**Authentication:** `X-API-Key` header
+**Authentication:** `X-API-Key` header, `Authorization: Bearer` header, or `?api_key=` query parameter
 **Batch limit:** 10 requests per call
 
 **Example Request:**
@@ -69,6 +70,8 @@ curl -X POST "https://your-site.com/wp-json/site-pilot-ai/v1/mcp" \
 - `initialize` - Initialize MCP session
 - `tools/list` - List all available tools (90+ tools, varies by license)
 - `tools/call` - Execute a tool
+- `resources/list` - List available resources
+- `resources/read` - Read a resource
 - Batch requests - Execute up to 10 requests in parallel
 
 ### Tool Categories
@@ -142,11 +145,15 @@ curl -H "Authorization: Bearer spai_your_api_key_here" \
   https://your-site.com/wp-json/site-pilot-ai/v1/site-info
 ```
 
-#### Query Parameter (Not Recommended)
+#### Query Parameter
+
+For MCP clients that don't support custom headers (e.g., Claude Desktop custom connectors):
 
 ```bash
-curl "https://your-site.com/wp-json/site-pilot-ai/v1/site-info?api_key=spai_your_api_key_here"
+curl "https://your-site.com/wp-json/site-pilot-ai/v1/mcp?api_key=spai_your_api_key_here"
 ```
+
+> **Note:** Prefer header authentication when possible. Query parameters may appear in server access logs.
 
 ---
 
@@ -3401,32 +3408,48 @@ On `initialize`, the server returns:
 {
   "serverInfo": {
     "name": "site-pilot-ai:Your Site Name",
-    "version": "1.1.3"
+    "version": "1.1.8"
   }
 }
 ```
 
 The server name includes the WordPress site title so you can distinguish multiple sites.
 
-### Claude Desktop Configuration
+### Claude Desktop — Custom Connector (Recommended)
 
-Add to `~/.config/claude/claude_desktop_config.json`:
+In Claude Desktop, go to **Settings → Connectors → Add custom connector**:
+
+- **Name:** `sitepilotai-mysite`
+- **Remote MCP server URL:** `https://your-site.com/wp-json/site-pilot-ai/v1/mcp?api_key=spai_your_api_key`
+- Leave OAuth fields empty
+
+This connects Claude Desktop directly to your WordPress site — no npm package or proxy needed.
+
+### Claude Desktop — npm Package
+
+Alternatively, use the `site-pilot-ai` npm package (stdio proxy):
 
 ```json
 {
   "mcpServers": {
-    "site-pilot-ai": {
+    "sitepilotai-mysite": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://example.com/wp-json/site-pilot-ai/v1/mcp"],
+      "args": ["-y", "site-pilot-ai"],
       "env": {
-        "API_KEY": "spai_your_api_key_here"
+        "WP_URL": "https://your-site.com",
+        "WP_API_KEY": "spai_your_api_key",
+        "WP_SITE_NAME": "mysite"
       }
     }
   }
 }
 ```
 
-Or connect directly via the plugin's Streamable HTTP transport (no proxy needed with Claude Code).
+The server registers as `sitepilotai-<sitename>` for unique identification with multiple sites.
+
+### Claude Code
+
+Claude Code connects directly via the Streamable HTTP transport — no proxy or npm package needed. Add the MCP endpoint URL with an `X-API-Key` header or `?api_key=` query parameter.
 
 ### Available MCP Tools
 
@@ -3467,8 +3490,8 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_delete_all_drafts` | Bulk delete drafts |
 | `wp_get_post_meta` | Get all public meta fields for a post/page |
 | `wp_set_post_meta` | Set meta fields on a post/page (blocked-key safety) |
-| `wp_get_option` | Get a single WordPress option (whitelisted keys only) |
-| `wp_update_option` | Update a single WordPress option (whitelisted keys only) |
+| `wp_get_option` | Get a single WordPress option. Supports core WP options and prefix-based matching: `elementor_*`, `wpseo_*`, `rank_math_*`, `astra_*`, `theme_mods_*`, `woocommerce_*`, `spai_*`. Sensitive keys (passwords, tokens, secrets) are always blocked |
+| `wp_update_option` | Update a single WordPress option (same allowlist as `wp_get_option`) |
 | `wp_batch_update` | Execute up to 25 REST operations in one call (v1.0.69: fixed error handling for mixed success/failure batches) |
 | **Menus** | |
 | `wp_list_menus` | List all navigation menus |
@@ -3482,8 +3505,10 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_delete_menu` | Delete an entire menu |
 | `wp_assign_menu_location` | Assign menu to theme location |
 | **Elementor** | |
-| `wp_get_elementor` | Get Elementor page data |
-| `wp_set_elementor` | Set Elementor page data (with validation) |
+| `wp_get_elementor` | Get full Elementor page data (JSON tree) |
+| `wp_get_elementor_summary` | Get lightweight structural summary (<1K tokens vs 64K+ for full data) |
+| `wp_edit_section` | Surgically edit a single element by ID, index, or search criteria — no full JSON round-trip needed |
+| `wp_set_elementor` | Set Elementor page data (with validation, auto-fix, CSS regen) |
 | `wp_elementor_status` | Check Elementor status |
 | `wp_regenerate_elementor_css` | Regenerate CSS after API edits |
 | `wp_bulk_find_replace` | Search/replace in Elementor JSON |
@@ -3497,6 +3522,7 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_upload_media` | Upload media (base64 or URL) |
 | `wp_upload_media_from_url` | Upload from URL |
 | `wp_upload_media_b64` | Upload from base64 (bypasses ModSecurity) |
+| `wp_delete_media` | Delete media attachment (trash or permanent) |
 | **Templates** | |
 | `wp_update_page_template` | Change page template |
 | `wp_list_page_templates` | List available templates |
