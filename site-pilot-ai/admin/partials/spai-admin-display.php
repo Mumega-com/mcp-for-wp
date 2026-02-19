@@ -20,6 +20,8 @@ $upgrade_url     = $license ? $license->get_upgrade_url() : 'http://sitepilotai.
 $is_first        = get_option( 'spai_first_activation', false );
 $rest_base       = rest_url( 'site-pilot-ai/v1/' );
 $mcp_url         = rest_url( 'site-pilot-ai/v1/mcp' );
+$site_name       = get_bloginfo( 'name' );
+$site_slug       = sanitize_title( $site_name );
 
 // Current tab — admin page, read-only navigation parameter.
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -166,6 +168,11 @@ if ( isset( $new_key ) && $new_key ) {
 		   class="nav-tab <?php echo 'advanced' === $current_tab ? 'nav-tab-active' : ''; ?>">
 			<span class="dashicons dashicons-editor-code"></span>
 			<?php esc_html_e( 'Advanced', 'site-pilot-ai' ); ?>
+		</a>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=site-pilot-ai&tab=changelog' ) ); ?>"
+		   class="nav-tab <?php echo 'changelog' === $current_tab ? 'nav-tab-active' : ''; ?>">
+			<span class="dashicons dashicons-list-view"></span>
+			<?php esc_html_e( 'Changelog', 'site-pilot-ai' ); ?>
 		</a>
 	</nav>
 
@@ -414,13 +421,84 @@ if ( isset( $new_key ) && $new_key ) {
 	<?php elseif ( 'connect' === $current_tab ) : ?>
 
 	<div class="spai-tab-content">
+		<!-- Claude Desktop — Custom Connector (Recommended) -->
 		<div class="spai-card">
 			<h2>
 				<span class="dashicons dashicons-cloud"></span>
-				<?php esc_html_e( 'Connect Claude Desktop', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'Claude Desktop — Custom Connector', 'site-pilot-ai' ); ?>
+				<span class="spai-badge" style="background:#28a745;color:#fff;margin-left:8px;"><?php esc_html_e( 'Recommended', 'site-pilot-ai' ); ?></span>
 			</h2>
 			<p class="description">
-				<?php esc_html_e( 'Claude Desktop can manage your WordPress site directly using the MCP protocol. Add this to your Claude Desktop configuration:', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'The fastest way to connect. No config files, no npm — just paste a URL.', 'site-pilot-ai' ); ?>
+			</p>
+
+			<div class="spai-setup-steps">
+				<div class="spai-step">
+					<span class="spai-step-number">1</span>
+					<div class="spai-step-content">
+						<h3><?php esc_html_e( 'Open Connectors', 'site-pilot-ai' ); ?></h3>
+						<p><?php esc_html_e( 'In Claude Desktop, go to Settings → Connectors → Add custom connector', 'site-pilot-ai' ); ?></p>
+					</div>
+				</div>
+
+				<div class="spai-step">
+					<span class="spai-step-number">2</span>
+					<div class="spai-step-content">
+						<h3><?php esc_html_e( 'Fill in the fields', 'site-pilot-ai' ); ?></h3>
+						<table class="spai-connector-fields">
+							<tr>
+								<td><strong><?php esc_html_e( 'Name', 'site-pilot-ai' ); ?></strong></td>
+								<td>
+									<div class="spai-code-wrapper spai-code-inline">
+										<code id="spai-connector-name">sitepilotai-<?php echo esc_html( $site_slug ); ?></code>
+										<button type="button" class="button spai-copy-code-btn spai-copy-code-btn--inline" data-target="spai-connector-name">
+											<span class="dashicons dashicons-clipboard"></span>
+										</button>
+									</div>
+								</td>
+							</tr>
+							<tr>
+								<td><strong><?php esc_html_e( 'Remote MCP server URL', 'site-pilot-ai' ); ?></strong></td>
+								<td>
+									<div class="spai-code-wrapper spai-code-inline">
+										<code id="spai-connector-url"><?php echo esc_url( add_query_arg( 'api_key', ( $is_hidden ? 'YOUR_API_KEY' : $display_key ), $mcp_url ) ); ?></code>
+										<button type="button" class="button spai-copy-code-btn spai-copy-code-btn--inline" data-target="spai-connector-url">
+											<span class="dashicons dashicons-clipboard"></span>
+										</button>
+									</div>
+								</td>
+							</tr>
+							<tr>
+								<td><strong><?php esc_html_e( 'OAuth fields', 'site-pilot-ai' ); ?></strong></td>
+								<td><em><?php esc_html_e( 'Leave empty', 'site-pilot-ai' ); ?></em></td>
+							</tr>
+						</table>
+						<?php if ( $is_hidden ) : ?>
+						<p class="description" style="margin-top:10px;">
+							<?php esc_html_e( 'Replace YOUR_API_KEY with your actual API key from the Setup tab.', 'site-pilot-ai' ); ?>
+						</p>
+						<?php endif; ?>
+					</div>
+				</div>
+
+				<div class="spai-step">
+					<span class="spai-step-number">3</span>
+					<div class="spai-step-content">
+						<h3><?php esc_html_e( 'Done!', 'site-pilot-ai' ); ?></h3>
+						<p><?php esc_html_e( 'Claude Desktop will connect immediately. You should see your WordPress tools in the conversation.', 'site-pilot-ai' ); ?></p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Claude Desktop — JSON Config -->
+		<div class="spai-card">
+			<h2>
+				<span class="dashicons dashicons-cloud"></span>
+				<?php esc_html_e( 'Claude Desktop — JSON Config', 'site-pilot-ai' ); ?>
+			</h2>
+			<p class="description">
+				<?php esc_html_e( 'Alternative method using the config file. Uses header-based auth (more secure for shared machines).', 'site-pilot-ai' ); ?>
 			</p>
 
 			<div class="spai-setup-steps">
@@ -428,7 +506,7 @@ if ( isset( $new_key ) && $new_key ) {
 					<span class="spai-step-number">1</span>
 					<div class="spai-step-content">
 						<h3><?php esc_html_e( 'Open Claude Desktop Settings', 'site-pilot-ai' ); ?></h3>
-						<p><?php esc_html_e( 'Go to Claude Desktop > Settings > Developer > Edit Config', 'site-pilot-ai' ); ?></p>
+						<p><?php esc_html_e( 'Go to Claude Desktop → Settings → Developer → Edit Config', 'site-pilot-ai' ); ?></p>
 					</div>
 				</div>
 
@@ -440,7 +518,7 @@ if ( isset( $new_key ) && $new_key ) {
 						<div class="spai-code-wrapper">
 							<pre class="spai-code-block" id="spai-claude-config">{
   "mcpServers": {
-    "wordpress": {
+    "sitepilotai-<?php echo esc_html( $site_slug ); ?>": {
       "url": "<?php echo esc_url( $mcp_url ); ?>",
       "headers": {
         "X-API-Key": "<?php echo $is_hidden ? 'YOUR_API_KEY_HERE' : esc_attr( $display_key ); ?>"
@@ -466,39 +544,26 @@ if ( isset( $new_key ) && $new_key ) {
 			</div>
 		</div>
 
+		<!-- Claude Code (CLI) -->
 		<div class="spai-card">
 			<h2>
 				<span class="dashicons dashicons-terminal"></span>
-				<?php esc_html_e( 'Connect Claude Code (CLI)', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'Claude Code (CLI)', 'site-pilot-ai' ); ?>
 			</h2>
 			<p class="description">
-				<?php esc_html_e( 'For developers using Claude Code in the terminal:', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'For developers using Claude Code in the terminal. Connects directly via Streamable HTTP — no proxy needed.', 'site-pilot-ai' ); ?>
 			</p>
 
 			<div class="spai-setup-steps">
 				<div class="spai-step">
 					<span class="spai-step-number">1</span>
 					<div class="spai-step-content">
-						<h3><?php esc_html_e( 'Install the npm package', 'site-pilot-ai' ); ?></h3>
-						<div class="spai-code-wrapper">
-							<pre class="spai-code-block" id="spai-npm-install">npm install -g site-pilot-ai</pre>
-							<button type="button" class="button spai-copy-code-btn" data-target="spai-npm-install">
-								<span class="dashicons dashicons-clipboard"></span>
-								<?php esc_html_e( 'Copy', 'site-pilot-ai' ); ?>
-							</button>
-						</div>
-					</div>
-				</div>
-
-				<div class="spai-step">
-					<span class="spai-step-number">2</span>
-					<div class="spai-step-content">
-						<h3><?php esc_html_e( 'Or use the remote MCP URL directly', 'site-pilot-ai' ); ?></h3>
-						<p><?php esc_html_e( 'Add to your .claude.json or project settings:', 'site-pilot-ai' ); ?></p>
+						<h3><?php esc_html_e( 'Add to your project settings', 'site-pilot-ai' ); ?></h3>
+						<p><?php esc_html_e( 'Add to .mcp.json in your project root or ~/.claude.json for global access:', 'site-pilot-ai' ); ?></p>
 						<div class="spai-code-wrapper">
 							<pre class="spai-code-block" id="spai-claude-code-config">{
   "mcpServers": {
-    "wordpress": {
+    "sitepilotai-<?php echo esc_html( $site_slug ); ?>": {
       "url": "<?php echo esc_url( $mcp_url ); ?>",
       "headers": {
         "X-API-Key": "<?php echo $is_hidden ? 'YOUR_API_KEY_HERE' : esc_attr( $display_key ); ?>"
@@ -513,13 +578,41 @@ if ( isset( $new_key ) && $new_key ) {
 						</div>
 					</div>
 				</div>
+
+				<div class="spai-step">
+					<span class="spai-step-number">2</span>
+					<div class="spai-step-content">
+						<h3><?php esc_html_e( 'Or use the npm package', 'site-pilot-ai' ); ?></h3>
+						<p><?php esc_html_e( 'The site-pilot-ai npm package provides a stdio proxy if your setup requires it:', 'site-pilot-ai' ); ?></p>
+						<div class="spai-code-wrapper">
+							<pre class="spai-code-block" id="spai-npm-config">{
+  "mcpServers": {
+    "sitepilotai-<?php echo esc_html( $site_slug ); ?>": {
+      "command": "npx",
+      "args": ["-y", "site-pilot-ai"],
+      "env": {
+        "WP_URL": "<?php echo esc_url( home_url() ); ?>",
+        "WP_API_KEY": "<?php echo $is_hidden ? 'YOUR_API_KEY_HERE' : esc_attr( $display_key ); ?>",
+        "WP_SITE_NAME": "<?php echo esc_attr( $site_slug ); ?>"
+      }
+    }
+  }
+}</pre>
+							<button type="button" class="button spai-copy-code-btn" data-target="spai-npm-config">
+								<span class="dashicons dashicons-clipboard"></span>
+								<?php esc_html_e( 'Copy', 'site-pilot-ai' ); ?>
+							</button>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 
+		<!-- ChatGPT -->
 		<div class="spai-card">
 			<h2>
 				<span class="dashicons dashicons-format-chat"></span>
-				<?php esc_html_e( 'Connect ChatGPT', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'ChatGPT', 'site-pilot-ai' ); ?>
 			</h2>
 			<p class="description">
 				<?php esc_html_e( 'Use ChatGPT to manage your site via a custom GPT with Actions:', 'site-pilot-ai' ); ?>
@@ -530,7 +623,7 @@ if ( isset( $new_key ) && $new_key ) {
 					<span class="spai-step-number">1</span>
 					<div class="spai-step-content">
 						<h3><?php esc_html_e( 'Create a custom GPT', 'site-pilot-ai' ); ?></h3>
-						<p><?php esc_html_e( 'Go to ChatGPT > Explore GPTs > Create and add an Action.', 'site-pilot-ai' ); ?></p>
+						<p><?php esc_html_e( 'Go to ChatGPT → Explore GPTs → Create and add an Action.', 'site-pilot-ai' ); ?></p>
 					</div>
 				</div>
 
@@ -559,13 +652,14 @@ if ( isset( $new_key ) && $new_key ) {
 			</div>
 		</div>
 
+		<!-- MCP Endpoint Info -->
 		<div class="spai-card">
 			<h2>
 				<span class="dashicons dashicons-rest-api"></span>
 				<?php esc_html_e( 'MCP Endpoint', 'site-pilot-ai' ); ?>
 			</h2>
 			<p class="description">
-				<?php esc_html_e( 'Your site exposes a native MCP (Model Context Protocol) endpoint. Any MCP-compatible AI client can connect to:', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'Your site exposes a native MCP (Model Context Protocol) endpoint. Any MCP-compatible AI client can connect:', 'site-pilot-ai' ); ?>
 			</p>
 			<div class="spai-code-wrapper">
 				<pre class="spai-code-block" id="spai-mcp-url"><?php echo esc_url( $mcp_url ); ?></pre>
@@ -574,20 +668,24 @@ if ( isset( $new_key ) && $new_key ) {
 					<?php esc_html_e( 'Copy', 'site-pilot-ai' ); ?>
 				</button>
 			</div>
-			<p class="description" style="margin-top: 10px;">
-				<?php
-				/* translators: 1: number of free tools 2: pro tools suffix */
-				echo wp_kses(
-					sprintf(
-						/* translators: 1: number of free tools 2: pro tools suffix */
-						__( 'Protocol: JSON-RPC 2.0 over HTTP POST. Auth: <code>X-API-Key</code> header. Tools available: %1$d free%2$s.', 'site-pilot-ai' ),
-						17,
-						$is_pro ? ' + 13 Pro' : ''
-					),
-					array( 'code' => array() )
-				);
-				?>
-			</p>
+			<table class="spai-mcp-info-table" style="margin-top:15px;">
+				<tr>
+					<td><strong><?php esc_html_e( 'Protocol', 'site-pilot-ai' ); ?></strong></td>
+					<td><?php esc_html_e( 'JSON-RPC 2.0 over Streamable HTTP (POST + GET)', 'site-pilot-ai' ); ?></td>
+				</tr>
+				<tr>
+					<td><strong><?php esc_html_e( 'Auth methods', 'site-pilot-ai' ); ?></strong></td>
+					<td><code>X-API-Key</code> <?php esc_html_e( 'header', 'site-pilot-ai' ); ?> · <code>Authorization: Bearer</code> <?php esc_html_e( 'header', 'site-pilot-ai' ); ?> · <code>?api_key=</code> <?php esc_html_e( 'query param', 'site-pilot-ai' ); ?></td>
+				</tr>
+				<tr>
+					<td><strong><?php esc_html_e( 'Methods', 'site-pilot-ai' ); ?></strong></td>
+					<td><code>initialize</code>, <code>tools/list</code>, <code>tools/call</code>, <code>resources/list</code>, <code>resources/read</code></td>
+				</tr>
+				<tr>
+					<td><strong><?php esc_html_e( 'Server name', 'site-pilot-ai' ); ?></strong></td>
+					<td><code>site-pilot-ai:<?php echo esc_html( $site_name ); ?></code></td>
+				</tr>
+			</table>
 		</div>
 	</div>
 
@@ -805,7 +903,7 @@ if ( isset( $new_key ) && $new_key ) {
 					<tr><td>GET</td><td>/site-info</td><td><?php esc_html_e( 'Site information', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>GET</td><td>/analytics</td><td><?php esc_html_e( 'API analytics', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>GET</td><td>/plugins</td><td><?php esc_html_e( 'Detected plugins', 'site-pilot-ai' ); ?></td></tr>
-					<tr><td>POST</td><td>/mcp</td><td><?php esc_html_e( 'MCP protocol endpoint', 'site-pilot-ai' ); ?></td></tr>
+					<tr><td>GET/POST</td><td>/mcp</td><td><?php esc_html_e( 'MCP protocol endpoint (GET = server info, POST = JSON-RPC)', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>POST</td><td>/oauth/token</td><td><?php esc_html_e( 'OAuth client credentials token endpoint', 'site-pilot-ai' ); ?></td></tr>
 
 					<tr class="spai-endpoint-section"><td colspan="3"><strong><?php esc_html_e( 'Content', 'site-pilot-ai' ); ?></strong></td></tr>
@@ -814,6 +912,7 @@ if ( isset( $new_key ) && $new_key ) {
 					<tr><td>GET/POST</td><td>/pages</td><td><?php esc_html_e( 'List/create pages', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>GET/PUT</td><td>/pages/{id}</td><td><?php esc_html_e( 'Single page operations', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>GET/POST</td><td>/media</td><td><?php esc_html_e( 'List/upload media', 'site-pilot-ai' ); ?></td></tr>
+					<tr><td>DELETE</td><td>/media/{id}</td><td><?php esc_html_e( 'Delete media attachment', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>POST</td><td>/media/from-url</td><td><?php esc_html_e( 'Upload from URL', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>GET</td><td>/drafts</td><td><?php esc_html_e( 'List drafts', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>DELETE</td><td>/drafts/delete-all</td><td><?php esc_html_e( 'Delete all drafts', 'site-pilot-ai' ); ?></td></tr>
@@ -821,6 +920,8 @@ if ( isset( $new_key ) && $new_key ) {
 					<tr class="spai-endpoint-section"><td colspan="3"><strong><?php esc_html_e( 'Elementor', 'site-pilot-ai' ); ?></strong></td></tr>
 					<tr><td>GET</td><td>/elementor/status</td><td><?php esc_html_e( 'Elementor status', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>GET/POST</td><td>/elementor/{id}</td><td><?php esc_html_e( 'Get/set Elementor data', 'site-pilot-ai' ); ?></td></tr>
+					<tr><td>GET</td><td>/elementor/{id}/summary</td><td><?php esc_html_e( 'Lightweight structural summary', 'site-pilot-ai' ); ?></td></tr>
+					<tr><td>POST</td><td>/elementor/{id}/edit-section</td><td><?php esc_html_e( 'Surgical element editing', 'site-pilot-ai' ); ?></td></tr>
 					<tr><td>POST</td><td>/elementor/page</td><td><?php esc_html_e( 'Create Elementor page', 'site-pilot-ai' ); ?></td></tr>
 
 					<?php if ( $is_pro ) : ?>
@@ -861,6 +962,108 @@ if ( isset( $new_key ) && $new_key ) {
 					<a href="https://modelcontextprotocol.io" target="_blank"><?php esc_html_e( 'About MCP (Model Context Protocol)', 'site-pilot-ai' ); ?></a>
 				</li>
 			</ul>
+		</div>
+	</div>
+
+	<!-- ======================== CHANGELOG TAB ======================== -->
+	<?php elseif ( 'changelog' === $current_tab ) : ?>
+
+	<div class="spai-tab-content">
+		<div class="spai-card">
+			<h2>
+				<span class="dashicons dashicons-list-view"></span>
+				<?php esc_html_e( 'Changelog', 'site-pilot-ai' ); ?>
+				<span class="spai-version" style="margin-left:8px;">
+					<?php
+					/* translators: %s: current plugin version */
+					printf( esc_html__( 'Current: v%s', 'site-pilot-ai' ), esc_html( SPAI_VERSION ) );
+					?>
+				</span>
+			</h2>
+
+			<div class="spai-changelog">
+				<?php
+				$readme_path = SPAI_PLUGIN_DIR . 'readme.txt';
+				$changelog_html = '';
+
+				if ( file_exists( $readme_path ) ) {
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local file
+					$readme_content = file_get_contents( $readme_path );
+					$changelog_pos  = strpos( $readme_content, '== Changelog ==' );
+
+					if ( false !== $changelog_pos ) {
+						$changelog_text = substr( $readme_content, $changelog_pos + strlen( '== Changelog ==' ) );
+						// Stop at the next == section
+						$next_section = strpos( $changelog_text, "\n== " );
+						if ( false !== $next_section ) {
+							$changelog_text = substr( $changelog_text, 0, $next_section );
+						}
+
+						// Parse the changelog into version blocks
+						$lines   = explode( "\n", trim( $changelog_text ) );
+						$version = '';
+						$items   = array();
+						$first   = true;
+
+						foreach ( $lines as $line ) {
+							$line = trim( $line );
+							if ( empty( $line ) ) {
+								continue;
+							}
+
+							// Version header: = X.Y.Z =
+							if ( preg_match( '/^= (.+?) =$/', $line, $m ) ) {
+								// Output previous version block
+								if ( $version && ! empty( $items ) ) {
+									$is_current = version_compare( trim( $version, ' ' ), SPAI_VERSION, '==' );
+									$open_attr  = $first ? ' open' : '';
+									echo '<details class="spai-changelog-version"' . $open_attr . '>';
+									echo '<summary>';
+									echo '<strong>' . esc_html( 'v' . $version ) . '</strong>';
+									if ( $is_current ) {
+										echo ' <span class="spai-badge" style="background:#28a745;color:#fff;">' . esc_html__( 'Current', 'site-pilot-ai' ) . '</span>';
+									}
+									echo '</summary>';
+									echo '<ul class="spai-changelog-items">';
+									foreach ( $items as $item ) {
+										echo '<li>' . esc_html( $item ) . '</li>';
+									}
+									echo '</ul>';
+									echo '</details>';
+									$first = false;
+								}
+								$version = $m[1];
+								$items   = array();
+							} elseif ( preg_match( '/^\* (.+)$/', $line, $m ) ) {
+								$items[] = $m[1];
+							}
+						}
+
+						// Output last version block
+						if ( $version && ! empty( $items ) ) {
+							$is_current = version_compare( trim( $version, ' ' ), SPAI_VERSION, '==' );
+							echo '<details class="spai-changelog-version">';
+							echo '<summary>';
+							echo '<strong>' . esc_html( 'v' . $version ) . '</strong>';
+							if ( $is_current ) {
+								echo ' <span class="spai-badge" style="background:#28a745;color:#fff;">' . esc_html__( 'Current', 'site-pilot-ai' ) . '</span>';
+							}
+							echo '</summary>';
+							echo '<ul class="spai-changelog-items">';
+							foreach ( $items as $item ) {
+								echo '<li>' . esc_html( $item ) . '</li>';
+							}
+							echo '</ul>';
+							echo '</details>';
+						}
+					}
+				}
+
+				if ( empty( $changelog_text ) ) {
+					echo '<p><em>' . esc_html__( 'Changelog not available.', 'site-pilot-ai' ) . '</em></p>';
+				}
+				?>
+			</div>
 		</div>
 	</div>
 

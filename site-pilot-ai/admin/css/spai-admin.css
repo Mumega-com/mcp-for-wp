@@ -525,6 +525,132 @@
 	height: 14px;
 }
 
+/* Connector Fields Table */
+.spai-connector-fields {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 10px 0;
+}
+
+.spai-connector-fields td {
+	padding: 8px 12px 8px 0;
+	vertical-align: middle;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.spai-connector-fields td:first-child {
+	white-space: nowrap;
+	width: 180px;
+	color: #50575e;
+}
+
+.spai-connector-fields code {
+	background: #f6f7f7;
+	padding: 6px 10px;
+	border-radius: 3px;
+	font-size: 12px;
+	word-break: break-all;
+	display: inline-block;
+	max-width: 100%;
+}
+
+/* Inline Code Copy */
+.spai-code-inline {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+}
+
+.spai-copy-code-btn--inline {
+	position: static;
+	padding: 2px 6px;
+	font-size: 11px;
+	background: #f0f0f1;
+	border-color: #c3c4c7;
+	color: #50575e;
+}
+
+.spai-copy-code-btn--inline:hover,
+.spai-copy-code-btn--inline:focus {
+	background: #e0e0e0;
+	color: #1d2327;
+}
+
+.spai-copy-code-btn--inline .dashicons {
+	font-size: 12px;
+	width: 12px;
+	height: 12px;
+}
+
+/* MCP Info Table */
+.spai-mcp-info-table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.spai-mcp-info-table td {
+	padding: 6px 12px 6px 0;
+	vertical-align: top;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 13px;
+}
+
+.spai-mcp-info-table td:first-child {
+	white-space: nowrap;
+	width: 120px;
+	color: #50575e;
+}
+
+.spai-mcp-info-table code {
+	background: #f6f7f7;
+	padding: 1px 5px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+/* Changelog */
+.spai-changelog {
+	margin-top: 15px;
+}
+
+.spai-changelog-version {
+	border: 1px solid #f0f0f1;
+	border-radius: 4px;
+	margin-bottom: 8px;
+	overflow: hidden;
+}
+
+.spai-changelog-version summary {
+	padding: 12px 15px;
+	cursor: pointer;
+	background: #f6f7f7;
+	font-size: 14px;
+	user-select: none;
+	transition: background 0.15s ease;
+}
+
+.spai-changelog-version summary:hover {
+	background: #eef0f1;
+}
+
+.spai-changelog-version[open] summary {
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.spai-changelog-items {
+	margin: 0;
+	padding: 12px 15px 12px 35px;
+	list-style: disc;
+}
+
+.spai-changelog-items li {
+	padding: 3px 0;
+	font-size: 13px;
+	color: #50575e;
+	line-height: 1.5;
+}
+
 /* Status Badges */
 .spai-status {
 	display: inline-block;
