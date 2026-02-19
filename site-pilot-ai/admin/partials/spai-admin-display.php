@@ -22,6 +22,11 @@ $rest_base       = rest_url( 'site-pilot-ai/v1/' );
 $mcp_url         = rest_url( 'site-pilot-ai/v1/mcp' );
 $site_name       = get_bloginfo( 'name' );
 $site_slug       = sanitize_title( $site_name );
+// Non-Latin site names (Persian, Arabic, CJK) produce URL-encoded slugs — fall back to hostname.
+if ( empty( $site_slug ) || false !== strpos( $site_slug, '%' ) ) {
+	$site_slug = preg_replace( '/^www\./', '', wp_parse_url( home_url(), PHP_URL_HOST ) );
+	$site_slug = str_replace( '.', '-', $site_slug );
+}
 
 // Current tab — admin page, read-only navigation parameter.
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended
