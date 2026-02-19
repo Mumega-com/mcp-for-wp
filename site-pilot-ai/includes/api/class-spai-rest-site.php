@@ -1252,7 +1252,7 @@ class Spai_REST_Site extends Spai_REST_API {
 			$attachment_id = media_handle_sideload( $file_array, 0, __( 'Site Icon', 'site-pilot-ai' ) );
 
 			if ( is_wp_error( $attachment_id ) ) {
-				@unlink( $tmp );
+				wp_delete_file( $tmp );
 				return $this->error_response(
 					'upload_failed',
 					$attachment_id->get_error_message(),
@@ -1543,9 +1543,9 @@ class Spai_REST_Site extends Spai_REST_API {
 		// Freemius SDK stores update data in options like fs_updates, fs_accounts, etc.
 		// Delete them to force a fresh API check.
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->options is safe.
 		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'fs_updates%'" );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->options is safe.
 		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '%_transient_fs_sdk%'" );
 		if ( function_exists( 'wp_cache_flush' ) ) {
 			wp_cache_flush();
@@ -1608,9 +1608,9 @@ class Spai_REST_Site extends Spai_REST_API {
 		delete_site_transient( 'update_plugins' );
 
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->options is safe.
 		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'fs_updates%'" );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->options is safe.
 		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '%_transient_fs_sdk%'" );
 		if ( function_exists( 'wp_cache_flush' ) ) {
 			wp_cache_flush();
@@ -2038,9 +2038,7 @@ class Spai_REST_Site extends Spai_REST_API {
 			return $post_id;
 		}
 
-		$path = function_exists( 'wp_parse_url' )
-			? wp_parse_url( $url, PHP_URL_PATH )
-			: parse_url( $url, PHP_URL_PATH );
+		$path = wp_parse_url( $url, PHP_URL_PATH );
 
 		if ( ! is_string( $path ) || '' === trim( $path ) ) {
 			return 0;

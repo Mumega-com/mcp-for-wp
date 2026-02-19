@@ -84,6 +84,7 @@ class Spai_Webhooks {
 	 */
 	private function ensure_table() {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$table_exists = $wpdb->get_var(
 			$wpdb->prepare( "SHOW TABLES LIKE %s", $this->table )
 		);
@@ -241,6 +242,7 @@ class Spai_Webhooks {
 	public function get( $id ) {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $this->table.
 		$webhook = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d", $id ),
 			ARRAY_A
@@ -276,6 +278,7 @@ class Spai_Webhooks {
 
 		$offset = ( $args['page'] - 1 ) * $args['per_page'];
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table/where from safe sources.
 		$webhooks = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$this->table} WHERE {$where} ORDER BY created_at DESC LIMIT %d OFFSET %d",
@@ -289,6 +292,7 @@ class Spai_Webhooks {
 			$webhook['events'] = json_decode( $webhook['events'], true );
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table/where from safe sources.
 		$total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table} WHERE {$where}" );
 
 		return array(
@@ -402,7 +406,8 @@ class Spai_Webhooks {
 	public function trigger( $event, $payload ) {
 		global $wpdb;
 
-		// Find webhooks listening to this event
+		// Find webhooks listening to this event.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $this->table.
 		$webhooks = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$this->table} WHERE status = 'active' AND events LIKE %s",
@@ -526,6 +531,7 @@ class Spai_Webhooks {
 		$log_table = $wpdb->prefix . 'spai_webhook_logs';
 		$offset = ( $args['page'] - 1 ) * $args['per_page'];
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$logs = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$log_table} WHERE webhook_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
@@ -536,6 +542,7 @@ class Spai_Webhooks {
 			ARRAY_A
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$total = $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM {$log_table} WHERE webhook_id = %d", $webhook_id )
 		);

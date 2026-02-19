@@ -21,7 +21,8 @@ $is_first        = get_option( 'spai_first_activation', false );
 $rest_base       = rest_url( 'site-pilot-ai/v1/' );
 $mcp_url         = rest_url( 'site-pilot-ai/v1/mcp' );
 
-// Current tab
+// Current tab — admin page, read-only navigation parameter.
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 $current_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'setup';
 
 // Determine key display

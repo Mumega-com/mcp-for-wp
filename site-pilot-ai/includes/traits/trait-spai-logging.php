@@ -181,7 +181,7 @@ trait Spai_Logging {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
 				"DELETE FROM $table WHERE created_at < %s",
@@ -202,7 +202,7 @@ trait Spai_Logging {
 		global $wpdb;
 		$table = $wpdb->prefix . 'spai_activity_log';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM $table ORDER BY created_at DESC LIMIT %d",

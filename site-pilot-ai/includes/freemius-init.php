@@ -183,7 +183,10 @@ function spa_fs_uninstall_cleanup() {
 
 	// Clean up tables.
 	global $wpdb;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->prefix is safe.
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}spai_activity_log" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->prefix is safe.
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}spai_webhooks" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->prefix is safe.
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}spai_webhook_logs" );
 }

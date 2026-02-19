@@ -278,7 +278,7 @@ class Spai_Admin {
 			check_admin_referer( 'spai_manage_scoped_keys', 'spai_scoped_keys_nonce' );
 
 			$label  = isset( $_POST['spai_scoped_key_label'] ) ? sanitize_text_field( wp_unslash( $_POST['spai_scoped_key_label'] ) ) : '';
-			$scopes = isset( $_POST['spai_scoped_key_scopes'] ) ? (array) wp_unslash( $_POST['spai_scoped_key_scopes'] ) : array();
+			$scopes = isset( $_POST['spai_scoped_key_scopes'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['spai_scoped_key_scopes'] ) ) : array();
 			if ( empty( $scopes ) ) {
 				$scopes = array( 'read' );
 			}
@@ -353,7 +353,7 @@ class Spai_Admin {
 
 		$limit = max( 1, min( 50, absint( $limit ) ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, action, endpoint, method, status_code, created_at

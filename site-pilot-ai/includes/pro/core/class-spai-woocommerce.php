@@ -1080,6 +1080,7 @@ class Spai_WooCommerce {
 		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) &&
 			 Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$table = $wpdb->prefix . 'wc_orders';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name and status_in from safe sources.
 			$total = $wpdb->get_var( $wpdb->prepare(
 				"SELECT SUM(total_amount) FROM {$table}
 				WHERE status IN ({$status_in})
@@ -1089,6 +1090,7 @@ class Spai_WooCommerce {
 				$date_range['end']
 			) );
 		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names and status_in from safe sources.
 			$total = $wpdb->get_var( $wpdb->prepare(
 				"SELECT SUM(meta.meta_value) FROM {$wpdb->posts} posts
 				LEFT JOIN {$wpdb->postmeta} meta ON posts.ID = meta.post_id
@@ -1169,6 +1171,7 @@ class Spai_WooCommerce {
 		$status_in = "'" . implode( "','", $statuses ) . "'";
 
 		// Get top selling product IDs.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names and status_in from safe sources.
 		$results = $wpdb->get_results( $wpdb->prepare(
 			"SELECT order_items.order_item_id, order_item_meta.meta_value as product_id,
 				SUM(order_item_meta_qty.meta_value) as qty

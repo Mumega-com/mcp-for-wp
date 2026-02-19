@@ -143,7 +143,7 @@ class Spai_Core {
 		$table = $wpdb->prefix . 'spai_activity_log';
 		$since = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$total_requests = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM $table WHERE created_at >= %s",
@@ -151,7 +151,7 @@ class Spai_Core {
 			)
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$by_action = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT action, COUNT(*) as count FROM $table WHERE created_at >= %s GROUP BY action ORDER BY count DESC LIMIT 10",
@@ -160,7 +160,7 @@ class Spai_Core {
 			ARRAY_A
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$by_day = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DATE(created_at) as date, COUNT(*) as count FROM $table WHERE created_at >= %s GROUP BY DATE(created_at) ORDER BY date DESC",

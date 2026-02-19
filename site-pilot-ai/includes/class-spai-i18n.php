@@ -11,17 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Define internationalization functionality.
+ *
+ * Translations are loaded automatically by WordPress.org since WP 4.6.
  */
 class Spai_i18n {
 
 	/**
 	 * Load the plugin text domain.
+	 *
+	 * No-op since WordPress 4.6+ loads translations automatically
+	 * for plugins hosted on WordPress.org.
 	 */
 	public function load_plugin_textdomain() {
-		load_plugin_textdomain(
-			'site-pilot-ai',
-			false,
-			dirname( SPAI_PLUGIN_BASENAME ) . '/languages/'
-		);
+		// Intentionally left empty — WordPress handles this automatically.
 	}
 }

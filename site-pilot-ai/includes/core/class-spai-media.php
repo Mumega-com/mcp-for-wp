@@ -278,8 +278,13 @@ class Spai_Media {
 		$unique_filename = wp_unique_filename( $upload_dir['path'], $filename );
 		$new_file = $upload_dir['path'] . '/' . $unique_filename;
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rename
-		if ( ! rename( $tmp_file, $new_file ) ) {
+		global $wp_filesystem;
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		if ( ! $wp_filesystem->move( $tmp_file, $new_file, true ) ) {
 			wp_delete_file( $tmp_file );
 			return new WP_Error(
 				'move_error',
@@ -288,10 +293,10 @@ class Spai_Media {
 			);
 		}
 
-		// Set file permissions.
+		// Set file permissions to match parent directory.
 		$stat = stat( dirname( $new_file ) );
 		$perms = $stat['mode'] & 0000666;
-		chmod( $new_file, $perms );
+		$wp_filesystem->chmod( $new_file, $perms );
 
 		// Create attachment.
 		$attachment = array(

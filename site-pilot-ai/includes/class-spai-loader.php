@@ -175,7 +175,7 @@ class Spai_Loader {
 		$table    = $wpdb->prefix . 'spai_activity_log';
 		$cutoff   = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$wpdb->query(
 			$wpdb->prepare(
 				"DELETE FROM {$table} WHERE created_at < %s",

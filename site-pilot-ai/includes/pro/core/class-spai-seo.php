@@ -305,7 +305,7 @@ class Spai_SEO {
 		// AIOSEO stores data in a separate table.
 		$table = $wpdb->prefix . 'aioseo_posts';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$aioseo_data = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT * FROM $table WHERE post_id = %d",
@@ -361,7 +361,7 @@ class Spai_SEO {
 		$table = $wpdb->prefix . 'aioseo_posts';
 
 		// Check if row exists.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$exists = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM $table WHERE post_id = %d",

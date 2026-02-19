@@ -18,6 +18,7 @@ class Spai_Activity_Log_Page {
 	 * Render page.
 	 */
 	public function render() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- log_id is an integer ID used for read-only display, verified via admin page access.
 		$log_id = isset( $_GET['log_id'] ) ? absint( wp_unslash( $_GET['log_id'] ) ) : 0;
 
 		echo '<div class="wrap">';
@@ -50,13 +51,18 @@ class Spai_Activity_Log_Page {
 
 		$table = $wpdb->prefix . 'spai_activity_log';
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page with sanitized inputs; nonce used in filter form.
 		$paged    = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
 		$per_page = 50;
 		$offset   = ( $paged - 1 ) * $per_page;
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display with sanitized inputs.
 		$search      = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$method      = isset( $_GET['method'] ) ? sanitize_key( wp_unslash( $_GET['method'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status_code = isset( $_GET['status_code'] ) ? absint( wp_unslash( $_GET['status_code'] ) ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$action      = isset( $_GET['action_name'] ) ? sanitize_key( wp_unslash( $_GET['action_name'] ) ) : '';
 
 		$where      = array( '1=1' );
@@ -95,19 +101,19 @@ class Spai_Activity_Log_Page {
 			LIMIT %d OFFSET %d";
 
 		if ( empty( $arguments ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $count_sql uses only $wpdb->prefix table name.
 			$total = (int) $wpdb->get_var( $count_sql );
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $count_sql uses sanitized where clauses with prepare().
 			$total = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $arguments ) );
 		}
 
 		$list_args = array_merge( $arguments, array( $per_page, $offset ) );
 		if ( empty( $arguments ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $list_sql uses $wpdb->prefix table name.
 			$rows = $wpdb->get_results( $wpdb->prepare( $list_sql, $per_page, $offset ), ARRAY_A );
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $list_sql uses sanitized where clauses with prepare().
 			$rows = $wpdb->get_results( $wpdb->prepare( $list_sql, $list_args ), ARRAY_A );
 		}
 
@@ -168,7 +174,7 @@ class Spai_Activity_Log_Page {
 
 		$table = $wpdb->prefix . 'spai_activity_log';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT * FROM {$table} WHERE id = %d",
@@ -212,10 +218,11 @@ class Spai_Activity_Log_Page {
 		$response_data = $this->redact_sensitive( $response_data );
 
 		echo '<h2>' . esc_html__( 'Request Data (redacted)', 'site-pilot-ai' ) . '</h2>';
-		echo $this->render_pretty_json_block( $request_data );
+		// render_pretty_json_block() returns pre-escaped HTML via esc_html().
+		echo wp_kses_post( $this->render_pretty_json_block( $request_data ) );
 
 		echo '<h2>' . esc_html__( 'Response Data (redacted)', 'site-pilot-ai' ) . '</h2>';
-		echo $this->render_pretty_json_block( $response_data );
+		echo wp_kses_post( $this->render_pretty_json_block( $response_data ) );
 	}
 
 	/**
@@ -245,8 +252,7 @@ class Spai_Activity_Log_Page {
 		echo '<select name="method">';
 		echo '<option value="">' . esc_html__( 'All methods', 'site-pilot-ai' ) . '</option>';
 		foreach ( array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ) as $method ) {
-			$selected = strtoupper( (string) $values['method'] ) === $method ? 'selected' : '';
-			echo '<option value="' . esc_attr( strtolower( $method ) ) . '" ' . $selected . '>' . esc_html( $method ) . '</option>';
+			echo '<option value="' . esc_attr( strtolower( $method ) ) . '"' . selected( strtoupper( (string) $values['method'] ), $method, false ) . '>' . esc_html( $method ) . '</option>';
 		}
 		echo '</select>';
 
@@ -276,13 +282,15 @@ class Spai_Activity_Log_Page {
 
 		$current_args = array();
 		foreach ( array( 's', 'method', 'status_code', 'action_name' ) as $key ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			if ( isset( $_GET[ $key ] ) && '' !== (string) $_GET[ $key ] ) {
 				$current_args[ $key ] = sanitize_text_field( wp_unslash( (string) $_GET[ $key ] ) );
 			}
 		}
 
 		echo '<div class="tablenav"><div class="tablenav-pages" style="margin: 12px 0">';
-		echo paginate_links( array(
+		// paginate_links() returns safe HTML with escaped URLs.
+		echo wp_kses_post( paginate_links( array(
 			'base'      => esc_url_raw( add_query_arg( array_merge( $current_args, array(
 				'page'  => Spai_Admin::ACTIVITY_LOG_PAGE_SLUG,
 				'paged' => '%#%',
@@ -292,7 +300,7 @@ class Spai_Activity_Log_Page {
 			'next_text' => __( '&raquo;', 'site-pilot-ai' ),
 			'total'     => $total_pages,
 			'current'   => $paged,
-		) );
+		) ) );
 		echo '</div></div>';
 	}
 
