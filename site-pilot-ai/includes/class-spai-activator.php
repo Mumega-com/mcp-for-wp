@@ -256,5 +256,23 @@ class Spai_Activator {
 			KEY created_at (created_at)
 		) $charset_collate;";
 		dbDelta( $sql_logs );
+
+		// Feedback table
+		$feedback_table = $wpdb->prefix . 'spai_feedback';
+		$sql_feedback = "CREATE TABLE IF NOT EXISTS $feedback_table (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			type varchar(20) NOT NULL DEFAULT 'feedback',
+			title varchar(255) NOT NULL,
+			description text NOT NULL,
+			agent varchar(100) DEFAULT '',
+			priority varchar(20) DEFAULT 'medium',
+			status varchar(20) DEFAULT 'open',
+			github_issue_url varchar(500) DEFAULT '',
+			meta longtext DEFAULT '',
+			created_at datetime NOT NULL,
+			PRIMARY KEY (id),
+			KEY type_status (type, status)
+		) $charset_collate;";
+		dbDelta( $sql_feedback );
 	}
 }

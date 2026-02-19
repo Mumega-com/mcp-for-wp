@@ -250,6 +250,32 @@ class Spai_Settings {
 			)
 		);
 
+		// GitHub Integration.
+		add_settings_field(
+			'github_token',
+			__( 'GitHub Token', 'site-pilot-ai' ),
+			array( $this, 'render_secret_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'github_token',
+				'description' => __( 'Personal access token with repo scope. Used to auto-create issues from AI feedback. Leave empty to keep existing value.', 'site-pilot-ai' ),
+			)
+		);
+
+		add_settings_field(
+			'github_repo',
+			__( 'GitHub Repo', 'site-pilot-ai' ),
+			array( $this, 'render_text_field' ),
+			'spai_settings',
+			'spai_general_section',
+			array(
+				'id'          => 'github_repo',
+				'description' => __( 'Repository in owner/repo format (e.g., Digidinc/wp-ai-operator). Leave empty to disable GitHub integration.', 'site-pilot-ai' ),
+				'placeholder' => 'owner/repo',
+			)
+		);
+
 		// Screenshot Worker.
 		add_settings_field(
 			'screenshot_worker_url',
@@ -518,6 +544,18 @@ class Spai_Settings {
 			$sanitized['screenshot_worker_token'] = isset( $current['screenshot_worker_token'] ) ? (string) $current['screenshot_worker_token'] : '';
 		}
 
+		// GitHub integration.
+		$new_github_token = isset( $input['github_token'] ) ? trim( (string) $input['github_token'] ) : '';
+		if ( '' !== $new_github_token ) {
+			$sanitized['github_token'] = sanitize_text_field( $new_github_token );
+		} else {
+			$sanitized['github_token'] = isset( $current['github_token'] ) ? (string) $current['github_token'] : '';
+		}
+
+		$sanitized['github_repo'] = isset( $input['github_repo'] )
+			? sanitize_text_field( trim( $input['github_repo'] ) )
+			: ( isset( $current['github_repo'] ) ? $current['github_repo'] : '' );
+
 		return $sanitized;
 	}
 
@@ -683,12 +721,20 @@ class Spai_Settings {
 	public function render_secret_field( $args ) {
 		$settings = $this->get_option_settings( $args );
 		$option_name = isset( $args['option_name'] ) ? $args['option_name'] : self::OPTION_NAME;
-		$has_secret = ! empty( $settings['oauth_client_secret_hash'] );
+		$field_id    = $args['id'];
+
+		// Detect whether a value is already stored for this secret field.
+		$has_secret = false;
+		if ( 'oauth_client_secret' === $field_id ) {
+			$has_secret = ! empty( $settings['oauth_client_secret_hash'] );
+		} else {
+			$has_secret = ! empty( $settings[ $field_id ] );
+		}
 
 		printf(
 			'<input type="password" name="%s[%s]" value="" class="regular-text" autocomplete="new-password" />',
 			esc_attr( $option_name ),
-			esc_attr( $args['id'] )
+			esc_attr( $field_id )
 		);
 
 		if ( ! empty( $args['description'] ) ) {
@@ -696,7 +742,7 @@ class Spai_Settings {
 		}
 
 		if ( $has_secret ) {
-			printf( '<p class="description">%s</p>', esc_html__( 'A client secret is already configured.', 'site-pilot-ai' ) );
+			printf( '<p class="description">%s</p>', esc_html__( 'A value is already configured.', 'site-pilot-ai' ) );
 		}
 	}
 

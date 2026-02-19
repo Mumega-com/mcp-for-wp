@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.66
+Stable tag: 1.0.67
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,13 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.67 =
+* Add: AI feedback system — wp_submit_feedback and wp_list_feedback MCP tools
+* Add: REST endpoints POST/GET /feedback for bug reports, feature requests, and general feedback
+* Add: Optional GitHub integration — auto-creates GitHub issues from AI feedback when configured
+* Add: Settings for GitHub token and repo (Advanced tab)
+* Add: spai_feedback database table for persistent feedback storage
 
 = 1.0.66 =
 * Add: Cloudflare Browser Rendering support for wp_screenshot_url (headless Chromium screenshots)

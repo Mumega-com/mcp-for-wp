@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://sitepilotai.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.66
+ * Version:           1.0.67
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -86,7 +86,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.66' );
+define( 'SPAI_VERSION', '1.0.67' );
 
 /**
  * Plugin directory path.
@@ -236,6 +236,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-drafts.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-elementor-basic.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-screenshot.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-feedback.php';
 
 	// Load MCP tool registries
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-tool-registry.php';
@@ -254,6 +255,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-elementor.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-webhooks.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-screenshot.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-feedback.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-mcp.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-batch.php';
 

@@ -628,6 +628,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_set_seo'                     => array(
 				'method' => 'POST',
 				'route'  => '/seo/{id}',
+				'param_remap' => array(
+					'seo_title'       => 'title',
+					'seo_description' => 'description',
+				),
 			),
 			'wp_analyze_seo'                 => array(
 				'method' => 'GET',

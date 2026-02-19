@@ -598,6 +598,15 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$route   = $mapping['route'];
 		$method  = $mapping['method'];
 
+		// Remap tool param names to REST endpoint param names where they differ.
+		$param_remap = isset( $mapping['param_remap'] ) ? $mapping['param_remap'] : array();
+		foreach ( $param_remap as $from => $to ) {
+			if ( array_key_exists( $from, $arguments ) ) {
+				$arguments[ $to ] = $arguments[ $from ];
+				unset( $arguments[ $from ] );
+			}
+		}
+
 		// Substitute path parameters (e.g., {id})
 		foreach ( $arguments as $key => $value ) {
 			$placeholder = '{' . $key . '}';

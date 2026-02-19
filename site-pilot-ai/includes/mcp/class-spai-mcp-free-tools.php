@@ -1191,6 +1191,62 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Feedback
+		$tools[] = $this->define_tool(
+			'wp_submit_feedback',
+			'Submit feedback, a bug report, or a feature request to the site owner. Optionally creates a GitHub issue if configured.',
+			array(
+				'type'        => array(
+					'type'        => 'string',
+					'description' => 'Feedback type: bug_report, feature_request, or feedback',
+					'required'    => true,
+					'enum'        => array( 'bug_report', 'feature_request', 'feedback' ),
+				),
+				'title'       => array(
+					'type'        => 'string',
+					'description' => 'Short summary',
+					'required'    => true,
+				),
+				'description' => array(
+					'type'        => 'string',
+					'description' => 'Detailed description',
+					'required'    => true,
+				),
+				'priority'    => array(
+					'type'        => 'string',
+					'description' => 'Priority: low, medium, high, critical',
+					'enum'        => array( 'low', 'medium', 'high', 'critical' ),
+					'default'     => 'medium',
+				),
+				'meta'        => array(
+					'type'        => 'object',
+					'description' => 'Extra context (page_id, tool_name, error_message, steps_to_reproduce)',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_feedback',
+			'List submitted feedback entries with optional filters for type and status',
+			array(
+				'type'   => array(
+					'type'        => 'string',
+					'description' => 'Filter by type: bug_report, feature_request, feedback',
+					'enum'        => array( 'bug_report', 'feature_request', 'feedback' ),
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Filter by status: open, acknowledged, resolved, closed, all',
+					'default'     => 'open',
+				),
+				'limit'  => array(
+					'type'        => 'number',
+					'description' => 'Max results (1-100)',
+					'default'     => 20,
+				),
+			)
+		);
+
 		return $tools;
 	}
 
@@ -1469,6 +1525,16 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_list_webhook_logs'    => array(
 				'method' => 'GET',
 				'route'  => '/webhooks/{id}/logs',
+			),
+
+			// Feedback
+			'wp_submit_feedback'     => array(
+				'method' => 'POST',
+				'route'  => '/feedback',
+			),
+			'wp_list_feedback'       => array(
+				'method' => 'GET',
+				'route'  => '/feedback',
 			),
 		);
 	}

@@ -224,6 +224,10 @@ class Spai_Loader {
 		$screenshot_controller = new Spai_REST_Screenshot();
 		$screenshot_controller->register_routes();
 
+		// Feedback
+		$feedback_controller = new Spai_REST_Feedback();
+		$feedback_controller->register_routes();
+
 		// MCP (Model Context Protocol)
 		$mcp_controller = new Spai_REST_MCP();
 		$mcp_controller->register_routes();
