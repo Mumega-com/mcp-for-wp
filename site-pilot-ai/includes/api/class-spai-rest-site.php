@@ -2036,6 +2036,7 @@ class Spai_REST_Site extends Spai_REST_API {
 			'site_icon',
 			'spai_site_context',
 			'spai_site_context_updated',
+			'elementor_pro_theme_builder_conditions',
 		);
 	}
 

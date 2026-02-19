@@ -273,12 +273,17 @@ class Spai_Theme_Builder {
 			$formatted_conditions[] = $formatted;
 		}
 
-		// Save conditions.
+		// Save conditions via Elementor's conditions manager.
 		$conditions_manager = \ElementorPro\Modules\ThemeBuilder\Module::instance()->get_conditions_manager();
 		$conditions_manager->save_conditions( $template_id, $formatted_conditions );
 
+		// Ensure the global conditions index is updated.
+		// Elementor Pro reads elementor_pro_theme_builder_conditions at runtime
+		// to decide which templates to load. The per-post meta alone is not enough.
+		$this->update_global_conditions_index( $template_id, $formatted_conditions );
+
 		// Clear cache.
-		\ElementorPro\Modules\ThemeBuilder\Module::instance()->get_conditions_manager()->get_cache()->regenerate();
+		$conditions_manager->get_cache()->regenerate();
 
 		return $this->get_template_conditions( $template_id );
 	}
@@ -447,6 +452,66 @@ class Spai_Theme_Builder {
 
 		$template['assigned'] = true;
 		return $template;
+	}
+
+	/**
+	 * Update the global theme builder conditions index.
+	 *
+	 * Elementor Pro maintains a site-wide option `elementor_pro_theme_builder_conditions`
+	 * that maps condition strings to template IDs. The frontend reads this option at
+	 * runtime to decide which templates to load for each location. Without this,
+	 * templates have per-post meta but are invisible to the rendering engine.
+	 *
+	 * @param int   $template_id Template ID.
+	 * @param array $conditions  Formatted conditions array.
+	 */
+	private function update_global_conditions_index( $template_id, $conditions ) {
+		$all_conditions = get_option( 'elementor_pro_theme_builder_conditions', array() );
+		if ( ! is_array( $all_conditions ) ) {
+			$all_conditions = array();
+		}
+
+		// Remove this template from all existing condition keys.
+		foreach ( $all_conditions as $key => $template_ids ) {
+			if ( is_array( $template_ids ) ) {
+				$all_conditions[ $key ] = array_values( array_filter(
+					$template_ids,
+					function ( $id ) use ( $template_id ) {
+						return absint( $id ) !== absint( $template_id );
+					}
+				) );
+				if ( empty( $all_conditions[ $key ] ) ) {
+					unset( $all_conditions[ $key ] );
+				}
+			}
+		}
+
+		// Add this template under each new condition key.
+		foreach ( $conditions as $condition ) {
+			$type     = isset( $condition['type'] ) ? $condition['type'] : 'include';
+			$name     = isset( $condition['name'] ) ? $condition['name'] : 'general';
+			$sub_name = isset( $condition['sub_name'] ) ? $condition['sub_name'] : '';
+			$sub_id   = isset( $condition['sub_id'] ) ? $condition['sub_id'] : '';
+
+			// Build the condition key in Elementor's format: "type/name[/sub_name[/sub_id]]"
+			$key = $type . '/' . $name;
+			if ( ! empty( $sub_name ) ) {
+				$key .= '/' . $sub_name;
+				if ( ! empty( $sub_id ) ) {
+					$key .= '/' . $sub_id;
+				}
+			}
+
+			if ( ! isset( $all_conditions[ $key ] ) ) {
+				$all_conditions[ $key ] = array();
+			}
+
+			if ( ! in_array( absint( $template_id ), array_map( 'absint', $all_conditions[ $key ] ), true ) ) {
+				$all_conditions[ $key ][] = absint( $template_id );
+			}
+		}
+
+		update_option( 'elementor_pro_theme_builder_conditions', $all_conditions );
 	}
 
 	/**
