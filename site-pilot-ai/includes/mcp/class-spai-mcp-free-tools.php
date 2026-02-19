@@ -1011,11 +1011,11 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_batch_update',
-			'Execute multiple REST API operations in a single request (max 25). Each operation specifies method, path, and body.',
+			'Execute multiple REST API operations in a single request (max 25). Operations run sequentially and each returns {index, status, data}. Example: [{"method":"PUT","path":"/posts/42","body":{"title":"New Title"}}, {"method":"GET","path":"/pages"}]. Use this to reduce round-trips when making many changes.',
 			array(
 				'operations' => array(
 					'type'        => 'array',
-					'description' => 'Array of {method, path, body} objects. method: GET/POST/PUT/DELETE. path: relative to /site-pilot-ai/v1/',
+					'description' => 'Array of operation objects. Each must have: method (GET/POST/PUT/DELETE), path (relative to /site-pilot-ai/v1/, e.g. "/pages/42"), body (optional object — used as request body for POST/PUT, query params for GET/DELETE)',
 					'required'    => true,
 				),
 			)
@@ -1216,7 +1216,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_screenshot_url',
-			'Take a screenshot of a URL. Uses Cloudflare Browser Rendering (headless Chromium) if configured, otherwise falls back to WordPress mshots. Returns base64 PNG from Cloudflare or a URL from mshots. Optionally saves to media library.',
+			'Take a screenshot of a URL. Uses Cloudflare Browser Rendering (headless Chromium) if configured, otherwise falls back to WordPress mshots. Returns base64 PNG from Cloudflare or a URL from mshots. Optionally saves to media library. Set webhook_url for async mode — the webhook fires when the screenshot is ready (useful for mshots which renders asynchronously).',
 			array(
 				'url' => array(
 					'type'        => 'string',
@@ -1237,6 +1237,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'boolean',
 					'description' => 'Also save screenshot to WordPress media library',
 					'default'     => false,
+				),
+				'webhook_url' => array(
+					'type'        => 'string',
+					'description' => 'URL to POST when screenshot is ready. Enables async mode for mshots. Payload: {url, screenshot_url, status, timestamp}. Header: X-SPAI-Event: screenshot.ready',
 				),
 			)
 		);

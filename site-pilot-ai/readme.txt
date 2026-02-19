@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.11
+Stable tag: 1.1.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.12 =
+* New: wp_build_page gains 6 section types — contact_form, map, countdown, stats, logo_grid, video
+* Improvement: wp_batch_update MCP tool description now includes operation schema, examples, and sequential execution notes
+* Improvement: wp_screenshot_url now exposes optional webhook_url parameter for async screenshot delivery
 
 = 1.1.11 =
 * Improvement: wp_regenerate_elementor_css now returns detailed confirmation — pages processed, CSS file sizes, method used (regenerated vs cache cleared)

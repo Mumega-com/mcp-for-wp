@@ -482,7 +482,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 
 		$pro_tools[] = $this->define_tool(
 			'wp_build_page',
-			'Build a page from semantic section blueprints. Generates valid Elementor data automatically. Supported section types: hero, features, cta, pricing, faq, testimonials, text, gallery.',
+			'Build a page from semantic section blueprints. Generates valid Elementor data automatically. Supported section types: hero, features, cta, pricing, faq, testimonials, text, gallery, contact_form, map, countdown, stats, logo_grid, video.',
 			array(
 				'title' => array(
 					'type'        => 'string',
@@ -491,7 +491,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				),
 				'sections' => array(
 					'type'        => 'array',
-					'description' => 'Array of section objects. Each has "type" (hero/features/cta/pricing/faq/testimonials/text/gallery) plus type-specific params. Hero: heading, subheading, cta_text, cta_url, background (color/#hex/gradient), image_url. Features: heading, columns, items[{icon, title, desc}]. CTA: heading, subheading, button_text, button_url, background. Pricing: heading, plans[{title, price, period, features[], button_text, button_url}]. FAQ: heading, items[{question, answer}]. Testimonials: heading, items[{text, name, title, image}]. Text: heading, content. Gallery: heading, images[], columns.',
+					'description' => 'Array of section objects. Each has "type" plus type-specific params. Hero: heading, subheading, cta_text, cta_url, background (color/#hex/gradient), image_url. Features: heading, columns, items[{icon, title, desc}]. CTA: heading, subheading, button_text, button_url, background. Pricing: heading, plans[{title, price, period, features[], button_text, button_url}]. FAQ: heading, items[{question, answer}]. Testimonials: heading, items[{text, name, title, image}]. Text: heading, content. Gallery: heading, images[], columns. Contact_form: heading, subheading, form_id, plugin (wpforms/cf7/gravity). Map: heading, address, zoom (1-20), height. Countdown: heading, due_date (YYYY-MM-DD HH:MM), subheading. Stats: heading, columns, items[{number, title, suffix}]. Logo_grid: heading, columns, items[{image, url}]. Video: heading, url (YouTube/Vimeo/hosted mp4), subheading.',
 					'required'    => true,
 				),
 				'status' => array(

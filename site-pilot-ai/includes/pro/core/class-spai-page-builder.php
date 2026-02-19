@@ -25,6 +25,7 @@ class Spai_Page_Builder {
 	private static $supported_types = array(
 		'hero', 'features', 'cta', 'pricing', 'faq',
 		'testimonials', 'text', 'gallery',
+		'contact_form', 'map', 'countdown', 'stats', 'logo_grid', 'video',
 	);
 
 	/**
@@ -642,6 +643,383 @@ class Spai_Page_Builder {
 
 		return $this->wrap_section( $widgets, array(
 			'padding' => array( 'top' => '40', 'bottom' => '40', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+		), $use_containers );
+	}
+
+	/**
+	 * Build a contact form section.
+	 *
+	 * @param array $p              Section params: heading, form_id, form_plugin (wpforms|cf7|gravity).
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_contact_form( $p, $use_containers ) {
+		$heading     = isset( $p['heading'] ) ? $p['heading'] : '';
+		$form_id     = isset( $p['form_id'] ) ? (int) $p['form_id'] : 0;
+		$form_plugin = isset( $p['form_plugin'] ) ? $p['form_plugin'] : 'wpforms';
+
+		$widgets = array();
+
+		if ( $heading ) {
+			$widgets[] = $this->widget( 'heading', array(
+				'title'       => $heading,
+				'header_size' => 'h2',
+				'align'       => 'center',
+			) );
+		}
+
+		// Map plugin name to Elementor widget type.
+		$widget_map = array(
+			'wpforms'  => 'wpforms',
+			'cf7'      => 'shortcode',
+			'gravity'  => 'shortcode',
+		);
+
+		$widget_type = isset( $widget_map[ $form_plugin ] ) ? $widget_map[ $form_plugin ] : 'shortcode';
+
+		if ( 'wpforms' === $form_plugin && $form_id ) {
+			$widgets[] = $this->widget( $widget_type, array( 'form_id' => (string) $form_id ) );
+		} elseif ( 'cf7' === $form_plugin && $form_id ) {
+			$widgets[] = $this->widget( 'shortcode', array( 'shortcode' => '[contact-form-7 id="' . $form_id . '"]' ) );
+		} elseif ( 'gravity' === $form_plugin && $form_id ) {
+			$widgets[] = $this->widget( 'shortcode', array( 'shortcode' => '[gravityform id="' . $form_id . '" ajax="true"]' ) );
+		} else {
+			$widgets[] = $this->widget( 'text-editor', array(
+				'editor' => '<p style="text-align:center;color:#999;">Form placeholder — set form_id and form_plugin to embed a real form.</p>',
+			) );
+		}
+
+		return $this->wrap_section( $widgets, array(
+			'padding' => array( 'top' => '60', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+		), $use_containers );
+	}
+
+	/**
+	 * Build a Google Maps section.
+	 *
+	 * @param array $p              Section params: heading, address, zoom, height.
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_map( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : '';
+		$address = isset( $p['address'] ) ? $p['address'] : 'New York, NY';
+		$zoom    = isset( $p['zoom'] ) ? min( max( (int) $p['zoom'], 1 ), 20 ) : 14;
+		$height  = isset( $p['height'] ) ? min( max( (int) $p['height'], 100 ), 800 ) : 400;
+
+		$widgets = array();
+
+		if ( $heading ) {
+			$widgets[] = $this->widget( 'heading', array(
+				'title'       => $heading,
+				'header_size' => 'h2',
+				'align'       => 'center',
+			) );
+		}
+
+		$widgets[] = $this->widget( 'google_maps', array(
+			'address' => $address,
+			'zoom'    => array( 'size' => $zoom, 'unit' => 'px' ),
+			'height'  => array( 'size' => $height, 'unit' => 'px' ),
+		) );
+
+		return $this->wrap_section( $widgets, array(
+			'padding' => array( 'top' => '40', 'bottom' => '40', 'left' => '0', 'right' => '0', 'unit' => 'px' ),
+		), $use_containers );
+	}
+
+	/**
+	 * Build a countdown section.
+	 *
+	 * @param array $p              Section params: heading, subheading, due_date (Y-m-d H:i).
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_countdown( $p, $use_containers ) {
+		$heading    = isset( $p['heading'] ) ? $p['heading'] : '';
+		$subheading = isset( $p['subheading'] ) ? $p['subheading'] : '';
+		$due_date   = isset( $p['due_date'] ) ? $p['due_date'] : gmdate( 'Y-m-d H:i', strtotime( '+30 days' ) );
+
+		$widgets = array();
+
+		if ( $heading ) {
+			$widgets[] = $this->widget( 'heading', array(
+				'title'       => $heading,
+				'header_size' => 'h2',
+				'align'       => 'center',
+			) );
+		}
+
+		if ( $subheading ) {
+			$widgets[] = $this->widget( 'text-editor', array(
+				'editor' => '<p style="text-align:center;">' . esc_html( $subheading ) . '</p>',
+			) );
+		}
+
+		$widgets[] = $this->widget( 'countdown', array(
+			'countdown_type' => 'due_date',
+			'due_date'       => $due_date,
+		) );
+
+		return $this->wrap_section( $widgets, array(
+			'padding'              => array( 'top' => '60', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+			'background_background' => 'classic',
+			'background_color'     => '#1a1a2e',
+			'_element_custom_width' => array( 'size' => '', 'unit' => '%' ),
+		), $use_containers );
+	}
+
+	/**
+	 * Build a stats / numbers section.
+	 *
+	 * @param array $p              Section params: heading, items[{number, suffix, title, duration}].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_stats( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : '';
+		$items   = isset( $p['items'] ) && is_array( $p['items'] ) ? $p['items'] : array();
+		$columns = count( $items ) > 4 ? 4 : max( count( $items ), 2 );
+
+		$all_widgets = array();
+
+		if ( $heading ) {
+			$all_widgets[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		if ( $use_containers ) {
+			$inner_containers = array();
+			foreach ( $items as $item ) {
+				$inner_containers[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'container',
+					'settings' => array( 'content_width' => 'full' ),
+					'elements' => array( $this->widget( 'counter', array(
+						'starting_number' => 0,
+						'ending_number'   => isset( $item['number'] ) ? (int) $item['number'] : 0,
+						'suffix'          => isset( $item['suffix'] ) ? $item['suffix'] : '',
+						'title'           => isset( $item['title'] ) ? $item['title'] : '',
+						'duration'        => isset( $item['duration'] ) ? (int) $item['duration'] : 2000,
+					) ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 20, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $inner_containers,
+			);
+		} else {
+			$col_size  = (int) floor( 100 / $columns );
+			$structure = array( 2 => '20', 3 => '30', 4 => '40' );
+
+			$column_elements = array();
+			foreach ( $items as $item ) {
+				$column_elements[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'column',
+					'settings' => array( '_column_size' => $col_size ),
+					'elements' => array( $this->widget( 'counter', array(
+						'starting_number' => 0,
+						'ending_number'   => isset( $item['number'] ) ? (int) $item['number'] : 0,
+						'suffix'          => isset( $item['suffix'] ) ? $item['suffix'] : '',
+						'title'           => isset( $item['title'] ) ? $item['title'] : '',
+						'duration'        => isset( $item['duration'] ) ? (int) $item['duration'] : 2000,
+					) ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => isset( $structure[ $columns ] ) ? $structure[ $columns ] : '30',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $column_elements,
+			);
+		}
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build a logo grid section.
+	 *
+	 * @param array $p              Section params: heading, logos[{url, alt, link}], columns.
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_logo_grid( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : '';
+		$logos   = isset( $p['logos'] ) && is_array( $p['logos'] ) ? $p['logos'] : array();
+		$columns = isset( $p['columns'] ) ? min( max( (int) $p['columns'], 2 ), 6 ) : 4;
+
+		$all_widgets = array();
+
+		if ( $heading ) {
+			$all_widgets[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		if ( $use_containers ) {
+			$inner_containers = array();
+			foreach ( $logos as $logo ) {
+				$img_url = is_string( $logo ) ? $logo : ( isset( $logo['url'] ) ? $logo['url'] : '' );
+				$alt     = is_array( $logo ) && isset( $logo['alt'] ) ? $logo['alt'] : '';
+				$link    = is_array( $logo ) && isset( $logo['link'] ) ? $logo['link'] : '';
+
+				$settings = array(
+					'image'      => array( 'url' => $img_url ),
+					'image_size' => 'medium',
+					'align'      => 'center',
+					'caption_source' => 'none',
+				);
+				if ( $alt ) {
+					$settings['image']['alt'] = $alt;
+				}
+				if ( $link ) {
+					$settings['link_to'] = 'custom';
+					$settings['link']    = array( 'url' => $link, 'is_external' => true );
+				}
+
+				$inner_containers[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'container',
+					'settings' => array( 'content_width' => 'full' ),
+					'elements' => array( $this->widget( 'image', $settings ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 30, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $inner_containers,
+			);
+		} else {
+			$col_size  = (int) floor( 100 / $columns );
+			$structure = array( 2 => '20', 3 => '30', 4 => '40' );
+
+			$column_elements = array();
+			foreach ( $logos as $logo ) {
+				$img_url = is_string( $logo ) ? $logo : ( isset( $logo['url'] ) ? $logo['url'] : '' );
+				$alt     = is_array( $logo ) && isset( $logo['alt'] ) ? $logo['alt'] : '';
+				$link    = is_array( $logo ) && isset( $logo['link'] ) ? $logo['link'] : '';
+
+				$settings = array(
+					'image'      => array( 'url' => $img_url ),
+					'image_size' => 'medium',
+					'align'      => 'center',
+					'caption_source' => 'none',
+				);
+				if ( $alt ) {
+					$settings['image']['alt'] = $alt;
+				}
+				if ( $link ) {
+					$settings['link_to'] = 'custom';
+					$settings['link']    = array( 'url' => $link, 'is_external' => true );
+				}
+
+				$column_elements[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'column',
+					'settings' => array( '_column_size' => $col_size ),
+					'elements' => array( $this->widget( 'image', $settings ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => isset( $structure[ $columns ] ) ? $structure[ $columns ] : '40',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $column_elements,
+			);
+		}
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build a video section.
+	 *
+	 * @param array $p              Section params: heading, subheading, video_url.
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_video( $p, $use_containers ) {
+		$heading    = isset( $p['heading'] ) ? $p['heading'] : '';
+		$subheading = isset( $p['subheading'] ) ? $p['subheading'] : '';
+		$video_url  = isset( $p['video_url'] ) ? $p['video_url'] : '';
+
+		$widgets = array();
+
+		if ( $heading ) {
+			$widgets[] = $this->widget( 'heading', array(
+				'title'       => $heading,
+				'header_size' => 'h2',
+				'align'       => 'center',
+			) );
+		}
+
+		if ( $subheading ) {
+			$widgets[] = $this->widget( 'text-editor', array(
+				'editor' => '<p style="text-align:center;">' . esc_html( $subheading ) . '</p>',
+			) );
+		}
+
+		// Detect video type from URL.
+		$video_type = 'youtube';
+		$settings   = array();
+
+		if ( false !== strpos( $video_url, 'vimeo.com' ) ) {
+			$video_type = 'vimeo';
+			$settings['vimeo_url'] = $video_url;
+		} elseif ( false !== strpos( $video_url, 'youtube.com' ) || false !== strpos( $video_url, 'youtu.be' ) ) {
+			$video_type = 'youtube';
+			$settings['youtube_url'] = $video_url;
+		} else {
+			$video_type = 'hosted';
+			$settings['hosted_url'] = array( 'url' => $video_url );
+		}
+
+		$settings['video_type'] = $video_type;
+
+		$widgets[] = $this->widget( 'video', $settings );
+
+		return $this->wrap_section( $widgets, array(
+			'padding' => array( 'top' => '60', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
 		), $use_containers );
 	}
 
