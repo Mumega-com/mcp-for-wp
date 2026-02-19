@@ -576,12 +576,15 @@ if ( isset( $new_key ) && $new_key ) {
 			</div>
 			<p class="description" style="margin-top: 10px;">
 				<?php
-				/* translators: 1: header name HTML 2: number of free tools 3: pro tools suffix */
-				printf(
-					esc_html__( 'Protocol: JSON-RPC 2.0 over HTTP POST. Auth: %1$s header. Tools available: %2$d free%3$s.', 'site-pilot-ai' ),
-					'<code>X-API-Key</code>',
-					17,
-					$is_pro ? ' + 13 Pro' : ''
+				/* translators: 1: number of free tools 2: pro tools suffix */
+				echo wp_kses(
+					sprintf(
+						/* translators: 1: number of free tools 2: pro tools suffix */
+						__( 'Protocol: JSON-RPC 2.0 over HTTP POST. Auth: <code>X-API-Key</code> header. Tools available: %1$d free%2$s.', 'site-pilot-ai' ),
+						17,
+						$is_pro ? ' + 13 Pro' : ''
+					),
+					array( 'code' => array() )
 				);
 				?>
 			</p>

@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.74
+Stable tag: 1.0.75
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,9 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.75 =
+* Fix: Last Plugin Check issue — i18n translators comment for protocol description, feedback query annotation
 
 = 1.0.74 =
 * Fix: WordPress.org Plugin Check compliance — output escaping, nonce verification, input sanitization

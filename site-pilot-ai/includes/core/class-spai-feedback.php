@@ -172,7 +172,7 @@ class Spai_Feedback {
 		$query = "SELECT * FROM {$table} {$where_sql} ORDER BY created_at DESC LIMIT %d";
 		$values[] = $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $query built from safe table name and validated where clauses.
 		$results = $wpdb->get_results( $wpdb->prepare( $query, $values ), ARRAY_A );
 
 		if ( ! is_array( $results ) ) {
