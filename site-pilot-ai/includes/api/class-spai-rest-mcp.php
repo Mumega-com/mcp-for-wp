@@ -583,9 +583,10 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$reqs = $this->get_all_required_capabilities();
 		if ( isset( $reqs[ $tool_name ] ) && ! $this->is_capability_active( $reqs[ $tool_name ] ) ) {
 			$plugin_names = array(
-				'elementor' => 'Elementor',
-				'seo'       => 'an SEO plugin (Yoast, RankMath, AIOSEO, or SEOPress)',
-				'forms'     => 'a forms plugin (Contact Form 7, WPForms, Gravity Forms, or Ninja Forms)',
+				'elementor'  => 'Elementor',
+				'gutenberg'  => 'the Gutenberg block editor (disable Classic Editor plugin if installed)',
+				'seo'        => 'an SEO plugin (Yoast, RankMath, AIOSEO, or SEOPress)',
+				'forms'      => 'a forms plugin (Contact Form 7, WPForms, Gravity Forms, or Ninja Forms)',
 			);
 			$req       = $reqs[ $tool_name ];
 			$human     = isset( $plugin_names[ $req ] ) ? $plugin_names[ $req ] : $req;
@@ -731,6 +732,16 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'Use wp_create_post, wp_update_post, wp_create_page, wp_update_page to publish changes.',
 			'Use wp_list_drafts to review unpublished content.',
 		);
+
+		// Gutenberg (conditional)
+		if ( ! empty( $capabilities['gutenberg'] ) ) {
+			$workflows['Gutenberg Blocks'] = array(
+				'Use wp_get_blocks to retrieve parsed block data for a post or page.',
+				'Use wp_set_blocks to update block content (pass blocks array or raw content).',
+				'Use wp_list_block_types to discover available block types before building.',
+				'Use wp_list_block_patterns to find pre-built layouts to insert.',
+			);
+		}
 
 		// Elementor (conditional)
 		if ( ! empty( $capabilities['elementor'] ) ) {

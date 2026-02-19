@@ -61,6 +61,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_elementor_status'         => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
 			'wp_bulk_find_replace'        => 'elementor',
+			'wp_get_blocks'               => 'gutenberg',
+			'wp_set_blocks'               => 'gutenberg',
+			'wp_list_block_types'         => 'gutenberg',
+			'wp_list_block_patterns'      => 'gutenberg',
 		);
 	}
 
@@ -1312,6 +1316,51 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Gutenberg Blocks
+		$tools[] = $this->define_tool(
+			'wp_get_blocks',
+			'Get parsed Gutenberg blocks for a post or page. Returns structured block data (blockName, attrs, innerBlocks, innerHTML) and the raw content.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_set_blocks',
+			'Set Gutenberg blocks for a post or page. Provide either a blocks array (serialized automatically) or raw block content string. Blocks use WordPress block grammar (<!-- wp:blockname {...} --> content <!-- /wp:blockname -->).',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID',
+					'required'    => true,
+				),
+				'blocks' => array(
+					'type'        => 'array',
+					'description' => 'Array of block objects with blockName, attrs, innerBlocks, and innerContent',
+				),
+				'content' => array(
+					'type'        => 'string',
+					'description' => 'Raw block content string (alternative to blocks array)',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_block_types',
+			'List all registered Gutenberg block types with name, title, category, description, and supported features. Use this to discover available blocks before building pages.',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_block_patterns',
+			'List all registered block patterns with name, title, categories, and content. Patterns are pre-built block layouts that can be inserted into pages.',
+			array()
+		);
+
 		// Option Management
 		$tools[] = $this->define_tool(
 			'wp_get_option',
@@ -1620,6 +1669,24 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_list_webhook_logs'    => array(
 				'method' => 'GET',
 				'route'  => '/webhooks/{id}/logs',
+			),
+
+			// Gutenberg Blocks
+			'wp_get_blocks'          => array(
+				'method' => 'GET',
+				'route'  => '/blocks/{id}',
+			),
+			'wp_set_blocks'          => array(
+				'method' => 'POST',
+				'route'  => '/blocks/{id}',
+			),
+			'wp_list_block_types'    => array(
+				'method' => 'GET',
+				'route'  => '/block-types',
+			),
+			'wp_list_block_patterns' => array(
+				'method' => 'GET',
+				'route'  => '/block-patterns',
 			),
 
 			// Post Meta

@@ -228,6 +228,10 @@ class Spai_Loader {
 		$feedback_controller = new Spai_REST_Feedback();
 		$feedback_controller->register_routes();
 
+		// Blocks (Gutenberg)
+		$blocks_controller = new Spai_REST_Blocks();
+		$blocks_controller->register_routes();
+
 		// MCP (Model Context Protocol)
 		$mcp_controller = new Spai_REST_MCP();
 		$mcp_controller->register_routes();

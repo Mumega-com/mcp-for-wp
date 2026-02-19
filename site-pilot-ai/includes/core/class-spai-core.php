@@ -85,7 +85,19 @@ class Spai_Core {
 			}
 		}
 
+		// Detect Gutenberg (block editor) availability.
+		// Gutenberg is built into WP 5.0+. It's unavailable only when the
+		// Classic Editor plugin forces classic mode for all post types.
+		$gutenberg_active = function_exists( 'register_block_type' );
+		if ( $gutenberg_active ) {
+			$classic_option = get_option( 'classic-editor-replace', 'no-replace' );
+			if ( 'replace' === $classic_option ) {
+				$gutenberg_active = false;
+			}
+		}
+
 		$capabilities = array(
+			'gutenberg'             => $gutenberg_active,
 			'elementor'             => defined( 'ELEMENTOR_VERSION' ),
 			'elementor_pro'         => defined( 'ELEMENTOR_PRO_VERSION' ),
 			'elementor_layout_mode' => $elementor_layout,

@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.69
+Stable tag: 1.0.70
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.70 =
+* Add: Gutenberg block editor MCP tools — wp_get_blocks, wp_set_blocks, wp_list_block_types, wp_list_block_patterns
+* Add: REST endpoints /blocks/{id} (GET/POST), /block-types (GET), /block-patterns (GET)
+* Add: Gutenberg capability detection — tools auto-activate when block editor is available
+* Add: Capability-aware filtering hides Gutenberg tools when Classic Editor forces classic mode
 
 = 1.0.69 =
 * Add: wp_get_post_meta / wp_set_post_meta MCP tools with blocked-key safety list
