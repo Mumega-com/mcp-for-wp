@@ -62,6 +62,15 @@ class Spai_Admin {
 
 		add_submenu_page(
 			self::PAGE_SLUG,
+			__( 'MCP Tools', 'site-pilot-ai' ),
+			__( 'MCP Tools', 'site-pilot-ai' ),
+			'activate_plugins',
+			Spai_Tools_Admin::PAGE_SLUG,
+			array( new Spai_Tools_Admin(), 'render' )
+		);
+
+		add_submenu_page(
+			self::PAGE_SLUG,
 			__( 'Activity Log', 'site-pilot-ai' ),
 			__( 'Activity Log', 'site-pilot-ai' ),
 			'activate_plugins',
@@ -158,6 +167,7 @@ class Spai_Admin {
 			'toplevel_page_' . self::PAGE_SLUG,
 			self::PAGE_SLUG . '_page_' . self::ACTIVITY_LOG_PAGE_SLUG,
 			self::PAGE_SLUG . '_page_' . Spai_Integrations_Admin::PAGE_SLUG,
+			self::PAGE_SLUG . '_page_' . Spai_Tools_Admin::PAGE_SLUG,
 		);
 
 		if ( ! in_array( $hook, $allowed_hooks, true ) ) {

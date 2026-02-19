@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://sitepilotai.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.1.1
+ * Version:           1.1.2
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -86,7 +86,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.1.1' );
+define( 'SPAI_VERSION', '1.1.2' );
 
 /**
  * Plugin directory path.
@@ -273,6 +273,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-activity-log.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-settings.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-integrations-admin.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-tools-admin.php';
 
 	// Load Pro modules (premium package only).
 	$pro_bootstrap = SPAI_PLUGIN_DIR . 'includes/pro/class-spai-pro-bootstrap.php';

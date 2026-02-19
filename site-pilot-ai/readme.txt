@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.2 =
+* New: Tool categories — every MCP tool now has an `annotations.category` field (content, media, elementor, seo, forms, gutenberg, taxonomy, site, webhooks, admin, ai)
+* New: Category filtering on tools/list — pass `params.category` to get only tools in a specific category
+* New: Admin page (Site Pilot AI > MCP Tools) — toggle entire tool categories on/off to reduce AI context noise
+* New: Disabled categories are excluded from tools/list responses automatically
 
 = 1.1.1 =
 * Fix: wp_bulk_seo schema mismatch — tool now correctly sends `updates` param to match REST endpoint

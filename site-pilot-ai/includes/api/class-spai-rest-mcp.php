@@ -153,7 +153,39 @@ class Spai_REST_MCP extends Spai_REST_API {
 			);
 		}
 
+		// Filter out tools in admin-disabled categories.
+		$disabled_categories = get_option( 'spai_disabled_tool_categories', array() );
+		if ( ! empty( $disabled_categories ) && is_array( $disabled_categories ) ) {
+			$all_categories = $this->get_all_tool_categories();
+			$tools = array_values(
+				array_filter(
+					$tools,
+					function ( $tool ) use ( $disabled_categories, $all_categories ) {
+						$name     = isset( $tool['name'] ) ? $tool['name'] : '';
+						$category = isset( $all_categories[ $name ] ) ? $all_categories[ $name ] : 'site';
+						return ! in_array( $category, $disabled_categories, true );
+					}
+				)
+			);
+		}
+
 		return $tools;
+	}
+
+	/**
+	 * Collect all tool category mappings from all registries.
+	 *
+	 * @return array Map of tool_name => category_slug.
+	 */
+	private function get_all_tool_categories() {
+		$cats = $this->free_registry->get_tool_categories();
+		if ( $this->is_pro_active() ) {
+			$cats = array_merge( $cats, $this->pro_registry->get_tool_categories() );
+		}
+		foreach ( Spai_Integration::resolve_all() as $integration ) {
+			$cats = array_merge( $cats, $integration->get_tool_categories() );
+		}
+		return $cats;
 	}
 
 	/**
@@ -414,7 +446,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 				return null;
 
 			case 'tools/list':
-				return $this->handle_tools_list( $id );
+				return $this->handle_tools_list( $id, $params );
 
 			case 'tools/call':
 				return $this->handle_tools_call( $id, $params, $request );
@@ -493,22 +525,41 @@ class Spai_REST_MCP extends Spai_REST_API {
 	/**
 	 * Handle tools/list method.
 	 *
-	 * @param mixed $id Request ID.
+	 * Supports optional category filter via params.category.
+	 *
+	 * @param mixed $id     Request ID.
+	 * @param array $params Optional request parameters.
 	 * @return array JSON-RPC response.
 	 */
-	private function handle_tools_list( $id ) {
-		$this->log_mcp_activity( 'mcp_tools_list', array() );
+	private function handle_tools_list( $id, $params = array() ) {
+		$this->log_mcp_activity( 'mcp_tools_list', array( 'params' => $params ) );
 
 		// Build tools from all registries (with caching).
 		if ( $this->tools_cache === null ) {
 			$this->tools_cache = $this->get_all_tools();
 		}
 
+		$tools = $this->tools_cache;
+
+		// Filter by category if requested.
+		$category_filter = isset( $params['category'] ) ? sanitize_key( $params['category'] ) : '';
+		if ( '' !== $category_filter ) {
+			$tools = array_values(
+				array_filter(
+					$tools,
+					function ( $tool ) use ( $category_filter ) {
+						$cat = isset( $tool['annotations']['category'] ) ? $tool['annotations']['category'] : 'site';
+						return $cat === $category_filter;
+					}
+				)
+			);
+		}
+
 		return array(
 			'jsonrpc' => '2.0',
 			'id'      => $id,
 			'result'  => array(
-				'tools' => $this->tools_cache,
+				'tools' => $tools,
 			),
 		);
 	}

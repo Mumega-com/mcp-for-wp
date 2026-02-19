@@ -64,6 +64,7 @@ class Spai_Loader {
 		$admin = new Spai_Admin();
 		$settings = new Spai_Settings();
 		$integrations_admin = new Spai_Integrations_Admin();
+		$tools_admin = new Spai_Tools_Admin();
 
 		// Admin menu
 		$this->add_action( 'admin_menu', $admin, 'add_admin_menu' );
@@ -72,6 +73,10 @@ class Spai_Loader {
 
 		// Integrations admin page assets
 		$this->add_action( 'admin_enqueue_scripts', $integrations_admin, 'enqueue_assets' );
+
+		// Tools admin page assets and AJAX
+		$this->add_action( 'admin_enqueue_scripts', $tools_admin, 'enqueue_assets' );
+		$this->add_action( 'wp_ajax_spai_toggle_tool_category', $tools_admin, 'ajax_toggle_category' );
 
 		// Settings
 		$this->add_action( 'admin_init', $settings, 'register_settings' );

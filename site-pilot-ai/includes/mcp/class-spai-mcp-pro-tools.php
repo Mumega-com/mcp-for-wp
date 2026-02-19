@@ -39,6 +39,76 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 	}
 
 	/**
+	 * Get tool category mappings for pro tier.
+	 *
+	 * @return array Map of tool_name => category_slug.
+	 */
+	public function get_tool_categories() {
+		return array(
+			// Multilanguage
+			'wp_languages'                      => 'content',
+			'wp_set_language'                    => 'content',
+			'wp_get_translations'                => 'content',
+			'wp_create_translation'              => 'content',
+
+			// SEO
+			'wp_get_seo'                         => 'seo',
+			'wp_set_seo'                         => 'seo',
+			'wp_analyze_seo'                     => 'seo',
+			'wp_bulk_seo'                        => 'seo',
+			'wp_seo_status'                      => 'seo',
+			'wp_set_noindex'                     => 'seo',
+
+			// Forms
+			'wp_list_forms'                      => 'forms',
+			'wp_get_form'                        => 'forms',
+			'wp_get_form_entries'                => 'forms',
+			'wp_forms_status'                    => 'forms',
+
+			// Elementor Pro
+			'wp_list_elementor_templates'        => 'elementor',
+			'wp_get_elementor_template'          => 'elementor',
+			'wp_create_elementor_template'       => 'elementor',
+			'wp_update_elementor_template'       => 'elementor',
+			'wp_delete_elementor_template'       => 'elementor',
+			'wp_apply_elementor_template'        => 'elementor',
+			'wp_create_landing_page'             => 'elementor',
+			'wp_clone_elementor_page'            => 'elementor',
+			'wp_get_elementor_globals'           => 'elementor',
+			'wp_set_elementor_globals'           => 'elementor',
+			'wp_get_elementor_widgets'           => 'elementor',
+			'wp_list_elementor_custom_code'      => 'elementor',
+			'wp_disable_elementor_custom_code'   => 'elementor',
+			'wp_enable_elementor_custom_code'    => 'elementor',
+			'wp_sanitize_elementor_custom_code'  => 'elementor',
+
+			// Theme Builder
+			'wp_theme_builder_status'            => 'elementor',
+			'wp_list_theme_templates'            => 'elementor',
+			'wp_get_theme_template'              => 'elementor',
+			'wp_set_template_conditions'         => 'elementor',
+			'wp_assign_template'                 => 'elementor',
+
+			// Menu Management (Pro)
+			'wp_get_menu'                        => 'site',
+			'wp_create_menu'                     => 'site',
+			'wp_update_menu'                     => 'site',
+
+			// Widgets & Sidebars
+			'wp_list_sidebars'                   => 'site',
+			'wp_get_sidebar'                     => 'site',
+			'wp_get_sidebar_widgets'             => 'site',
+			'wp_get_widget_types'                => 'site',
+			'wp_get_widget'                      => 'site',
+			'wp_add_widget'                      => 'site',
+			'wp_update_widget'                   => 'site',
+			'wp_delete_widget'                   => 'site',
+			'wp_move_widget'                     => 'site',
+			'wp_reorder_widgets'                 => 'site',
+		);
+	}
+
+	/**
 	 * Get required capabilities for pro tools.
 	 *
 	 * @return array Map of tool_name => capability_key.

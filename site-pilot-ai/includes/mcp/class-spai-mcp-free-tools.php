@@ -50,6 +50,116 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	}
 
 	/**
+	 * Get tool category mappings for free tier.
+	 *
+	 * @return array Map of tool_name => category_slug.
+	 */
+	public function get_tool_categories() {
+		return array(
+			// Site & Analytics
+			'wp_site_info'               => 'site',
+			'wp_introspect'              => 'site',
+			'wp_analytics'               => 'site',
+			'wp_detect_plugins'          => 'site',
+			'wp_get_options'             => 'site',
+			'wp_update_options'          => 'site',
+			'wp_get_site_context'        => 'site',
+			'wp_set_site_context'        => 'site',
+			'wp_get_custom_css'          => 'site',
+			'wp_set_custom_css'          => 'site',
+			'wp_list_menus'              => 'site',
+			'wp_list_menu_locations'     => 'site',
+			'wp_setup_menu'              => 'site',
+			'wp_list_menu_items'         => 'site',
+			'wp_add_menu_item'           => 'site',
+			'wp_update_menu_item'        => 'site',
+			'wp_delete_menu_item'        => 'site',
+			'wp_reorder_menu_items'      => 'site',
+			'wp_delete_menu'             => 'site',
+			'wp_assign_menu_location'    => 'site',
+			'wp_update_page_template'    => 'site',
+			'wp_list_page_templates'     => 'site',
+			'wp_get_option'              => 'site',
+			'wp_update_option'           => 'site',
+			'wp_get_theme_info'          => 'site',
+			'wp_flush_permalinks'        => 'site',
+			'wp_get_site_health'         => 'site',
+
+			// Content
+			'wp_list_content'            => 'content',
+			'wp_delete_content'          => 'content',
+			'wp_search'                  => 'content',
+			'wp_fetch'                   => 'content',
+			'wp_list_posts'              => 'content',
+			'wp_create_post'             => 'content',
+			'wp_update_post'             => 'content',
+			'wp_delete_post'             => 'content',
+			'wp_list_pages'              => 'content',
+			'wp_create_page'             => 'content',
+			'wp_update_page'             => 'content',
+			'wp_delete_page'             => 'content',
+			'wp_clone_page'              => 'content',
+			'wp_get_page_by_slug'        => 'content',
+			'wp_set_featured_image'      => 'content',
+			'wp_list_drafts'             => 'content',
+			'wp_delete_all_drafts'       => 'content',
+			'wp_batch_update'            => 'content',
+			'wp_bulk_create_pages'       => 'content',
+			'wp_bulk_create_posts'       => 'content',
+			'wp_get_post_meta'           => 'content',
+			'wp_set_post_meta'           => 'content',
+
+			// Media
+			'wp_list_media'              => 'media',
+			'wp_upload_media'            => 'media',
+			'wp_upload_media_from_url'   => 'media',
+			'wp_upload_media_b64'        => 'media',
+			'wp_screenshot_url'          => 'media',
+
+			// Taxonomy
+			'wp_list_categories'         => 'taxonomy',
+			'wp_list_tags'               => 'taxonomy',
+			'wp_create_term'             => 'taxonomy',
+			'wp_update_term'             => 'taxonomy',
+			'wp_delete_term'             => 'taxonomy',
+
+			// Elementor
+			'wp_get_elementor'           => 'elementor',
+			'wp_set_elementor'           => 'elementor',
+			'wp_elementor_status'        => 'elementor',
+			'wp_regenerate_elementor_css' => 'elementor',
+			'wp_bulk_find_replace'       => 'elementor',
+
+			// Gutenberg
+			'wp_get_blocks'              => 'gutenberg',
+			'wp_set_blocks'              => 'gutenberg',
+			'wp_list_block_types'        => 'gutenberg',
+			'wp_list_block_patterns'     => 'gutenberg',
+
+			// API Keys & Rate Limiting
+			'wp_list_api_keys'           => 'admin',
+			'wp_create_api_key'          => 'admin',
+			'wp_revoke_api_key'          => 'admin',
+			'wp_rate_limit_status'       => 'admin',
+			'wp_update_rate_limit'       => 'admin',
+			'wp_reset_rate_limit'        => 'admin',
+
+			// Webhooks
+			'wp_list_webhook_events'     => 'webhooks',
+			'wp_list_webhooks'           => 'webhooks',
+			'wp_create_webhook'          => 'webhooks',
+			'wp_update_webhook'          => 'webhooks',
+			'wp_delete_webhook'          => 'webhooks',
+			'wp_test_webhook'            => 'webhooks',
+			'wp_list_webhook_logs'       => 'webhooks',
+
+			// Feedback
+			'wp_submit_feedback'         => 'admin',
+			'wp_list_feedback'           => 'admin',
+		);
+	}
+
+	/**
 	 * Get required capabilities for free tools.
 	 *
 	 * @return array Map of tool_name => capability_key.

@@ -54,6 +54,24 @@ class Spai_MCP_AI_Integration extends Spai_Integration {
 	}
 
 	/**
+	 * Get tool category mappings for AI integration.
+	 *
+	 * @return array Map of tool_name => category_slug.
+	 */
+	public function get_tool_categories() {
+		return array(
+			'wp_search_stock_photos'     => 'ai',
+			'wp_download_stock_photo'    => 'ai',
+			'wp_generate_image'          => 'ai',
+			'wp_generate_featured_image' => 'ai',
+			'wp_generate_alt_text'       => 'ai',
+			'wp_describe_image'          => 'ai',
+			'wp_generate_excerpt'        => 'ai',
+			'wp_text_to_speech'          => 'ai',
+		);
+	}
+
+	/**
 	 * Get tool definitions.
 	 *
 	 * Free tools always included. Pro tools only when licensed.

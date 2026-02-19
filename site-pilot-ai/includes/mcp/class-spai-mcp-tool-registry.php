@@ -93,6 +93,7 @@ abstract class Spai_MCP_Tool_Registry {
 			'readOnlyHint'    => $this->is_read_only_tool( $name ),
 			'openWorldHint'   => $this->is_open_world_tool( $name ),
 			'destructiveHint' => $this->is_destructive_tool( $name ),
+			'category'        => $this->get_tool_category( $name ),
 		);
 	}
 
@@ -164,6 +165,28 @@ abstract class Spai_MCP_Tool_Registry {
 	 */
 	protected function get_open_world_tools() {
 		return array();
+	}
+
+	/**
+	 * Get tool category mappings.
+	 *
+	 * Subclasses override this to declare which category each tool belongs to.
+	 *
+	 * @return array Map of tool_name => category_slug.
+	 */
+	public function get_tool_categories() {
+		return array();
+	}
+
+	/**
+	 * Get the category for a specific tool.
+	 *
+	 * @param string $name Tool name.
+	 * @return string Category slug (defaults to 'site').
+	 */
+	public function get_tool_category( $name ) {
+		$categories = $this->get_tool_categories();
+		return isset( $categories[ $name ] ) ? $categories[ $name ] : 'site';
 	}
 
 	/**
