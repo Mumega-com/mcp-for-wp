@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.6 =
+* Fix: Screenshot base64 save now uses correct file extension (.jpg for JPEG, .png for PNG)
+* Fix: Screenshot async webhook fires immediately for Cloudflare captures instead of scheduling broken mshots verification
+* Fix: MCP error handler now detects all error response shapes consistently (no more silent failures)
 
 = 1.1.5 =
 * Fix: wp_fetch no longer wraps response in `item` key — data is now at top level like all other tools

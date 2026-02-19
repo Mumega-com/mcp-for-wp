@@ -165,7 +165,8 @@ class Spai_Screenshot {
 
 			// Save to media library if requested.
 			if ( ! empty( $args['save_to_media'] ) ) {
-				$saved = $this->save_base64_to_media( $cf_result['screenshot'], $url, $args );
+				$cf_format = isset( $cf_result['format'] ) ? $cf_result['format'] : 'png';
+				$saved = $this->save_base64_to_media( $cf_result['screenshot'], $url, $args, $cf_format );
 				if ( ! is_wp_error( $saved ) ) {
 					$result['media'] = $saved;
 				} else {
@@ -216,7 +217,7 @@ class Spai_Screenshot {
 	 * @param array  $args       Additional args (title, etc).
 	 * @return array|WP_Error Media data or error.
 	 */
-	private function save_base64_to_media( $base64, $source_url, $args = array() ) {
+	private function save_base64_to_media( $base64, $source_url, $args = array(), $format = 'png' ) {
 		if ( ! function_exists( 'media_handle_sideload' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -239,7 +240,8 @@ class Spai_Screenshot {
 
 		$parsed   = wp_parse_url( $source_url );
 		$host     = isset( $parsed['host'] ) ? sanitize_file_name( $parsed['host'] ) : 'screenshot';
-		$filename = 'screenshot-' . $host . '-' . gmdate( 'Ymd-His' ) . '.png';
+		$ext      = ( 'jpeg' === $format || 'jpg' === $format ) ? '.jpg' : '.png';
+		$filename = 'screenshot-' . $host . '-' . gmdate( 'Ymd-His' ) . $ext;
 
 		$file_array = array(
 			'name'     => $filename,

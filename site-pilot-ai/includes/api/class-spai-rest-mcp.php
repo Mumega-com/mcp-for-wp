@@ -157,7 +157,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$disabled_categories = get_option( 'spai_disabled_tool_categories', array() );
 		if ( ! empty( $disabled_categories ) && is_array( $disabled_categories ) ) {
 			$all_categories = $this->get_all_tool_categories();
-			$tools = array_values(
+			$tools          = array_values(
 				array_filter(
 					$tools,
 					function ( $tool ) use ( $disabled_categories, $all_categories ) {
@@ -634,13 +634,13 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$reqs = $this->get_all_required_capabilities();
 		if ( isset( $reqs[ $tool_name ] ) && ! $this->is_capability_active( $reqs[ $tool_name ] ) ) {
 			$plugin_names = array(
-				'elementor'  => 'Elementor',
-				'gutenberg'  => 'the Gutenberg block editor (disable Classic Editor plugin if installed)',
-				'seo'        => 'an SEO plugin (Yoast, RankMath, AIOSEO, or SEOPress)',
-				'forms'      => 'a forms plugin (Contact Form 7, WPForms, Gravity Forms, or Ninja Forms)',
+				'elementor' => 'Elementor',
+				'gutenberg' => 'the Gutenberg block editor (disable Classic Editor plugin if installed)',
+				'seo'       => 'an SEO plugin (Yoast, RankMath, AIOSEO, or SEOPress)',
+				'forms'     => 'a forms plugin (Contact Form 7, WPForms, Gravity Forms, or Ninja Forms)',
 			);
-			$req       = $reqs[ $tool_name ];
-			$human     = isset( $plugin_names[ $req ] ) ? $plugin_names[ $req ] : $req;
+			$req          = $reqs[ $tool_name ];
+			$human        = isset( $plugin_names[ $req ] ) ? $plugin_names[ $req ] : $req;
 			return $this->jsonrpc_error(
 				$id,
 				-32003,
@@ -700,20 +700,34 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$data     = $response->get_data();
 		$status   = $response->get_status();
 
-		// Check for errors
+		// Check for errors — detect all error shapes.
 		$is_error = $status >= 400;
 
-		if ( $is_error && isset( $data['code'] ) && isset( $data['message'] ) ) {
-			// WordPress REST error format — include route for debugging.
+		if ( $is_error ) {
+			// Extract error message from various response formats.
+			$error_message = 'Tool execution failed';
+			if ( isset( $data['message'] ) ) {
+				$error_message = $data['message'];
+			} elseif ( isset( $data['error'] ) && is_string( $data['error'] ) ) {
+				$error_message = $data['error'];
+			} elseif ( is_string( $data ) ) {
+				$error_message = $data;
+			}
+
+			$error_code = isset( $data['code'] ) ? $data['code'] : 'tool_error';
+
 			return $this->jsonrpc_error(
 				$id,
 				-32000,
-				'Tool execution failed: ' . $data['message'] . ' (route: ' . $method . ' /site-pilot-ai/v1' . $route . ')',
-				$data
+				$error_message . ' (route: ' . $method . ' /site-pilot-ai/v1' . $route . ')',
+				array(
+					'code'   => $error_code,
+					'status' => $status,
+				)
 			);
 		}
 
-		// Return successful result
+		// Return successful result.
 		return array(
 			'jsonrpc' => '2.0',
 			'id'      => $id,
@@ -724,7 +738,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 						'text' => wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ),
 					),
 				),
-				'isError' => $is_error,
+				'isError' => false,
 			),
 		);
 	}
