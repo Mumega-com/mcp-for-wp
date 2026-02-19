@@ -2063,6 +2063,7 @@ class Spai_REST_Site extends Spai_REST_API {
 	 */
 	private function get_allowed_option_keys() {
 		return array(
+			// WordPress core.
 			'blogname',
 			'blogdescription',
 			'siteurl',
@@ -2088,10 +2089,99 @@ class Spai_REST_Site extends Spai_REST_API {
 			'large_size_w',
 			'large_size_h',
 			'site_icon',
+			// Site Pilot AI.
 			'spai_site_context',
 			'spai_site_context_updated',
+			// Elementor.
 			'elementor_pro_theme_builder_conditions',
 		);
+	}
+
+	/**
+	 * Allowed option key prefixes.
+	 *
+	 * Any option starting with one of these prefixes is allowed unless
+	 * it matches a sensitive pattern from get_blocked_option_patterns().
+	 *
+	 * @return array Prefix strings.
+	 */
+	private function get_allowed_option_prefixes() {
+		return array(
+			'elementor_',
+			'wpseo_',
+			'rank_math_',
+			'astra_',
+			'ocean_',
+			'theme_mods_',
+			'widget_',
+			'nav_menu_',
+			'sidebars_',
+			'spai_',
+			'woocommerce_',
+			'wp_page_for_privacy_policy',
+		);
+	}
+
+	/**
+	 * Blocked option key patterns (substrings).
+	 *
+	 * Options matching any of these patterns are NEVER accessible,
+	 * even if they match an allowed prefix.
+	 *
+	 * @return array Blocked substring patterns.
+	 */
+	private function get_blocked_option_patterns() {
+		return array(
+			'password',
+			'secret',
+			'token',
+			'auth_key',
+			'auth_salt',
+			'logged_in_key',
+			'logged_in_salt',
+			'nonce_key',
+			'nonce_salt',
+			'secure_auth',
+			'credential',
+			'api_key',
+			'private_key',
+			'license_key',
+			'stripe_',
+			'paypal_',
+			'_session',
+		);
+	}
+
+	/**
+	 * Check if an option key is allowed via API.
+	 *
+	 * Matches exact keys, then allowed prefixes, then blocks sensitive patterns.
+	 *
+	 * @param string $key Option key.
+	 * @return bool True if allowed.
+	 */
+	private function is_option_allowed( $key ) {
+		// Exact match always wins.
+		if ( in_array( $key, $this->get_allowed_option_keys(), true ) ) {
+			return true;
+		}
+
+		// Check blocked patterns first — these override prefix matches.
+		$lower_key = strtolower( $key );
+		foreach ( $this->get_blocked_option_patterns() as $pattern ) {
+			if ( false !== strpos( $lower_key, $pattern ) ) {
+				return false;
+			}
+		}
+
+		// Check allowed prefixes.
+		foreach ( $this->get_allowed_option_prefixes() as $prefix ) {
+			if ( 0 === strpos( $key, $prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -2105,10 +2195,11 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$key = sanitize_key( (string) $request->get_param( 'key' ) );
 
-		if ( ! in_array( $key, $this->get_allowed_option_keys(), true ) ) {
+		if ( ! $this->is_option_allowed( $key ) ) {
 			return $this->error_response(
 				'forbidden_option',
-				__( 'This option key is not accessible via API. Allowed keys: ', 'site-pilot-ai' ) . implode( ', ', $this->get_allowed_option_keys() ),
+				/* translators: %s: option key */
+				sprintf( __( 'Option "%s" is not accessible via API. Allowed: core WP options and prefixes: elementor_*, wpseo_*, rank_math_*, astra_*, theme_mods_*, widget_*, woocommerce_*, spai_*. Sensitive keys (passwords, tokens, secrets) are always blocked.', 'site-pilot-ai' ), $key ),
 				403
 			);
 		}
@@ -2135,10 +2226,11 @@ class Spai_REST_Site extends Spai_REST_API {
 		$key   = sanitize_key( (string) $request->get_param( 'key' ) );
 		$value = $request->get_param( 'value' );
 
-		if ( ! in_array( $key, $this->get_allowed_option_keys(), true ) ) {
+		if ( ! $this->is_option_allowed( $key ) ) {
 			return $this->error_response(
 				'forbidden_option',
-				__( 'This option key is not accessible via API. Allowed keys: ', 'site-pilot-ai' ) . implode( ', ', $this->get_allowed_option_keys() ),
+				/* translators: %s: option key */
+				sprintf( __( 'Option "%s" is not accessible via API. Allowed: core WP options and prefixes: elementor_*, wpseo_*, rank_math_*, astra_*, theme_mods_*, widget_*, woocommerce_*, spai_*. Sensitive keys (passwords, tokens, secrets) are always blocked.', 'site-pilot-ai' ), $key ),
 				403
 			);
 		}

@@ -93,6 +93,42 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			)
 		);
 
+		// Edit a single Elementor element (surgical patch).
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/edit-section',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'edit_section' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'element_id'      => array(
+							'description' => __( 'Elementor element ID to edit.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'section_index'   => array(
+							'description' => __( 'Top-level section index (0-based).', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'find'            => array(
+							'description' => __( 'Search criteria: {widgetType, "settings.key": value}.', 'site-pilot-ai' ),
+							'type'        => 'object',
+						),
+						'settings'        => array(
+							'description' => __( 'Settings to merge into the element.', 'site-pilot-ai' ),
+							'type'        => 'object',
+						),
+						'delete_settings' => array(
+							'description' => __( 'Setting keys to remove from the element.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'items'       => array( 'type' => 'string' ),
+						),
+					),
+				),
+			)
+		);
+
 		// Create Elementor page
 		register_rest_route(
 			$this->namespace,
@@ -186,7 +222,7 @@ class Spai_REST_Elementor extends Spai_REST_API {
 				'set_data'    => true,
 				'create_page' => true,
 			),
-			'pro' => array(
+			'pro'  => array(
 				'templates'    => false,
 				'landing_page' => false,
 				'clone'        => false,
@@ -219,7 +255,7 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$this->log_activity( 'get_elementor', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$result = $this->elementor->get_elementor_data( $page_id );
+		$result  = $this->elementor->get_elementor_data( $page_id );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -238,7 +274,7 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$this->log_activity( 'get_elementor_summary', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$result = $this->elementor->get_elementor_summary( $page_id );
+		$result  = $this->elementor->get_elementor_summary( $page_id );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -257,12 +293,39 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$this->log_activity( 'set_elementor', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$data = array(
+		$data    = array(
 			'elementor_data' => $request->get_param( 'elementor_data' ),
 			'elementor_json' => $request->get_param( 'elementor_json' ),
 		);
 
 		$result = $this->elementor->set_elementor_data( $page_id, $data );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
+	}
+
+	/**
+	 * Edit a single Elementor element (surgical patch).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function edit_section( $request ) {
+		$this->log_activity( 'edit_elementor_section', $request );
+
+		$page_id = absint( $request->get_param( 'id' ) );
+		$args    = array(
+			'element_id'      => $request->get_param( 'element_id' ),
+			'section_index'   => $request->get_param( 'section_index' ),
+			'find'            => $request->get_param( 'find' ),
+			'settings'        => $request->get_param( 'settings' ),
+			'delete_settings' => $request->get_param( 'delete_settings' ),
+		);
+
+		$result = $this->elementor->edit_section( $page_id, $args );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -347,10 +410,12 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$updated = str_replace( $search, $replace, $raw, $count );
 
 		if ( 0 === $count ) {
-			return $this->success_response( array(
-				'replacements' => 0,
-				'message'      => __( 'Search text not found in Elementor data.', 'site-pilot-ai' ),
-			) );
+			return $this->success_response(
+				array(
+					'replacements' => 0,
+					'message'      => __( 'Search text not found in Elementor data.', 'site-pilot-ai' ),
+				)
+			);
 		}
 
 		// Save updated data.
@@ -364,11 +429,13 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'replacements' => $count,
-			'post_id'      => $page_id,
-			'search'       => $search,
-			'replace'      => $replace,
-		) );
+		return $this->success_response(
+			array(
+				'replacements' => $count,
+				'post_id'      => $page_id,
+				'search'       => $search,
+				'replace'      => $replace,
+			)
+		);
 	}
 }

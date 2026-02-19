@@ -97,14 +97,16 @@ class Spai_REST_Feedback extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function submit_feedback( $request ) {
-		$result = Spai_Feedback::submit( array(
-			'type'        => $request->get_param( 'type' ),
-			'title'       => $request->get_param( 'title' ),
-			'description' => $request->get_param( 'description' ),
-			'agent'       => $request->get_param( 'agent' ),
-			'priority'    => $request->get_param( 'priority' ),
-			'meta'        => $request->get_param( 'meta' ),
-		) );
+		$result = Spai_Feedback::submit(
+			array(
+				'type'        => $request->get_param( 'type' ),
+				'title'       => $request->get_param( 'title' ),
+				'description' => $request->get_param( 'description' ),
+				'agent'       => $request->get_param( 'agent' ),
+				'priority'    => $request->get_param( 'priority' ),
+				'meta'        => $request->get_param( 'meta' ),
+			)
+		);
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -122,17 +124,21 @@ class Spai_REST_Feedback extends Spai_REST_API {
 	 * @return WP_REST_Response
 	 */
 	public function list_feedback( $request ) {
-		$entries = Spai_Feedback::list_entries( array(
-			'type'   => $request->get_param( 'type' ),
-			'status' => $request->get_param( 'status' ),
-			'limit'  => $request->get_param( 'limit' ),
-		) );
+		$entries = Spai_Feedback::list_entries(
+			array(
+				'type'   => $request->get_param( 'type' ),
+				'status' => $request->get_param( 'status' ),
+				'limit'  => $request->get_param( 'limit' ),
+			)
+		);
 
 		$this->log_activity( 'list_feedback', $request );
 
-		return $this->success_response( array(
-			'feedback' => $entries,
-			'total'    => count( $entries ),
-		) );
+		return $this->success_response(
+			array(
+				'feedback' => $entries,
+				'total'    => count( $entries ),
+			)
+		);
 	}
 }

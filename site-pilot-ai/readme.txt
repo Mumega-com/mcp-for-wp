@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.6
+Stable tag: 1.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.7 =
+* New: wp_edit_section — surgically edit a single Elementor element by ID, index, or search criteria without full JSON round-trip
+* Improvement: wp_get_option/wp_update_option allowlist expanded with prefix-based matching (elementor_*, wpseo_*, rank_math_*, astra_*, theme_mods_*, woocommerce_*, spai_*) — sensitive keys (passwords, tokens, secrets) are always blocked
+* Fix: npm MCP server (site-pilot-ai v2.1.2) — bun build now produces a proper single-file bundle instead of broken split files
 
 = 1.1.6 =
 * Fix: Screenshot base64 save now uses correct file extension (.jpg for JPEG, .png for PNG)

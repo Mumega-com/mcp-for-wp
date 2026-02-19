@@ -32,7 +32,7 @@ class Spai_REST_Posts extends Spai_REST_API {
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->posts = new Spai_Posts();
+		$this->posts  = new Spai_Posts();
 		$this->drafts = new Spai_Drafts();
 	}
 
@@ -204,7 +204,7 @@ class Spai_REST_Posts extends Spai_REST_API {
 	public function list_posts( $request ) {
 		$this->log_activity( 'list_posts', $request );
 
-		$args = $this->sanitize_query_args( $request->get_params() );
+		$args   = $this->sanitize_query_args( $request->get_params() );
 		$result = $this->posts->list_posts( $args );
 
 		return $this->success_response( $result );
@@ -220,7 +220,7 @@ class Spai_REST_Posts extends Spai_REST_API {
 		$this->log_activity( 'get_post', $request );
 
 		$post_id = $request->get_param( 'id' );
-		$result = $this->posts->get_post( $post_id );
+		$result  = $this->posts->get_post( $post_id );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -238,7 +238,7 @@ class Spai_REST_Posts extends Spai_REST_API {
 	public function create_post( $request ) {
 		$this->log_activity( 'create_post', $request );
 
-		$data = $request->get_params();
+		$data   = $request->get_params();
 		$result = $this->posts->create_post( $data );
 
 		if ( is_wp_error( $result ) ) {
@@ -258,7 +258,7 @@ class Spai_REST_Posts extends Spai_REST_API {
 		$this->log_activity( 'update_post', $request );
 
 		$post_id = $request->get_param( 'id' );
-		$data = $request->get_params();
+		$data    = $request->get_params();
 		unset( $data['id'] );
 
 		$result = $this->posts->update_post( $post_id, $data );
@@ -280,7 +280,7 @@ class Spai_REST_Posts extends Spai_REST_API {
 		$this->log_activity( 'delete_post', $request );
 
 		$post_id = $request->get_param( 'id' );
-		$force = $request->get_param( 'force' );
+		$force   = $request->get_param( 'force' );
 
 		$result = $this->posts->delete_post( $post_id, $force );
 
@@ -335,11 +335,14 @@ class Spai_REST_Posts extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'created' => $created,
-			'errors'  => $errors,
-			'total'   => count( $created ),
-		), 201 );
+		return $this->success_response(
+			array(
+				'created' => $created,
+				'errors'  => $errors,
+				'total'   => count( $created ),
+			),
+			201
+		);
 	}
 
 	/**
@@ -361,11 +364,13 @@ class Spai_REST_Posts extends Spai_REST_API {
 
 		if ( 0 === $media_id ) {
 			delete_post_thumbnail( $post_id );
-			return $this->success_response( array(
-				'success'  => true,
-				'post_id'  => $post_id,
-				'message'  => __( 'Featured image removed.', 'site-pilot-ai' ),
-			) );
+			return $this->success_response(
+				array(
+					'success' => true,
+					'post_id' => $post_id,
+					'message' => __( 'Featured image removed.', 'site-pilot-ai' ),
+				)
+			);
 		}
 
 		$attachment = get_post( $media_id );
@@ -377,12 +382,14 @@ class Spai_REST_Posts extends Spai_REST_API {
 
 		$image = wp_get_attachment_image_src( $media_id, 'full' );
 
-		return $this->success_response( array(
-			'success'  => true,
-			'post_id'  => $post_id,
-			'media_id' => $media_id,
-			'url'      => $image ? $image[0] : '',
-		) );
+		return $this->success_response(
+			array(
+				'success'  => true,
+				'post_id'  => $post_id,
+				'media_id' => $media_id,
+				'url'      => $image ? $image[0] : '',
+			)
+		);
 	}
 
 	/**

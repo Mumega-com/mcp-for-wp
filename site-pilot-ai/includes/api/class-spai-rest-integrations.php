@@ -22,194 +22,238 @@ class Spai_REST_Integrations extends Spai_REST_API {
 	 */
 	public function register_routes() {
 		// Provider management (admin scope).
-		register_rest_route( $this->namespace, '/integrations/providers', array(
-			'methods'             => 'GET',
-			'callback'            => array( $this, 'get_providers' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-		) );
-
-		register_rest_route( $this->namespace, '/integrations/providers/(?P<provider>[a-z]+)/key', array(
+		register_rest_route(
+			$this->namespace,
+			'/integrations/providers',
 			array(
-				'methods'             => 'POST',
-				'callback'            => array( $this, 'store_key' ),
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_providers' ),
 				'permission_callback' => array( $this, 'check_permission' ),
-				'args'                => array(
-					'key' => array(
-						'required'          => true,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/integrations/providers/(?P<provider>[a-z]+)/key',
+			array(
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'store_key' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'key' => array(
+							'required'          => true,
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
 					),
 				),
-			),
-			array(
-				'methods'             => 'DELETE',
-				'callback'            => array( $this, 'remove_key' ),
-				'permission_callback' => array( $this, 'check_permission' ),
-			),
-		) );
+				array(
+					'methods'             => 'DELETE',
+					'callback'            => array( $this, 'remove_key' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
 
-		register_rest_route( $this->namespace, '/integrations/providers/(?P<provider>[a-z]+)/test', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'test_provider' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-		) );
+		register_rest_route(
+			$this->namespace,
+			'/integrations/providers/(?P<provider>[a-z]+)/test',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'test_provider' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
 
 		// Stock photos (free tier).
-		register_rest_route( $this->namespace, '/integrations/stock-photos', array(
-			'methods'             => 'GET',
-			'callback'            => array( $this, 'search_stock_photos' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'query'    => array(
-					'required' => true,
-					'type'     => 'string',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/stock-photos',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'search_stock_photos' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'query'    => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+					'per_page' => array(
+						'type'    => 'integer',
+						'default' => 10,
+					),
+					'page'     => array(
+						'type'    => 'integer',
+						'default' => 1,
+					),
 				),
-				'per_page' => array(
-					'type'    => 'integer',
-					'default' => 10,
-				),
-				'page'     => array(
-					'type'    => 'integer',
-					'default' => 1,
-				),
-			),
-		) );
+			)
+		);
 
-		register_rest_route( $this->namespace, '/integrations/stock-photos/download', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'download_stock_photo' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'photo_id' => array(
-					'required' => true,
-					'type'     => 'integer',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/stock-photos/download',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'download_stock_photo' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'photo_id' => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+					'size'     => array(
+						'type'    => 'string',
+						'default' => 'large',
+					),
+					'alt'      => array( 'type' => 'string' ),
+					'title'    => array( 'type' => 'string' ),
 				),
-				'size'     => array(
-					'type'    => 'string',
-					'default' => 'large',
-				),
-				'alt'      => array( 'type' => 'string' ),
-				'title'    => array( 'type' => 'string' ),
-			),
-		) );
+			)
+		);
 
 		// AI generation endpoints (pro tier).
-		register_rest_route( $this->namespace, '/integrations/generate-image', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'generate_image' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'prompt'   => array(
-					'required' => true,
-					'type'     => 'string',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/generate-image',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'generate_image' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'prompt'   => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+					'provider' => array( 'type' => 'string' ),
+					'size'     => array(
+						'type'    => 'string',
+						'default' => '1024x1024',
+					),
+					'style'    => array(
+						'type'    => 'string',
+						'default' => 'vivid',
+					),
+					'alt'      => array( 'type' => 'string' ),
+					'title'    => array( 'type' => 'string' ),
 				),
-				'provider' => array( 'type' => 'string' ),
-				'size'     => array(
-					'type'    => 'string',
-					'default' => '1024x1024',
-				),
-				'style'    => array(
-					'type'    => 'string',
-					'default' => 'vivid',
-				),
-				'alt'      => array( 'type' => 'string' ),
-				'title'    => array( 'type' => 'string' ),
-			),
-		) );
+			)
+		);
 
-		register_rest_route( $this->namespace, '/integrations/generate-featured-image', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'generate_featured_image' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'post_id'  => array(
-					'required' => true,
-					'type'     => 'integer',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/generate-featured-image',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'generate_featured_image' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'post_id'  => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+					'prompt'   => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+					'provider' => array( 'type' => 'string' ),
+					'size'     => array(
+						'type'    => 'string',
+						'default' => '1792x1024',
+					),
+					'style'    => array(
+						'type'    => 'string',
+						'default' => 'vivid',
+					),
 				),
-				'prompt'   => array(
-					'required' => true,
-					'type'     => 'string',
-				),
-				'provider' => array( 'type' => 'string' ),
-				'size'     => array(
-					'type'    => 'string',
-					'default' => '1792x1024',
-				),
-				'style'    => array(
-					'type'    => 'string',
-					'default' => 'vivid',
-				),
-			),
-		) );
+			)
+		);
 
-		register_rest_route( $this->namespace, '/integrations/generate-alt-text', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'generate_alt_text' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'attachment_id' => array(
-					'required' => true,
-					'type'     => 'integer',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/generate-alt-text',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'generate_alt_text' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'attachment_id' => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+					'provider'      => array( 'type' => 'string' ),
+					'auto_save'     => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
 				),
-				'provider'      => array( 'type' => 'string' ),
-				'auto_save'     => array(
-					'type'    => 'boolean',
-					'default' => false,
-				),
-			),
-		) );
+			)
+		);
 
-		register_rest_route( $this->namespace, '/integrations/describe-image', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'describe_image' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'attachment_id' => array(
-					'required' => true,
-					'type'     => 'integer',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/describe-image',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'describe_image' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'attachment_id' => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+					'provider'      => array( 'type' => 'string' ),
+					'instruction'   => array(
+						'type'    => 'string',
+						'default' => 'Describe this image in detail.',
+					),
 				),
-				'provider'      => array( 'type' => 'string' ),
-				'instruction'   => array(
-					'type'    => 'string',
-					'default' => 'Describe this image in detail.',
-				),
-			),
-		) );
+			)
+		);
 
-		register_rest_route( $this->namespace, '/integrations/generate-excerpt', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'generate_excerpt' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'post_id'    => array(
-					'required' => true,
-					'type'     => 'integer',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/generate-excerpt',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'generate_excerpt' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'post_id'    => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+					'provider'   => array( 'type' => 'string' ),
+					'max_length' => array(
+						'type'    => 'integer',
+						'default' => 160,
+					),
+					'auto_save'  => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
 				),
-				'provider'   => array( 'type' => 'string' ),
-				'max_length' => array(
-					'type'    => 'integer',
-					'default' => 160,
-				),
-				'auto_save'  => array(
-					'type'    => 'boolean',
-					'default' => false,
-				),
-			),
-		) );
+			)
+		);
 
-		register_rest_route( $this->namespace, '/integrations/text-to-speech', array(
-			'methods'             => 'POST',
-			'callback'            => array( $this, 'text_to_speech' ),
-			'permission_callback' => array( $this, 'check_permission' ),
-			'args'                => array(
-				'text'     => array(
-					'required' => true,
-					'type'     => 'string',
+		register_rest_route(
+			$this->namespace,
+			'/integrations/text-to-speech',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'text_to_speech' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'text'     => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+					'voice_id' => array( 'type' => 'string' ),
+					'title'    => array( 'type' => 'string' ),
 				),
-				'voice_id' => array( 'type' => 'string' ),
-				'title'    => array( 'type' => 'string' ),
-			),
-		) );
+			)
+		);
 	}
 
 	/**
@@ -242,15 +286,17 @@ class Spai_REST_Integrations extends Spai_REST_API {
 		}
 
 		$this->log_activity( 'integrations_store_key', $request, array( 'provider' => $provider ) );
-		return $this->success_response( array(
-			'success'  => true,
-			'provider' => $provider,
-			'message'  => sprintf(
+		return $this->success_response(
+			array(
+				'success'  => true,
+				'provider' => $provider,
+				'message'  => sprintf(
 				/* translators: %s: Provider name */
-				__( '%s API key saved.', 'site-pilot-ai' ),
-				isset( Spai_Integration_Manager::PROVIDERS[ $provider ]['name'] ) ? Spai_Integration_Manager::PROVIDERS[ $provider ]['name'] : $provider
-			),
-		) );
+					__( '%s API key saved.', 'site-pilot-ai' ),
+					isset( Spai_Integration_Manager::PROVIDERS[ $provider ]['name'] ) ? Spai_Integration_Manager::PROVIDERS[ $provider ]['name'] : $provider
+				),
+			)
+		);
 	}
 
 	/**
@@ -265,7 +311,12 @@ class Spai_REST_Integrations extends Spai_REST_API {
 		$manager->remove_provider_key( $provider );
 
 		$this->log_activity( 'integrations_remove_key', $request, array( 'provider' => $provider ) );
-		return $this->success_response( array( 'success' => true, 'provider' => $provider ) );
+		return $this->success_response(
+			array(
+				'success'  => true,
+				'provider' => $provider,
+			)
+		);
 	}
 
 	/**
@@ -457,7 +508,7 @@ class Spai_REST_Integrations extends Spai_REST_API {
 			return $alt_text;
 		}
 
-		$alt_text = sanitize_text_field( trim( $alt_text, '"' ) );
+		$alt_text  = sanitize_text_field( trim( $alt_text, '"' ) );
 		$auto_save = $request->get_param( 'auto_save' );
 
 		if ( $auto_save ) {
@@ -465,12 +516,14 @@ class Spai_REST_Integrations extends Spai_REST_API {
 		}
 
 		$this->log_activity( 'generate_alt_text', $request, array( 'alt_text' => $alt_text ), 200 );
-		return $this->success_response( array(
-			'attachment_id' => $attachment_id,
-			'alt_text'      => $alt_text,
-			'saved'         => (bool) $auto_save,
-			'provider'      => $provider_slug,
-		) );
+		return $this->success_response(
+			array(
+				'attachment_id' => $attachment_id,
+				'alt_text'      => $alt_text,
+				'saved'         => (bool) $auto_save,
+				'provider'      => $provider_slug,
+			)
+		);
 	}
 
 	/**
@@ -506,11 +559,13 @@ class Spai_REST_Integrations extends Spai_REST_API {
 		}
 
 		$this->log_activity( 'describe_image', $request, null, 200 );
-		return $this->success_response( array(
-			'attachment_id' => $attachment_id,
-			'description'   => $description,
-			'provider'      => $provider_slug,
-		) );
+		return $this->success_response(
+			array(
+				'attachment_id' => $attachment_id,
+				'description'   => $description,
+				'provider'      => $provider_slug,
+			)
+		);
 	}
 
 	/**
@@ -561,19 +616,23 @@ class Spai_REST_Integrations extends Spai_REST_API {
 		$auto_save = $request->get_param( 'auto_save' );
 
 		if ( $auto_save ) {
-			wp_update_post( array(
-				'ID'           => $post_id,
-				'post_excerpt' => $excerpt,
-			) );
+			wp_update_post(
+				array(
+					'ID'           => $post_id,
+					'post_excerpt' => $excerpt,
+				)
+			);
 		}
 
 		$this->log_activity( 'generate_excerpt', $request, array( 'excerpt' => $excerpt ), 200 );
-		return $this->success_response( array(
-			'post_id'  => $post_id,
-			'excerpt'  => $excerpt,
-			'saved'    => (bool) $auto_save,
-			'provider' => $provider_slug,
-		) );
+		return $this->success_response(
+			array(
+				'post_id'  => $post_id,
+				'excerpt'  => $excerpt,
+				'saved'    => (bool) $auto_save,
+				'provider' => $provider_slug,
+			)
+		);
 	}
 
 	/**

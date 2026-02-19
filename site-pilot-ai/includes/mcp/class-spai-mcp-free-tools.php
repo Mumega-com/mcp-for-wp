@@ -128,6 +128,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			// Elementor
 			'wp_get_elementor'           => 'elementor',
 			'wp_get_elementor_summary'   => 'elementor',
+			'wp_edit_section'            => 'elementor',
 			'wp_set_elementor'           => 'elementor',
 			'wp_elementor_status'        => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
@@ -171,6 +172,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		return array(
 			'wp_get_elementor'            => 'elementor',
 			'wp_get_elementor_summary'    => 'elementor',
+			'wp_edit_section'             => 'elementor',
 			'wp_set_elementor'            => 'elementor',
 			'wp_elementor_status'         => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
@@ -1131,6 +1133,38 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_edit_section',
+			'Surgically edit a single Elementor element without downloading/uploading the full page JSON. Find the target by element_id, section_index (0-based), or search criteria (find). Merges settings into the element and returns only the modified element. Much more token-efficient than get+set for small edits.',
+			array(
+				'id'              => array(
+					'type'        => 'number',
+					'description' => 'Page or post ID',
+					'required'    => true,
+				),
+				'element_id'      => array(
+					'type'        => 'string',
+					'description' => 'Elementor element ID to edit (from summary or previous get)',
+				),
+				'section_index'   => array(
+					'type'        => 'number',
+					'description' => 'Top-level section index (0-based)',
+				),
+				'find'            => array(
+					'type'        => 'object',
+					'description' => 'Search criteria to find element: {widgetType: "heading", "settings.title": "Old Text"}',
+				),
+				'settings'        => array(
+					'type'        => 'object',
+					'description' => 'Settings to merge into the found element',
+				),
+				'delete_settings' => array(
+					'type'        => 'array',
+					'description' => 'Setting keys to remove from the element',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_set_elementor',
 			'Set Elementor page data for a specific page or post',
 			array(
@@ -1552,11 +1586,11 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Option Management
 		$tools[] = $this->define_tool(
 			'wp_get_option',
-			'Get a single WordPress option by key. Only whitelisted safe keys are accessible (blogname, blogdescription, show_on_front, page_on_front, etc.).',
+			'Get a single WordPress option by key. Supports core WP options (blogname, show_on_front, etc.) and plugin prefixes: elementor_*, wpseo_*, rank_math_*, astra_*, theme_mods_*, widget_*, woocommerce_*, spai_*. Sensitive keys (passwords, tokens, secrets) are always blocked.',
 			array(
 				'key' => array(
 					'type'        => 'string',
-					'description' => 'Option key (e.g., blogname, show_on_front, page_on_front)',
+					'description' => 'Option key (e.g., blogname, show_on_front, elementor_active_kit, wpseo_titles)',
 					'required'    => true,
 				),
 			)
@@ -1564,7 +1598,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_update_option',
-			'Update a single WordPress option by key. Only whitelisted safe keys are allowed (blogname, blogdescription, show_on_front, page_on_front, timezone_string, etc.).',
+			'Update a single WordPress option by key. Supports core WP options and plugin prefixes: elementor_*, wpseo_*, rank_math_*, astra_*, theme_mods_*, widget_*, woocommerce_*, spai_*. Sensitive keys (passwords, tokens, secrets) are always blocked.',
 			array(
 				'key' => array(
 					'type'        => 'string',
@@ -1922,6 +1956,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_elementor_summary' => array(
 				'method' => 'GET',
 				'route'  => '/elementor/{id}/summary',
+			),
+			'wp_edit_section'          => array(
+				'method' => 'POST',
+				'route'  => '/elementor/{id}/edit-section',
 			),
 			'wp_set_elementor'         => array(
 				'method' => 'POST',

@@ -135,45 +135,45 @@ class Spai_REST_Menus extends Spai_REST_API {
 					'callback'            => array( $this, 'add_menu_item' ),
 					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
-						'type'      => array(
+						'type'        => array(
 							'description' => __( 'Item type: custom, post_type, or taxonomy.', 'site-pilot-ai' ),
 							'type'        => 'string',
 							'enum'        => array( 'custom', 'post_type', 'taxonomy' ),
 							'default'     => 'custom',
 						),
-						'title'     => array(
+						'title'       => array(
 							'description' => __( 'Menu item label.', 'site-pilot-ai' ),
 							'type'        => 'string',
 							'required'    => true,
 						),
-						'url'       => array(
+						'url'         => array(
 							'description' => __( 'URL for custom links.', 'site-pilot-ai' ),
 							'type'        => 'string',
 						),
-						'object'    => array(
+						'object'      => array(
 							'description' => __( 'Object type: page, post, product, category, etc.', 'site-pilot-ai' ),
 							'type'        => 'string',
 						),
-						'object_id' => array(
+						'object_id'   => array(
 							'description' => __( 'Object ID for post_type or taxonomy items.', 'site-pilot-ai' ),
 							'type'        => 'integer',
 						),
-						'parent_id' => array(
+						'parent_id'   => array(
 							'description' => __( 'Parent menu item ID (for sub-menus).', 'site-pilot-ai' ),
 							'type'        => 'integer',
 							'default'     => 0,
 						),
-						'position'  => array(
+						'position'    => array(
 							'description' => __( 'Menu order position.', 'site-pilot-ai' ),
 							'type'        => 'integer',
 						),
-						'classes'   => array(
+						'classes'     => array(
 							'description' => __( 'CSS classes for this item.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'items'       => array( 'type' => 'string' ),
 							'default'     => array(),
 						),
-						'target'    => array(
+						'target'      => array(
 							'description' => __( 'Link target: _blank or _self.', 'site-pilot-ai' ),
 							'type'        => 'string',
 							'enum'        => array( '_blank', '_self' ),
@@ -197,28 +197,28 @@ class Spai_REST_Menus extends Spai_REST_API {
 					'callback'            => array( $this, 'update_menu_item' ),
 					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
-						'title'     => array(
+						'title'       => array(
 							'description' => __( 'Menu item label.', 'site-pilot-ai' ),
 							'type'        => 'string',
 						),
-						'url'       => array(
+						'url'         => array(
 							'description' => __( 'URL (for custom links).', 'site-pilot-ai' ),
 							'type'        => 'string',
 						),
-						'parent_id' => array(
+						'parent_id'   => array(
 							'description' => __( 'Parent menu item ID.', 'site-pilot-ai' ),
 							'type'        => 'integer',
 						),
-						'position'  => array(
+						'position'    => array(
 							'description' => __( 'Menu order position.', 'site-pilot-ai' ),
 							'type'        => 'integer',
 						),
-						'classes'   => array(
+						'classes'     => array(
 							'description' => __( 'CSS classes.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'items'       => array( 'type' => 'string' ),
 						),
-						'target'    => array(
+						'target'      => array(
 							'description' => __( 'Link target: _blank or _self.', 'site-pilot-ai' ),
 							'type'        => 'string',
 							'enum'        => array( '_blank', '_self' ),
@@ -322,11 +322,13 @@ class Spai_REST_Menus extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'success' => true,
-			'deleted' => (int) $menu_id,
-			'name'    => $name,
-		) );
+		return $this->success_response(
+			array(
+				'success' => true,
+				'deleted' => (int) $menu_id,
+				'name'    => $name,
+			)
+		);
 	}
 
 	/**
@@ -371,13 +373,15 @@ class Spai_REST_Menus extends Spai_REST_API {
 		$locations[ $location ] = $menu_id;
 		set_theme_mod( 'nav_menu_locations', $locations );
 
-		return $this->success_response( array(
-			'success'  => true,
-			'menu_id'  => (int) $menu_id,
-			'menu_name' => (string) $menu->name,
-			'location' => $location,
-			'label'    => $registered[ $location ],
-		) );
+		return $this->success_response(
+			array(
+				'success'   => true,
+				'menu_id'   => (int) $menu_id,
+				'menu_name' => (string) $menu->name,
+				'location'  => $location,
+				'label'     => $registered[ $location ],
+			)
+		);
 	}
 
 	/**
@@ -398,19 +402,21 @@ class Spai_REST_Menus extends Spai_REST_API {
 			$menu    = $menu_id ? wp_get_nav_menu_object( $menu_id ) : null;
 
 			$out[] = array(
-				'key'         => (string) $key,
-				'label'       => (string) $label,
-				'assigned'    => $menu_id > 0,
-				'menu_id'     => $menu_id,
-				'menu_name'   => $menu && isset( $menu->name ) ? (string) $menu->name : null,
-				'menu_slug'   => $menu && isset( $menu->slug ) ? (string) $menu->slug : null,
-				'menu_count'  => $menu && isset( $menu->count ) ? (int) $menu->count : null,
+				'key'        => (string) $key,
+				'label'      => (string) $label,
+				'assigned'   => $menu_id > 0,
+				'menu_id'    => $menu_id,
+				'menu_name'  => $menu && isset( $menu->name ) ? (string) $menu->name : null,
+				'menu_slug'  => $menu && isset( $menu->slug ) ? (string) $menu->slug : null,
+				'menu_count' => $menu && isset( $menu->count ) ? (int) $menu->count : null,
 			);
 		}
 
-		return $this->success_response( array(
-			'locations' => $out,
-		) );
+		return $this->success_response(
+			array(
+				'locations' => $out,
+			)
+		);
 	}
 
 	/**
@@ -486,7 +492,7 @@ class Spai_REST_Menus extends Spai_REST_API {
 		if ( '' !== $location ) {
 			$registered = get_registered_nav_menus();
 			if ( isset( $registered[ $location ] ) ) {
-				$locations = get_nav_menu_locations();
+				$locations              = get_nav_menu_locations();
 				$locations[ $location ] = $menu_id;
 				set_theme_mod( 'nav_menu_locations', $locations );
 				$assigned = true;
@@ -495,19 +501,21 @@ class Spai_REST_Menus extends Spai_REST_API {
 
 		$menu = wp_get_nav_menu_object( $menu_id );
 
-		return $this->success_response( array(
-			'menu'     => array(
-				'id'    => (int) $menu_id,
-				'name'  => $menu && isset( $menu->name ) ? (string) $menu->name : $name,
-				'slug'  => $menu && isset( $menu->slug ) ? (string) $menu->slug : null,
-				'count' => $menu && isset( $menu->count ) ? (int) $menu->count : null,
-			),
-			'added'    => $added,
-			'location' => array(
-				'key'      => '' !== $location ? $location : null,
-				'assigned' => $assigned,
-			),
-		) );
+		return $this->success_response(
+			array(
+				'menu'     => array(
+					'id'    => (int) $menu_id,
+					'name'  => $menu && isset( $menu->name ) ? (string) $menu->name : $name,
+					'slug'  => $menu && isset( $menu->slug ) ? (string) $menu->slug : null,
+					'count' => $menu && isset( $menu->count ) ? (int) $menu->count : null,
+				),
+				'added'    => $added,
+				'location' => array(
+					'key'      => '' !== $location ? $location : null,
+					'assigned' => $assigned,
+				),
+			)
+		);
 	}
 
 	/**
@@ -545,13 +553,15 @@ class Spai_REST_Menus extends Spai_REST_API {
 			$out[] = $this->format_menu_item( $item );
 		}
 
-		return $this->success_response( array(
-			'menu'  => array(
-				'id'   => (int) $menu->term_id,
-				'name' => (string) $menu->name,
-			),
-			'items' => $out,
-		) );
+		return $this->success_response(
+			array(
+				'menu'  => array(
+					'id'   => (int) $menu->term_id,
+					'name' => (string) $menu->name,
+				),
+				'items' => $out,
+			)
+		);
 	}
 
 	/**
@@ -574,13 +584,13 @@ class Spai_REST_Menus extends Spai_REST_API {
 			);
 		}
 
-		$type      = sanitize_text_field( (string) $request->get_param( 'type' ) );
-		$title     = sanitize_text_field( (string) $request->get_param( 'title' ) );
-		$url       = esc_url_raw( (string) $request->get_param( 'url' ) );
-		$object    = sanitize_key( (string) $request->get_param( 'object' ) );
-		$object_id = absint( $request->get_param( 'object_id' ) );
-		$parent_id = absint( $request->get_param( 'parent_id' ) );
-		$position  = $request->get_param( 'position' );
+		$type        = sanitize_text_field( (string) $request->get_param( 'type' ) );
+		$title       = sanitize_text_field( (string) $request->get_param( 'title' ) );
+		$url         = esc_url_raw( (string) $request->get_param( 'url' ) );
+		$object      = sanitize_key( (string) $request->get_param( 'object' ) );
+		$object_id   = absint( $request->get_param( 'object_id' ) );
+		$parent_id   = absint( $request->get_param( 'parent_id' ) );
+		$position    = $request->get_param( 'position' );
 		$classes     = (array) $request->get_param( 'classes' );
 		$target      = $request->get_param( 'target' );
 		$description = $request->get_param( 'description' );
@@ -700,16 +710,16 @@ class Spai_REST_Menus extends Spai_REST_API {
 		// Build update data from existing item, overriding with provided params.
 		$nav_item  = wp_setup_nav_menu_item( $existing );
 		$item_data = array(
-			'menu-item-title'     => $nav_item->title,
-			'menu-item-url'       => $nav_item->url,
-			'menu-item-type'      => $nav_item->type,
-			'menu-item-object'    => $nav_item->object,
-			'menu-item-object-id' => $nav_item->object_id,
-			'menu-item-parent-id' => $nav_item->menu_item_parent,
-			'menu-item-position'  => $nav_item->menu_order,
-			'menu-item-status'    => 'publish',
-			'menu-item-classes'   => is_array( $nav_item->classes ) ? implode( ' ', $nav_item->classes ) : '',
-			'menu-item-target'    => isset( $nav_item->target ) ? (string) $nav_item->target : '',
+			'menu-item-title'       => $nav_item->title,
+			'menu-item-url'         => $nav_item->url,
+			'menu-item-type'        => $nav_item->type,
+			'menu-item-object'      => $nav_item->object,
+			'menu-item-object-id'   => $nav_item->object_id,
+			'menu-item-parent-id'   => $nav_item->menu_item_parent,
+			'menu-item-position'    => $nav_item->menu_order,
+			'menu-item-status'      => 'publish',
+			'menu-item-classes'     => is_array( $nav_item->classes ) ? implode( ' ', $nav_item->classes ) : '',
+			'menu-item-target'      => isset( $nav_item->target ) ? (string) $nav_item->target : '',
 			'menu-item-description' => isset( $nav_item->description ) ? (string) $nav_item->description : '',
 		);
 
@@ -760,10 +770,12 @@ class Spai_REST_Menus extends Spai_REST_API {
 
 		$updated = wp_setup_nav_menu_item( get_post( $result ) );
 
-		return $this->success_response( array(
-			'success' => true,
-			'item'    => $this->format_menu_item( $updated ),
-		) );
+		return $this->success_response(
+			array(
+				'success' => true,
+				'item'    => $this->format_menu_item( $updated ),
+			)
+		);
 	}
 
 	/**
@@ -796,10 +808,12 @@ class Spai_REST_Menus extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'success' => true,
-			'deleted' => (int) $item_id,
-		) );
+		return $this->success_response(
+			array(
+				'success' => true,
+				'deleted' => (int) $item_id,
+			)
+		);
 	}
 
 	/**
@@ -875,11 +889,13 @@ class Spai_REST_Menus extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'success' => true,
-			'updated' => $updated,
-			'errors'  => $errors,
-		) );
+		return $this->success_response(
+			array(
+				'success' => true,
+				'updated' => $updated,
+				'errors'  => $errors,
+			)
+		);
 	}
 
 	/**
@@ -890,14 +906,14 @@ class Spai_REST_Menus extends Spai_REST_API {
 	 */
 	private function format_menu_item( $item ) {
 		return array(
-			'id'        => (int) $item->ID,
-			'title'     => (string) $item->title,
-			'url'       => (string) $item->url,
-			'type'      => (string) $item->type,
-			'object'    => (string) $item->object,
-			'object_id' => (int) $item->object_id,
-			'parent'    => (int) $item->menu_item_parent,
-			'position'  => (int) $item->menu_order,
+			'id'          => (int) $item->ID,
+			'title'       => (string) $item->title,
+			'url'         => (string) $item->url,
+			'type'        => (string) $item->type,
+			'object'      => (string) $item->object,
+			'object_id'   => (int) $item->object_id,
+			'parent'      => (int) $item->menu_item_parent,
+			'position'    => (int) $item->menu_order,
 			'classes'     => is_array( $item->classes ) ? array_values( array_filter( $item->classes ) ) : array(),
 			'target'      => isset( $item->target ) ? (string) $item->target : '',
 			'description' => isset( $item->description ) ? (string) $item->description : '',

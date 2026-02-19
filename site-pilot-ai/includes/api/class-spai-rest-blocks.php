@@ -245,9 +245,9 @@ class Spai_REST_Blocks extends Spai_REST_API {
 
 		foreach ( $patterns as $pattern ) {
 			$item = array(
-				'name'        => $pattern['name'],
-				'title'       => ! empty( $pattern['title'] ) ? $pattern['title'] : '',
-				'categories'  => ! empty( $pattern['categories'] ) ? $pattern['categories'] : array(),
+				'name'       => $pattern['name'],
+				'title'      => ! empty( $pattern['title'] ) ? $pattern['title'] : '',
+				'categories' => ! empty( $pattern['categories'] ) ? $pattern['categories'] : array(),
 			);
 
 			if ( ! empty( $pattern['description'] ) ) {

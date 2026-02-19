@@ -47,13 +47,33 @@ This will:
 ```json
 {
   "mcpServers": {
-    "wordpress": {
+    "sitepilotai-mysite": {
       "command": "npx",
       "args": ["-y", "site-pilot-ai"],
       "env": {
         "WP_URL": "https://your-site.com",
-        "WP_API_KEY": "your-api-key"
+        "WP_API_KEY": "your-api-key",
+        "WP_SITE_NAME": "mysite"
       }
+    }
+  }
+}
+```
+
+The server registers as `sitepilotai-<sitename>` so each site has a unique identity. For multiple sites, add separate entries:
+
+```json
+{
+  "mcpServers": {
+    "sitepilotai-production": {
+      "command": "npx",
+      "args": ["-y", "site-pilot-ai"],
+      "env": { "WP_URL": "https://example.com", "WP_API_KEY": "spai_..." }
+    },
+    "sitepilotai-staging": {
+      "command": "npx",
+      "args": ["-y", "site-pilot-ai"],
+      "env": { "WP_URL": "https://staging.example.com", "WP_API_KEY": "spai_..." }
     }
   }
 }

@@ -242,7 +242,7 @@ class Spai_REST_Pages extends Spai_REST_API {
 		$this->log_activity( 'get_page', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$result = $this->pages->get_page( $page_id );
+		$result  = $this->pages->get_page( $page_id );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -260,7 +260,7 @@ class Spai_REST_Pages extends Spai_REST_API {
 	public function create_page( $request ) {
 		$this->log_activity( 'create_page', $request );
 
-		$data = $request->get_params();
+		$data   = $request->get_params();
 		$result = $this->pages->create_page( $data );
 
 		if ( is_wp_error( $result ) ) {
@@ -280,7 +280,7 @@ class Spai_REST_Pages extends Spai_REST_API {
 		$this->log_activity( 'update_page', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$data = $request->get_params();
+		$data    = $request->get_params();
 		unset( $data['id'] );
 
 		$result = $this->pages->update_page( $page_id, $data );
@@ -310,11 +310,13 @@ class Spai_REST_Pages extends Spai_REST_API {
 			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
 		}
 
-		return $this->success_response( array(
-			'deleted' => true,
-			'id'      => $page_id,
-			'trashed' => ! $force,
-		) );
+		return $this->success_response(
+			array(
+				'deleted' => true,
+				'id'      => $page_id,
+				'trashed' => ! $force,
+			)
+		);
 	}
 
 	/**
@@ -346,13 +348,15 @@ class Spai_REST_Pages extends Spai_REST_API {
 			update_post_meta( $page_id, '_wp_page_template', $template );
 		}
 
-		return $this->success_response( array(
-			'success'      => true,
-			'page_id'      => $page_id,
-			'title'        => $page->post_title,
-			'old_template' => $old_template,
-			'new_template' => $template,
-		) );
+		return $this->success_response(
+			array(
+				'success'      => true,
+				'page_id'      => $page_id,
+				'title'        => $page->post_title,
+				'old_template' => $old_template,
+				'new_template' => $template,
+			)
+		);
 	}
 
 	/**
@@ -380,14 +384,17 @@ class Spai_REST_Pages extends Spai_REST_API {
 		}
 
 		// Create the clone.
-		$new_page_id = wp_insert_post( array(
-			'post_type'    => 'page',
-			'post_title'   => sanitize_text_field( $title ),
-			'post_content' => $page->post_content,
-			'post_status'  => sanitize_key( $status ),
-			'post_parent'  => $page->post_parent,
-			'menu_order'   => $page->menu_order,
-		), true );
+		$new_page_id = wp_insert_post(
+			array(
+				'post_type'    => 'page',
+				'post_title'   => sanitize_text_field( $title ),
+				'post_content' => $page->post_content,
+				'post_status'  => sanitize_key( $status ),
+				'post_parent'  => $page->post_parent,
+				'menu_order'   => $page->menu_order,
+			),
+			true
+		);
 
 		if ( is_wp_error( $new_page_id ) ) {
 			return $new_page_id;
@@ -477,10 +484,12 @@ class Spai_REST_Pages extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'templates' => $formatted,
-			'total'     => count( $formatted ),
-		) );
+		return $this->success_response(
+			array(
+				'templates' => $formatted,
+				'total'     => count( $formatted ),
+			)
+		);
 	}
 
 	/**
@@ -527,10 +536,13 @@ class Spai_REST_Pages extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'created' => $created,
-			'errors'  => $errors,
-			'total'   => count( $created ),
-		), 201 );
+		return $this->success_response(
+			array(
+				'created' => $created,
+				'errors'  => $errors,
+				'total'   => count( $created ),
+			),
+			201
+		);
 	}
 }

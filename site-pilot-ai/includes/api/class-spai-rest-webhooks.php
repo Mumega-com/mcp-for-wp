@@ -184,11 +184,13 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 			$grouped[ $category ][] = $event;
 		}
 
-		return $this->success_response( array(
-			'events'  => $events,
-			'grouped' => $grouped,
-			'total'   => count( $events ),
-		) );
+		return $this->success_response(
+			array(
+				'events'  => $events,
+				'grouped' => $grouped,
+				'total'   => count( $events ),
+			)
+		);
 	}
 
 	/**
@@ -248,11 +250,14 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 
 		$webhook = $this->webhooks->get( $result );
 
-		return $this->success_response( array(
-			'id'      => $result,
-			'webhook' => $webhook,
-			'message' => __( 'Webhook created successfully.', 'site-pilot-ai' ),
-		), 201 );
+		return $this->success_response(
+			array(
+				'id'      => $result,
+				'webhook' => $webhook,
+				'message' => __( 'Webhook created successfully.', 'site-pilot-ai' ),
+			),
+			201
+		);
 	}
 
 	/**
@@ -264,7 +269,7 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 	public function get_webhook( $request ) {
 		$this->log_activity( 'get_webhook', $request );
 
-		$id = (int) $request->get_param( 'id' );
+		$id      = (int) $request->get_param( 'id' );
 		$webhook = $this->webhooks->get( $id );
 
 		if ( ! $webhook ) {
@@ -290,7 +295,7 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 	public function update_webhook( $request ) {
 		$this->log_activity( 'update_webhook', $request );
 
-		$id = (int) $request->get_param( 'id' );
+		$id   = (int) $request->get_param( 'id' );
 		$data = $request->get_json_params();
 		if ( ! is_array( $data ) || empty( $data ) ) {
 			$data = $request->get_params();
@@ -308,13 +313,15 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 			);
 		}
 
-		$webhook = $this->webhooks->get( $id );
+		$webhook           = $this->webhooks->get( $id );
 		$webhook['secret'] = substr( $webhook['secret'], 0, 8 ) . '...';
 
-		return $this->success_response( array(
-			'updated' => true,
-			'webhook' => $webhook,
-		) );
+		return $this->success_response(
+			array(
+				'updated' => true,
+				'webhook' => $webhook,
+			)
+		);
 	}
 
 	/**
@@ -326,7 +333,7 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 	public function delete_webhook( $request ) {
 		$this->log_activity( 'delete_webhook', $request );
 
-		$id = (int) $request->get_param( 'id' );
+		$id     = (int) $request->get_param( 'id' );
 		$result = $this->webhooks->delete( $id );
 
 		if ( is_wp_error( $result ) ) {
@@ -337,10 +344,12 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'deleted' => true,
-			'id'      => $id,
-		) );
+		return $this->success_response(
+			array(
+				'deleted' => true,
+				'id'      => $id,
+			)
+		);
 	}
 
 	/**
@@ -352,7 +361,7 @@ class Spai_REST_Webhooks extends Spai_REST_API {
 	public function test_webhook( $request ) {
 		$this->log_activity( 'test_webhook', $request );
 
-		$id = (int) $request->get_param( 'id' );
+		$id     = (int) $request->get_param( 'id' );
 		$result = $this->webhooks->test( $id );
 
 		if ( is_wp_error( $result ) ) {

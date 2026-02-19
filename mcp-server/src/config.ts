@@ -61,15 +61,15 @@ export function loadConfig(): Config {
  * Get the active site config (first match: defaultSite > first site).
  * Throws if no sites configured.
  */
-export function getActiveSite(config: Config): SiteConfig {
-  const siteName =
+export function getActiveSite(config: Config): SiteConfig & { _key: string } {
+  const siteKey =
     config.defaultSite || Object.keys(config.sites)[0];
 
-  if (!siteName || !config.sites[siteName]) {
+  if (!siteKey || !config.sites[siteKey]) {
     throw new Error(
       "No WordPress sites configured. Set WP_URL and WP_API_KEY environment variables, run site-pilot-ai --setup, or create ~/.wp-ai-operator/config.json"
     );
   }
 
-  return config.sites[siteName];
+  return { ...config.sites[siteKey], _key: siteKey };
 }

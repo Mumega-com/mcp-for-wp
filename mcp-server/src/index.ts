@@ -20,7 +20,7 @@ import { loadConfig, getActiveSite } from "./config.js";
 import { McpProxy } from "./proxy.js";
 import { runSetup } from "./setup.js";
 
-const VERSION = "2.1.1";
+const VERSION = "2.1.2";
 
 function log(level: string, message: string, data?: any): void {
   const ts = new Date().toISOString();
@@ -108,8 +108,26 @@ const config = loadConfig();
 const site = getActiveSite(config);
 const proxy = new McpProxy(site);
 
+// Derive server name: "sitepilotai-<sitename>" (slug from site name, key, or URL hostname).
+function deriveServerName(site: { name?: string; _key: string; url: string }): string {
+  const raw = site.name || (site._key !== "default" ? site._key : "");
+  if (raw) {
+    const slug = raw.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (slug) return `sitepilotai-${slug}`;
+  }
+  // Fallback: use hostname from URL.
+  try {
+    const hostname = new URL(site.url).hostname.replace(/\./g, "-");
+    return `sitepilotai-${hostname}`;
+  } catch {
+    return "sitepilotai";
+  }
+}
+
+const serverName = deriveServerName(site);
+
 const server = new Server(
-  { name: "site-pilot-ai", version: VERSION },
+  { name: serverName, version: VERSION },
   { capabilities: { tools: {}, resources: {} } }
 );
 
@@ -182,7 +200,7 @@ async function main() {
   try {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    log("info", `Site Pilot AI MCP Server v${VERSION} running (proxy mode)`);
+    log("info", `Site Pilot AI MCP Server v${VERSION} running as "${serverName}" (proxy mode)`);
     log("info", `Proxying to: ${site.url}`);
   } catch (error: any) {
     console.error("Failed to start server:", error.message);

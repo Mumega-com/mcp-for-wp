@@ -102,15 +102,17 @@ class Spai_REST_Content extends Spai_REST_API {
 
 		$search = sanitize_text_field( (string) $request->get_param( 'search' ) );
 
-		$query = new WP_Query( array(
-			'post_type'           => $post_type,
-			'post_status'         => $status,
-			's'                   => $search,
-			'posts_per_page'      => $per_page,
-			'paged'               => $page,
-			'ignore_sticky_posts' => true,
-			'no_found_rows'       => false,
-		) );
+		$query = new WP_Query(
+			array(
+				'post_type'           => $post_type,
+				'post_status'         => $status,
+				's'                   => $search,
+				'posts_per_page'      => $per_page,
+				'paged'               => $page,
+				'ignore_sticky_posts' => true,
+				'no_found_rows'       => false,
+			)
+		);
 
 		$items = array();
 		foreach ( (array) $query->posts as $post ) {
@@ -129,18 +131,20 @@ class Spai_REST_Content extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'post_type'  => $post_type,
-			'status'     => $status,
-			'search'     => $search,
-			'items'      => $items,
-			'pagination' => array(
-				'page'        => $page,
-				'per_page'    => $per_page,
-				'total'       => (int) $query->found_posts,
-				'total_pages' => (int) $query->max_num_pages,
-			),
-		) );
+		return $this->success_response(
+			array(
+				'post_type'  => $post_type,
+				'status'     => $status,
+				'search'     => $search,
+				'items'      => $items,
+				'pagination' => array(
+					'page'        => $page,
+					'per_page'    => $per_page,
+					'total'       => (int) $query->found_posts,
+					'total_pages' => (int) $query->max_num_pages,
+				),
+			)
+		);
 	}
 
 	/**
@@ -182,14 +186,15 @@ class Spai_REST_Content extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( array(
-			'success'   => true,
-			'post_id'   => $post_id,
-			'post_type' => $post_type,
-			'message'   => $force
-				? __( 'Content permanently deleted.', 'site-pilot-ai' )
-				: __( 'Content moved to trash.', 'site-pilot-ai' ),
-		) );
+		return $this->success_response(
+			array(
+				'success'   => true,
+				'post_id'   => $post_id,
+				'post_type' => $post_type,
+				'message'   => $force
+					? __( 'Content permanently deleted.', 'site-pilot-ai' )
+					: __( 'Content moved to trash.', 'site-pilot-ai' ),
+			)
+		);
 	}
 }
-

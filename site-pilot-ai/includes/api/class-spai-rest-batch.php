@@ -113,7 +113,7 @@ class Spai_REST_Batch extends Spai_REST_API {
 
 		// Execute each operation sequentially
 		foreach ( $operations as $index => $operation ) {
-			$result = $this->execute_operation( $operation, $index, $api_key );
+			$result    = $this->execute_operation( $operation, $index, $api_key );
 			$results[] = $result;
 		}
 

@@ -112,7 +112,7 @@ class Spai_REST_Media extends Spai_REST_API {
 					'callback'            => array( $this, 'bulk_upload' ),
 					'permission_callback' => array( $this, 'check_permission' ),
 					'args'                => array(
-						'urls' => array(
+						'urls'  => array(
 							'description' => __( 'Array of URLs to upload.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'items'       => array(
@@ -352,12 +352,15 @@ class Spai_REST_Media extends Spai_REST_API {
 			}
 		}
 
-		return $this->success_response( array(
-			'uploaded'     => count( $results['success'] ),
-			'failed'       => count( $results['failed'] ),
-			'media'        => $results['success'],
-			'errors'       => $results['failed'],
-		), 201 );
+		return $this->success_response(
+			array(
+				'uploaded' => count( $results['success'] ),
+				'failed'   => count( $results['failed'] ),
+				'media'    => $results['success'],
+				'errors'   => $results['failed'],
+			),
+			201
+		);
 	}
 
 	/**
@@ -404,7 +407,7 @@ class Spai_REST_Media extends Spai_REST_API {
 		$this->log_activity( 'delete_media', $request );
 
 		$attachment_id = absint( $request->get_param( 'id' ) );
-		$force = (bool) $request->get_param( 'force' );
+		$force         = (bool) $request->get_param( 'force' );
 
 		$result = $this->media->delete_media( $attachment_id, $force );
 

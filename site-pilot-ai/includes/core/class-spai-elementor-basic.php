@@ -998,4 +998,311 @@ class Spai_Elementor_Basic {
 			'message' => __( 'All Elementor CSS regenerated.', 'site-pilot-ai' ),
 		);
 	}
+
+	/**
+	 * Surgical edit of a single Elementor element without full JSON round-trip.
+	 *
+	 * Finds an element by ID, section index, or search criteria, merges
+	 * settings, saves back, and returns only the modified element.
+	 *
+	 * @param int   $page_id Page/post ID.
+	 * @param array $args    {
+	 *     @type string $element_id    Find element by its Elementor ID.
+	 *     @type int    $section_index Find top-level section by 0-based index.
+	 *     @type array  $find          Search criteria: {widgetType, settings.key => value}.
+	 *     @type array  $settings      Settings to merge into the found element.
+	 *     @type array  $delete_settings Setting keys to remove.
+	 * }
+	 * @return array|WP_Error Result with the modified element, or error.
+	 */
+	public function edit_section( $page_id, $args ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error(
+				'elementor_not_active',
+				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$page = $this->validate_post( $page_id );
+		if ( is_wp_error( $page ) ) {
+			return $page;
+		}
+
+		$elementor_data = get_post_meta( $page_id, '_elementor_data', true );
+		if ( empty( $elementor_data ) ) {
+			return new WP_Error(
+				'no_elementor_data',
+				__( 'This page has no Elementor data.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$elements = json_decode( $elementor_data, true );
+		if ( ! is_array( $elements ) ) {
+			return new WP_Error(
+				'invalid_elementor_data',
+				__( 'Elementor data is not valid JSON.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// --- Locate the target element ---
+
+		$element_id    = isset( $args['element_id'] ) ? (string) $args['element_id'] : '';
+		$section_index = isset( $args['section_index'] ) ? (int) $args['section_index'] : -1;
+		$find          = isset( $args['find'] ) && is_array( $args['find'] ) ? $args['find'] : array();
+
+		$found    = null;
+		$found_path = '';
+
+		if ( '' !== $element_id ) {
+			// Find by element ID (recursive).
+			$found =& $this->find_element_by_id( $elements, $element_id, $found_path );
+		} elseif ( $section_index >= 0 ) {
+			// Find by top-level index.
+			if ( isset( $elements[ $section_index ] ) ) {
+				$found      =& $elements[ $section_index ];
+				$found_path = ( isset( $found['elType'] ) ? $found['elType'] : 'element' ) . "[{$section_index}]";
+			}
+		} elseif ( ! empty( $find ) ) {
+			// Find by search criteria.
+			$found =& $this->find_element_by_criteria( $elements, $find, $found_path );
+		} else {
+			return new WP_Error(
+				'no_selector',
+				__( 'Provide element_id, section_index, or find criteria to locate the target element.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( null === $found ) {
+			return new WP_Error(
+				'element_not_found',
+				__( 'No matching element found in the Elementor tree.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// --- Apply patches ---
+
+		$changes = array();
+
+		// Merge settings.
+		if ( ! empty( $args['settings'] ) && is_array( $args['settings'] ) ) {
+			if ( ! isset( $found['settings'] ) || ! is_array( $found['settings'] ) ) {
+				$found['settings'] = array();
+			}
+			foreach ( $args['settings'] as $key => $value ) {
+				$found['settings'][ $key ] = $value;
+				$changes[] = "set {$key}";
+			}
+		}
+
+		// Delete settings.
+		if ( ! empty( $args['delete_settings'] ) && is_array( $args['delete_settings'] ) ) {
+			foreach ( $args['delete_settings'] as $key ) {
+				if ( isset( $found['settings'][ $key ] ) ) {
+					unset( $found['settings'][ $key ] );
+					$changes[] = "removed {$key}";
+				}
+			}
+		}
+
+		if ( empty( $changes ) ) {
+			return new WP_Error(
+				'no_changes',
+				__( 'No settings or delete_settings provided — nothing to change.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// --- Save back ---
+
+		$elementor_json = wp_json_encode( $elements );
+
+		// Run validation/fixes (auto-generate IDs, rename bad keys, etc.).
+		$validation = $this->validate_and_fix_elements( $elementor_json );
+
+		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+
+		// Regenerate CSS.
+		delete_post_meta( $page_id, '_elementor_css' );
+		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+			$css_file->update();
+		}
+
+		// Purge caches.
+		$this->purge_page_cache( $page_id );
+
+		// Re-read the saved element to return its final state.
+		$saved_data = get_post_meta( $page_id, '_elementor_data', true );
+		$saved_elements = json_decode( $saved_data, true );
+		$saved_path = '';
+		$saved_element = null;
+
+		if ( '' !== $element_id ) {
+			$saved_element = $this->find_element_by_id_readonly( $saved_elements, $element_id );
+		} elseif ( $section_index >= 0 && isset( $saved_elements[ $section_index ] ) ) {
+			$saved_element = $saved_elements[ $section_index ];
+		} elseif ( ! empty( $find ) ) {
+			$saved_element = $this->find_element_by_criteria_readonly( $saved_elements, $find );
+		}
+
+		$result = array(
+			'success'  => true,
+			'page_id'  => $page_id,
+			'path'     => $found_path,
+			'changes'  => $changes,
+			'element'  => $saved_element ? $saved_element : $found,
+			'edit_url' => admin_url( "post.php?post={$page_id}&action=elementor" ),
+		);
+
+		$all_warnings = array_merge(
+			isset( $validation['warnings'] ) ? $validation['warnings'] : array(),
+			isset( $validation['fixes'] ) ? $validation['fixes'] : array()
+		);
+		if ( ! empty( $all_warnings ) ) {
+			$result['warnings'] = $all_warnings;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Find an element by ID recursively (returns reference).
+	 *
+	 * @param array  &$elements Element tree (by reference for modification).
+	 * @param string $id        Target element ID.
+	 * @param string &$path     Populated with the path to the found element.
+	 * @return array|null Reference to the found element or null.
+	 */
+	private function &find_element_by_id( &$elements, $id, &$path ) {
+		$null = null;
+		foreach ( $elements as $idx => &$el ) {
+			$el_type = isset( $el['elType'] ) ? $el['elType'] : 'element';
+			$current_path = "{$el_type}[{$idx}]";
+
+			if ( isset( $el['id'] ) && (string) $el['id'] === $id ) {
+				$path = $current_path;
+				return $el;
+			}
+
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				$child_path = '';
+				$found =& $this->find_element_by_id( $el['elements'], $id, $child_path );
+				if ( null !== $found ) {
+					$path = $current_path . '.' . $child_path;
+					return $found;
+				}
+			}
+		}
+		unset( $el );
+		return $null;
+	}
+
+	/**
+	 * Find an element by search criteria recursively (returns reference).
+	 *
+	 * @param array  &$elements Element tree (by reference).
+	 * @param array  $criteria  Search criteria (widgetType, settings.key => value).
+	 * @param string &$path     Populated with the path to the found element.
+	 * @return array|null Reference to the found element or null.
+	 */
+	private function &find_element_by_criteria( &$elements, $criteria, &$path ) {
+		$null = null;
+		foreach ( $elements as $idx => &$el ) {
+			$el_type = isset( $el['elType'] ) ? $el['elType'] : 'element';
+			$current_path = "{$el_type}[{$idx}]";
+
+			if ( $this->element_matches_criteria( $el, $criteria ) ) {
+				$path = $current_path;
+				return $el;
+			}
+
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				$child_path = '';
+				$found =& $this->find_element_by_criteria( $el['elements'], $criteria, $child_path );
+				if ( null !== $found ) {
+					$path = $current_path . '.' . $child_path;
+					return $found;
+				}
+			}
+		}
+		unset( $el );
+		return $null;
+	}
+
+	/**
+	 * Check if an element matches search criteria.
+	 *
+	 * @param array $element  The element to check.
+	 * @param array $criteria Search criteria.
+	 * @return bool True if all criteria match.
+	 */
+	private function element_matches_criteria( $element, $criteria ) {
+		foreach ( $criteria as $key => $value ) {
+			if ( 'widgetType' === $key ) {
+				if ( ! isset( $element['widgetType'] ) || $element['widgetType'] !== $value ) {
+					return false;
+				}
+			} elseif ( 'elType' === $key ) {
+				if ( ! isset( $element['elType'] ) || $element['elType'] !== $value ) {
+					return false;
+				}
+			} elseif ( 0 === strpos( $key, 'settings.' ) ) {
+				$setting_key = substr( $key, 9 );
+				$settings    = isset( $element['settings'] ) ? $element['settings'] : array();
+				if ( ! isset( $settings[ $setting_key ] ) || $settings[ $setting_key ] !== $value ) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Find an element by ID (read-only, returns copy).
+	 *
+	 * @param array  $elements Element tree.
+	 * @param string $id       Target element ID.
+	 * @return array|null Element copy or null.
+	 */
+	private function find_element_by_id_readonly( $elements, $id ) {
+		foreach ( $elements as $el ) {
+			if ( isset( $el['id'] ) && (string) $el['id'] === $id ) {
+				return $el;
+			}
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				$found = $this->find_element_by_id_readonly( $el['elements'], $id );
+				if ( null !== $found ) {
+					return $found;
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Find an element by criteria (read-only, returns copy).
+	 *
+	 * @param array $elements Element tree.
+	 * @param array $criteria Search criteria.
+	 * @return array|null Element copy or null.
+	 */
+	private function find_element_by_criteria_readonly( $elements, $criteria ) {
+		foreach ( $elements as $el ) {
+			if ( $this->element_matches_criteria( $el, $criteria ) ) {
+				return $el;
+			}
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				$found = $this->find_element_by_criteria_readonly( $el['elements'], $criteria );
+				if ( null !== $found ) {
+					return $found;
+				}
+			}
+		}
+		return null;
+	}
 }
