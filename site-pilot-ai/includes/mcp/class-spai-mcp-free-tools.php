@@ -1273,6 +1273,75 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Post Meta
+		$tools[] = $this->define_tool(
+			'wp_get_post_meta',
+			'Get post meta for a post or page. Returns a single key or all non-sensitive meta.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID',
+					'required'    => true,
+				),
+				'key' => array(
+					'type'        => 'string',
+					'description' => 'Specific meta key to retrieve (omit to get all)',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_set_post_meta',
+			'Set a single post meta value. Blocked keys (passwords, secrets, internal WP keys) are rejected.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID',
+					'required'    => true,
+				),
+				'key' => array(
+					'type'        => 'string',
+					'description' => 'Meta key to set',
+					'required'    => true,
+				),
+				'value' => array(
+					'type'        => 'string',
+					'description' => 'Meta value to set',
+					'required'    => true,
+				),
+			)
+		);
+
+		// Option Management
+		$tools[] = $this->define_tool(
+			'wp_get_option',
+			'Get a single WordPress option by key. Only whitelisted safe keys are accessible (blogname, blogdescription, show_on_front, page_on_front, etc.).',
+			array(
+				'key' => array(
+					'type'        => 'string',
+					'description' => 'Option key (e.g., blogname, show_on_front, page_on_front)',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_option',
+			'Update a single WordPress option by key. Only whitelisted safe keys are allowed (blogname, blogdescription, show_on_front, page_on_front, timezone_string, etc.).',
+			array(
+				'key' => array(
+					'type'        => 'string',
+					'description' => 'Option key to update',
+					'required'    => true,
+				),
+				'value' => array(
+					'type'        => 'string',
+					'description' => 'New value for the option',
+					'required'    => true,
+				),
+			)
+		);
+
 		return $tools;
 	}
 
@@ -1551,6 +1620,26 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_list_webhook_logs'    => array(
 				'method' => 'GET',
 				'route'  => '/webhooks/{id}/logs',
+			),
+
+			// Post Meta
+			'wp_get_post_meta'   => array(
+				'method' => 'GET',
+				'route'  => '/post-meta/{id}',
+			),
+			'wp_set_post_meta'   => array(
+				'method' => 'POST',
+				'route'  => '/post-meta/{id}',
+			),
+
+			// Option Management
+			'wp_get_option'      => array(
+				'method' => 'GET',
+				'route'  => '/option',
+			),
+			'wp_update_option'   => array(
+				'method' => 'POST',
+				'route'  => '/option',
 			),
 
 			// Feedback

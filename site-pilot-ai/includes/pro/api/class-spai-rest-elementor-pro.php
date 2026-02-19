@@ -134,9 +134,16 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 			$this->namespace,
 			'/elementor/globals',
 			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_globals' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_globals' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'set_globals' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
 			)
 		);
 
@@ -635,5 +642,56 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 		$this->log_activity( 'get_globals', $request, $globals );
 
 		return $this->success_response( $globals );
+	}
+
+	/**
+	 * Set Elementor global settings (colors, fonts, etc.).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function set_globals( $request ) {
+		$this->log_activity( 'set_elementor_globals', $request );
+
+		if ( ! class_exists( '\Elementor\Plugin' ) ) {
+			return $this->error_response( 'elementor_not_active', __( 'Elementor is not active.', 'site-pilot-ai' ), 400 );
+		}
+
+		$params = $request->get_json_params();
+		if ( empty( $params ) ) {
+			$params = $request->get_params();
+		}
+
+		if ( empty( $params ) || ! is_array( $params ) ) {
+			return $this->error_response( 'missing_params', __( 'Globals data is required.', 'site-pilot-ai' ), 400 );
+		}
+
+		// Get the active kit
+		$kit = \Elementor\Plugin::$instance->kits_manager->get_active_kit();
+		if ( ! $kit || ! $kit->get_id() ) {
+			return $this->error_response( 'no_kit', __( 'No active Elementor kit found.', 'site-pilot-ai' ), 500 );
+		}
+
+		$kit_id       = $kit->get_id();
+		$existing     = get_post_meta( $kit_id, '_elementor_page_settings', true );
+		if ( ! is_array( $existing ) ) {
+			$existing = array();
+		}
+
+		// Merge provided settings
+		$updated = array_replace_recursive( $existing, $params );
+
+		update_post_meta( $kit_id, '_elementor_page_settings', $updated );
+
+		// Clear Elementor caches
+		if ( method_exists( \Elementor\Plugin::$instance->files_manager, 'clear_cache' ) ) {
+			\Elementor\Plugin::$instance->files_manager->clear_cache();
+		}
+
+		return $this->success_response( array(
+			'kit_id'   => $kit_id,
+			'settings' => $updated,
+			'message'  => __( 'Elementor globals updated.', 'site-pilot-ai' ),
+		) );
 	}
 }

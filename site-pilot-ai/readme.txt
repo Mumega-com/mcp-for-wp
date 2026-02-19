@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.68
+Stable tag: 1.0.69
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,14 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.69 =
+* Add: wp_get_post_meta / wp_set_post_meta MCP tools with blocked-key safety list
+* Add: wp_get_option / wp_update_option MCP tools with whitelisted safe keys
+* Add: wp_set_elementor_globals pro MCP tool for global colors, typography, button styles
+* Add: REST endpoints /post-meta/{id} (GET/POST) and /option (GET/POST)
+* Fix: Batch endpoint now sets body_params and query_params on internal requests
+* Fix: update_option wrapped in try/catch to handle Elementor hook exceptions
 
 = 1.0.68 =
 * Add: Full menu MCP control — wp_get_menu, wp_create_menu, wp_update_menu pro tools

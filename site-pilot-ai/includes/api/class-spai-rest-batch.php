@@ -190,6 +190,15 @@ class Spai_REST_Batch extends Spai_REST_API {
 			foreach ( $body as $key => $value ) {
 				$internal_request->set_param( $key, $value );
 			}
+			$internal_request->set_body_params( $body );
+		}
+
+		// Set query parameters for GET/DELETE
+		if ( in_array( $method, array( 'GET', 'DELETE' ), true ) && is_array( $body ) ) {
+			foreach ( $body as $key => $value ) {
+				$internal_request->set_param( $key, $value );
+			}
+			$internal_request->set_query_params( $body );
 		}
 
 		// Copy authentication

@@ -484,6 +484,87 @@ class Spai_REST_Site extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Post meta
+		register_rest_route(
+			$this->namespace,
+			'/post-meta/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_post_meta_handler' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'  => array(
+							'description' => __( 'Post or page ID.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'required'    => true,
+						),
+						'key' => array(
+							'description' => __( 'Specific meta key to retrieve.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'set_post_meta_handler' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'    => array(
+							'description' => __( 'Post or page ID.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'required'    => true,
+						),
+						'key'   => array(
+							'description' => __( 'Meta key to set.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'value' => array(
+							'description' => __( 'Meta value to set.', 'site-pilot-ai' ),
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
+		// Single option get/update (whitelisted keys only).
+		register_rest_route(
+			$this->namespace,
+			'/option',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_option_handler' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'key' => array(
+							'description' => __( 'Option key to retrieve.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'update_option_handler' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'key'   => array(
+							'description' => __( 'Option key to update.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'value' => array(
+							'description' => __( 'Option value to set.', 'site-pilot-ai' ),
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -1563,6 +1644,256 @@ class Spai_REST_Site extends Spai_REST_API {
 		return $this->success_response( array(
 			'tags'  => $items,
 			'total' => count( $items ),
+		) );
+	}
+
+	/**
+	 * Get post meta.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_post_meta_handler( $request ) {
+		$this->log_activity( 'get_post_meta', $request );
+
+		$post_id = absint( $request->get_param( 'id' ) );
+		$post    = get_post( $post_id );
+
+		if ( ! $post instanceof WP_Post ) {
+			return $this->error_response( 'not_found', __( 'Post not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		$key = $request->get_param( 'key' );
+
+		if ( ! empty( $key ) ) {
+			$key = sanitize_key( $key );
+
+			if ( $this->is_blocked_meta_key( $key ) ) {
+				return $this->error_response( 'forbidden_meta_key', __( 'This meta key is not accessible via API.', 'site-pilot-ai' ), 403 );
+			}
+
+			$value = get_post_meta( $post_id, $key, true );
+
+			return $this->success_response( array(
+				'id'    => $post_id,
+				'key'   => $key,
+				'value' => $value,
+			) );
+		}
+
+		// Return all non-blocked meta
+		$all_meta  = get_post_meta( $post_id );
+		$safe_meta = array();
+
+		foreach ( $all_meta as $meta_key => $meta_values ) {
+			if ( ! $this->is_blocked_meta_key( $meta_key ) ) {
+				$safe_meta[ $meta_key ] = count( $meta_values ) === 1 ? $meta_values[0] : $meta_values;
+			}
+		}
+
+		return $this->success_response( array(
+			'id'   => $post_id,
+			'meta' => $safe_meta,
+		) );
+	}
+
+	/**
+	 * Set post meta.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function set_post_meta_handler( $request ) {
+		$this->log_activity( 'set_post_meta', $request );
+
+		$post_id = absint( $request->get_param( 'id' ) );
+		$post    = get_post( $post_id );
+
+		if ( ! $post instanceof WP_Post ) {
+			return $this->error_response( 'not_found', __( 'Post not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		$key   = sanitize_key( (string) $request->get_param( 'key' ) );
+		$value = $request->get_param( 'value' );
+
+		if ( '' === $key ) {
+			return $this->error_response( 'missing_key', __( 'Meta key is required.', 'site-pilot-ai' ), 400 );
+		}
+
+		if ( $this->is_blocked_meta_key( $key ) ) {
+			return $this->error_response( 'forbidden_meta_key', __( 'This meta key is not accessible via API.', 'site-pilot-ai' ), 403 );
+		}
+
+		// Sanitize value
+		if ( is_string( $value ) ) {
+			$value = sanitize_text_field( $value );
+		}
+
+		$result = update_post_meta( $post_id, $key, $value );
+
+		return $this->success_response( array(
+			'id'      => $post_id,
+			'key'     => $key,
+			'value'   => $value,
+			'updated' => false !== $result,
+		) );
+	}
+
+	/**
+	 * Check if a meta key is blocked from API access.
+	 *
+	 * @param string $meta_key Meta key to check.
+	 * @return bool True if blocked.
+	 */
+	private function is_blocked_meta_key( $meta_key ) {
+		$blocked_prefixes = array( '_wp_', 'spai_api_key', '_edit_lock', '_edit_last' );
+		$blocked_keys     = array( '_wp_page_template', '_thumbnail_id' );
+
+		// Allow these specific WordPress keys
+		$allowed_keys = array( '_wp_page_template', '_thumbnail_id', '_elementor_data', '_elementor_template_type', '_elementor_version' );
+
+		if ( in_array( $meta_key, $allowed_keys, true ) ) {
+			return false;
+		}
+
+		if ( in_array( $meta_key, $blocked_keys, true ) ) {
+			return true;
+		}
+
+		foreach ( $blocked_prefixes as $prefix ) {
+			if ( 0 === strpos( $meta_key, $prefix ) ) {
+				return true;
+			}
+		}
+
+		// Block secret-looking keys
+		if ( preg_match( '/(password|secret|token|auth|credential)/i', $meta_key ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whitelist of option keys allowed via API.
+	 *
+	 * @return array Allowed option keys.
+	 */
+	private function get_allowed_option_keys() {
+		return array(
+			'blogname',
+			'blogdescription',
+			'siteurl',
+			'home',
+			'admin_email',
+			'timezone_string',
+			'date_format',
+			'time_format',
+			'WPLANG',
+			'posts_per_page',
+			'posts_per_rss',
+			'show_on_front',
+			'page_on_front',
+			'page_for_posts',
+			'blog_public',
+			'permalink_structure',
+			'default_category',
+			'default_post_format',
+			'thumbnail_size_w',
+			'thumbnail_size_h',
+			'medium_size_w',
+			'medium_size_h',
+			'large_size_w',
+			'large_size_h',
+			'site_icon',
+		);
+	}
+
+	/**
+	 * Get a single WordPress option by key.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_option_handler( $request ) {
+		$this->log_activity( 'get_option', $request );
+
+		$key = sanitize_key( (string) $request->get_param( 'key' ) );
+
+		if ( ! in_array( $key, $this->get_allowed_option_keys(), true ) ) {
+			return $this->error_response(
+				'forbidden_option',
+				__( 'This option key is not accessible via API. Allowed keys: ', 'site-pilot-ai' ) . implode( ', ', $this->get_allowed_option_keys() ),
+				403
+			);
+		}
+
+		$value = get_option( $key );
+
+		return $this->success_response( array(
+			'key'   => $key,
+			'value' => $value,
+		) );
+	}
+
+	/**
+	 * Update a single WordPress option by key.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function update_option_handler( $request ) {
+		$this->log_activity( 'update_option', $request );
+
+		$key   = sanitize_key( (string) $request->get_param( 'key' ) );
+		$value = $request->get_param( 'value' );
+
+		if ( ! in_array( $key, $this->get_allowed_option_keys(), true ) ) {
+			return $this->error_response(
+				'forbidden_option',
+				__( 'This option key is not accessible via API. Allowed keys: ', 'site-pilot-ai' ) . implode( ', ', $this->get_allowed_option_keys() ),
+				403
+			);
+		}
+
+		// Type-specific sanitization
+		if ( 'admin_email' === $key ) {
+			$value = sanitize_email( $value );
+			if ( ! is_email( $value ) ) {
+				return $this->error_response( 'invalid_email', __( 'Invalid email address.', 'site-pilot-ai' ), 400 );
+			}
+		} elseif ( in_array( $key, array( 'posts_per_page', 'posts_per_rss', 'page_on_front', 'page_for_posts', 'default_category', 'thumbnail_size_w', 'thumbnail_size_h', 'medium_size_w', 'medium_size_h', 'large_size_w', 'large_size_h', 'site_icon' ), true ) ) {
+			$value = absint( $value );
+		} elseif ( 'blog_public' === $key ) {
+			$value = $value ? 1 : 0;
+		} elseif ( is_string( $value ) ) {
+			$value = sanitize_text_field( $value );
+		}
+
+		$old_value = get_option( $key );
+
+		// Wrap in try/catch: plugins like Elementor hook into update_option
+		// and may throw exceptions in REST context (e.g. AJAX auth checks).
+		try {
+			update_option( $key, $value );
+		} catch ( \Exception $e ) {
+			// Option was likely still updated before the hook threw.
+			// Verify by re-reading.
+			$current = get_option( $key );
+			if ( $current !== $value ) {
+				return $this->error_response(
+					'update_failed',
+					$e->getMessage(),
+					500
+				);
+			}
+		}
+
+		return $this->success_response( array(
+			'key'       => $key,
+			'value'     => get_option( $key ),
+			'old_value' => $old_value,
+			'updated'   => true,
 		) );
 	}
 

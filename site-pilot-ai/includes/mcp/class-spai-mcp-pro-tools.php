@@ -66,6 +66,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_create_landing_page'              => 'elementor',
 			'wp_clone_elementor_page'             => 'elementor',
 			'wp_get_elementor_globals'            => 'elementor',
+			'wp_set_elementor_globals'            => 'elementor',
 			'wp_get_elementor_widgets'            => 'elementor',
 			'wp_list_elementor_custom_code'       => 'elementor',
 			'wp_disable_elementor_custom_code'    => 'elementor',
@@ -408,6 +409,29 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_elementor_globals',
 			'Get Elementor global settings (colors, fonts, etc.)',
 			array()
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_set_elementor_globals',
+			'Set Elementor global settings (colors, typography, button styles, etc.). Merges with existing kit settings.',
+			array(
+				'system_colors' => array(
+					'type'        => 'array',
+					'description' => 'Array of {_id, title, color} objects for global colors',
+				),
+				'custom_colors' => array(
+					'type'        => 'array',
+					'description' => 'Array of {_id, title, color} objects for custom colors',
+				),
+				'system_typography' => array(
+					'type'        => 'array',
+					'description' => 'Array of typography objects with font_family, font_size, font_weight, etc.',
+				),
+				'custom_typography' => array(
+					'type'        => 'array',
+					'description' => 'Array of custom typography definitions',
+				),
+			)
 		);
 
 		$pro_tools[] = $this->define_tool(
@@ -830,6 +854,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			),
 			'wp_get_elementor_globals'       => array(
 				'method' => 'GET',
+				'route'  => '/elementor/globals',
+			),
+			'wp_set_elementor_globals'       => array(
+				'method' => 'POST',
 				'route'  => '/elementor/globals',
 			),
 			'wp_get_elementor_widgets'       => array(
