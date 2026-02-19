@@ -136,6 +136,25 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Site Context
+		$tools[] = $this->define_tool(
+			'wp_get_site_context',
+			'Get the site context — a master prompt / style guide that defines design rules, header/footer structure, color palette, typography, predefined sections, and page layout guidelines. Always read this first when building or editing pages.',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_set_site_context',
+			'Set the site context (AI brief). This is a markdown document that tells AI assistants how to build pages for this site: design tokens, header/footer rules, reusable sections, and page structure templates. Included automatically in wp_introspect.',
+			array(
+				'context' => array(
+					'type'        => 'string',
+					'description' => 'Markdown text defining site style rules, header/footer structure, predefined sections, color palette, typography, and page layout guidelines',
+					'required'    => true,
+				),
+			)
+		);
+
 		// Custom CSS
 		$tools[] = $this->define_tool(
 			'wp_get_custom_css',
@@ -1425,6 +1444,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_options' => array(
 				'method' => 'POST',
 				'route'  => '/options',
+			),
+			'wp_get_site_context' => array(
+				'method' => 'GET',
+				'route'  => '/site-context',
+			),
+			'wp_set_site_context' => array(
+				'method' => 'POST',
+				'route'  => '/site-context',
 			),
 			'wp_get_custom_css' => array(
 				'method' => 'GET',

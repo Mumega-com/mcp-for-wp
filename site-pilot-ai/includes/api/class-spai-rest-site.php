@@ -530,6 +530,31 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// Site Context (AI brief / style guide).
+		register_rest_route(
+			$this->namespace,
+			'/site-context',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_site_context' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'set_site_context' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'context' => array(
+							'description' => __( 'Site context markdown text (AI brief, style guide, rules).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Single option get/update (whitelisted keys only).
 		register_rest_route(
 			$this->namespace,
@@ -615,7 +640,69 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response( $mcp->get_introspection_data() );
+		$data = $mcp->get_introspection_data();
+
+		// Include site context if set.
+		$site_context = get_option( 'spai_site_context', '' );
+		if ( '' !== $site_context ) {
+			$data['site_context'] = $site_context;
+		}
+
+		return $this->success_response( $data );
+	}
+
+	/**
+	 * Get site context (AI brief / style guide).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_site_context( $request ) {
+		$this->log_activity( 'get_site_context', $request );
+
+		$context = get_option( 'spai_site_context', '' );
+
+		return $this->success_response(
+			array(
+				'context'    => $context,
+				'updated_at' => get_option( 'spai_site_context_updated', '' ),
+				'hint'       => '' === $context
+					? 'No site context configured. Use wp_set_site_context to define your site style guide, header/footer rules, predefined sections, and page structure guidelines. This will be included in wp_introspect so AI assistants automatically follow your design rules.'
+					: null,
+			)
+		);
+	}
+
+	/**
+	 * Set site context (AI brief / style guide).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function set_site_context( $request ) {
+		$this->log_activity( 'set_site_context', $request );
+
+		$context = $request->get_param( 'context' );
+
+		if ( null === $context ) {
+			return $this->error_response( 'missing_context', 'The context parameter is required.', 400 );
+		}
+
+		// Limit to 50KB to prevent abuse.
+		if ( strlen( $context ) > 51200 ) {
+			return $this->error_response( 'context_too_large', 'Site context must be under 50KB.', 400 );
+		}
+
+		update_option( 'spai_site_context', $context );
+		update_option( 'spai_site_context_updated', gmdate( 'Y-m-d H:i:s' ) );
+
+		return $this->success_response(
+			array(
+				'success'    => true,
+				'length'     => strlen( $context ),
+				'updated_at' => get_option( 'spai_site_context_updated' ),
+			)
+		);
 	}
 
 	/**
@@ -1806,6 +1893,8 @@ class Spai_REST_Site extends Spai_REST_API {
 			'large_size_w',
 			'large_size_h',
 			'site_icon',
+			'spai_site_context',
+			'spai_site_context_updated',
 		);
 	}
 

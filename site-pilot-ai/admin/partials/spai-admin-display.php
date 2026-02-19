@@ -721,6 +721,17 @@ if ( isset( $new_key ) && $new_key ) {
 			</form>
 		</div>
 
+		<div class="spai-card">
+			<h2><?php esc_html_e( 'AI Site Context', 'site-pilot-ai' ); ?></h2>
+			<form method="post" action="options.php">
+				<?php
+				settings_fields( 'spai_site_context_group' );
+				do_settings_sections( 'spai_site_context_settings' );
+				submit_button( __( 'Save Site Context', 'site-pilot-ai' ) );
+				?>
+			</form>
+		</div>
+
 		<?php
 		/**
 		 * Action for Pro add-on to render additional settings tabs.

@@ -302,6 +302,32 @@ class Spai_Settings {
 			)
 		);
 
+		// Site Context section.
+		register_setting(
+			'spai_site_context_group',
+			'spai_site_context',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => array( $this, 'sanitize_site_context' ),
+				'default'           => '',
+			)
+		);
+
+		add_settings_section(
+			'spai_site_context_section',
+			__( 'AI Site Context', 'site-pilot-ai' ),
+			array( $this, 'render_site_context_section' ),
+			'spai_site_context_settings'
+		);
+
+		add_settings_field(
+			'spai_site_context',
+			__( 'Site Context / AI Brief', 'site-pilot-ai' ),
+			array( $this, 'render_site_context_field' ),
+			'spai_site_context_settings',
+			'spai_site_context_section'
+		);
+
 		// Rate-limiting section.
 		add_settings_section(
 			'spai_rate_limit_section',
@@ -744,6 +770,63 @@ class Spai_Settings {
 		if ( $has_secret ) {
 			printf( '<p class="description">%s</p>', esc_html__( 'A value is already configured.', 'site-pilot-ai' ) );
 		}
+	}
+
+	/**
+	 * Render site context section.
+	 */
+	public function render_site_context_section() {
+		echo '<p>' . esc_html__( 'Define your site\'s design rules, style guide, and page structure. This is served to AI assistants when they connect, so they know how to build pages that match your brand.', 'site-pilot-ai' ) . '</p>';
+	}
+
+	/**
+	 * Render site context field.
+	 */
+	public function render_site_context_field() {
+		$value = get_option( 'spai_site_context', '' );
+		$updated = get_option( 'spai_site_context_updated', '' );
+
+		printf(
+			'<textarea name="spai_site_context" rows="20" class="large-text code" placeholder="%s">%s</textarea>',
+			esc_attr( "# Site Style Guide\n\n## Colors\n- Primary: #1B4DFF\n- Background: #FFFFFF\n- Text: #0B1220\n\n## Typography\n- Headings: Poppins, bold\n- Body: Inter, regular\n\n## Header Rules\n- Always include logo + main navigation\n- Use sticky header on all pages\n\n## Footer Rules\n- 3-column layout: About, Quick Links, Contact\n- Always include copyright\n\n## Page Sections\n- Hero: Full-width with headline, subtext, CTA button\n- Features: 3-column grid with icons\n- Testimonials: Carousel or grid\n- CTA: Centered with background color\n- FAQ: Accordion style\n\n## Page Templates\n- Landing Page: Hero → Features → Testimonials → CTA\n- About Page: Hero → Story → Team → CTA\n- Service Page: Hero → Benefits → Pricing → FAQ → CTA" ),
+			esc_textarea( $value )
+		);
+
+		echo '<p class="description">';
+		esc_html_e( 'Write in Markdown. This text is included in the wp_introspect response and available via wp_get_site_context. AI assistants will use this as their design reference when building or editing pages.', 'site-pilot-ai' );
+		echo '</p>';
+
+		if ( '' !== $updated ) {
+			printf(
+				'<p class="description">%s %s</p>',
+				esc_html__( 'Last updated:', 'site-pilot-ai' ),
+				esc_html( $updated )
+			);
+		}
+	}
+
+	/**
+	 * Sanitize site context.
+	 *
+	 * @param string $input Input.
+	 * @return string Sanitized.
+	 */
+	public function sanitize_site_context( $input ) {
+		if ( ! is_string( $input ) ) {
+			return '';
+		}
+
+		// Limit to 50KB.
+		$input = substr( $input, 0, 51200 );
+
+		// Allow markdown formatting but strip dangerous tags.
+		$allowed = wp_kses_allowed_html( 'post' );
+		$sanitized = wp_kses( $input, $allowed );
+
+		// Update timestamp.
+		update_option( 'spai_site_context_updated', gmdate( 'Y-m-d H:i:s' ) );
+
+		return $sanitized;
 	}
 
 	/**
