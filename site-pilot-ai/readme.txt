@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.9
+Stable tag: 1.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,9 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.10 =
+* Fix: Non-Latin site names (Persian, Arabic, CJK) now produce clean hostname-based slugs in Connect tab instead of URL-encoded gibberish
 
 = 1.1.9 =
 * Improvement: Connect AI tab redesigned — new Custom Connector method (recommended), updated Claude Code and npm package configs, all using sitepilotai-{slug} naming
