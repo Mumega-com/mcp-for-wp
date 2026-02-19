@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.1.2
+**Version:** 1.1.3
 
 ## Table of Contents
 
@@ -67,7 +67,7 @@ curl -X POST "https://your-site.com/wp-json/site-pilot-ai/v1/mcp" \
 
 **Supported Methods:**
 - `initialize` - Initialize MCP session
-- `tools/list` - List all available tools (85+ tools, varies by license)
+- `tools/list` - List all available tools (90+ tools, varies by license)
 - `tools/call` - Execute a tool
 - Batch requests - Execute up to 10 requests in parallel
 
@@ -659,6 +659,40 @@ Upload multiple images in a single request (max 20).
 }
 ```
 
+#### Delete Media
+
+```http
+DELETE /media/{id}
+```
+
+Delete a media attachment (move to trash or permanently delete).
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `id` | integer | *(required)* | Attachment ID |
+| `force` | boolean | `false` | `true` = permanent delete, `false` = move to trash |
+
+**Example:**
+
+```bash
+curl -X DELETE -H "X-API-Key: spai_xxx" \
+  "https://example.com/wp-json/site-pilot-ai/v1/media/456?force=true"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "deleted": {
+    "id": 456,
+    "title": "My Image",
+    "url": "https://example.com/wp-content/uploads/2026/02/my-image.jpg"
+  },
+  "force": true
+}
+```
+
 ---
 
 ### Elementor (Free)
@@ -742,6 +776,48 @@ POST /elementor/page
 }
 ```
 
+#### Get Elementor Summary
+
+```http
+GET /elementor/{id}/summary
+```
+
+*New in v1.1.3.* Returns a lightweight structural summary of a page's Elementor data — typically <1K tokens instead of 64K+ for the full data. Ideal for AI inspection before editing.
+
+**Response:**
+
+```json
+{
+  "page_id": 95,
+  "title": "Home",
+  "has_elementor": true,
+  "section_count": 4,
+  "widget_count": 12,
+  "sections": [
+    {
+      "type": "section",
+      "children": [
+        {
+          "type": "column",
+          "children": [
+            {
+              "widget": "heading",
+              "settings": {"title": "Welcome to Our Site", "header_size": "h1"}
+            },
+            {
+              "widget": "text-editor",
+              "settings": {"editor": "We build amazing things..."}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Key display settings are extracted per widget type (e.g., `title` for headings, `url` for images, `text` for buttons). Full settings are not included — use `GET /elementor/{id}` when you need the complete data.
+
 ---
 
 ### Elementor Pro
@@ -820,6 +896,110 @@ POST /elementor/landing-page
   "title": "Product Launch",
   "status": "draft",
   "sections": ["hero", "features", "testimonials", "cta"]
+}
+```
+
+#### Build Page from Section Blueprints
+
+```http
+POST /elementor/build-page
+```
+
+*New in v1.1.3. Requires Pro license.*
+
+Build a complete Elementor page from semantic section definitions. No raw Elementor JSON required — the plugin generates valid element trees with auto-generated IDs, correct column structures, and proper widget settings. Detects whether the site uses classic sections or flexbox containers.
+
+**Body:**
+
+```json
+{
+  "title": "My Landing Page",
+  "status": "draft",
+  "sections": [
+    {
+      "type": "hero",
+      "heading": "Build Faster with AI",
+      "subheading": "Ship landing pages in seconds, not hours.",
+      "button_text": "Get Started",
+      "button_url": "/get-started",
+      "background_color": "#0B1220",
+      "text_color": "#FFFFFF"
+    },
+    {
+      "type": "features",
+      "heading": "Why Choose Us",
+      "items": [
+        {"icon": "fas fa-rocket", "title": "Fast", "description": "Deploy in seconds"},
+        {"icon": "fas fa-shield-alt", "title": "Secure", "description": "Enterprise-grade security"},
+        {"icon": "fas fa-code", "title": "Developer-Friendly", "description": "Full API access"}
+      ]
+    },
+    {
+      "type": "pricing",
+      "heading": "Simple Pricing",
+      "items": [
+        {
+          "title": "Free",
+          "price": "$0",
+          "period": "/month",
+          "features": ["5 pages", "Basic support", "Community access"],
+          "button_text": "Start Free",
+          "button_url": "/signup"
+        },
+        {
+          "title": "Pro",
+          "price": "$29",
+          "period": "/month",
+          "features": ["Unlimited pages", "Priority support", "AI tools", "Theme builder"],
+          "button_text": "Go Pro",
+          "button_url": "/upgrade",
+          "featured": true
+        }
+      ]
+    },
+    {
+      "type": "faq",
+      "heading": "Frequently Asked Questions",
+      "items": [
+        {"question": "How does it work?", "answer": "Install the plugin, connect your AI assistant, and start building."},
+        {"question": "Is it free?", "answer": "The core plugin is free. Pro features require a license."}
+      ]
+    },
+    {
+      "type": "cta",
+      "heading": "Ready to Get Started?",
+      "subheading": "Join thousands of sites powered by AI.",
+      "button_text": "Try It Now",
+      "button_url": "/get-started"
+    }
+  ]
+}
+```
+
+**Available Section Types:**
+
+| Type | Key Params | Description |
+|------|-----------|-------------|
+| `hero` | `heading`, `subheading`, `button_text`, `button_url`, `background_color`, `text_color`, `background_image` | Full-width hero banner with CTA |
+| `features` | `heading`, `items[]` (`icon`, `title`, `description`) | Multi-column icon-box grid |
+| `cta` | `heading`, `subheading`, `button_text`, `button_url` | Centered call-to-action strip |
+| `pricing` | `heading`, `items[]` (`title`, `price`, `period`, `features[]`, `button_text`, `button_url`, `featured`) | Pricing columns |
+| `faq` | `heading`, `items[]` (`question`, `answer`) | Accordion FAQ section |
+| `testimonials` | `heading`, `items[]` (`name`, `text`, `image`, `title`) | Testimonial cards |
+| `text` | `heading`, `body` | Simple heading + text block |
+| `gallery` | `heading`, `images[]` (attachment IDs) | Image gallery |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "page_id": 234,
+  "title": "My Landing Page",
+  "status": "draft",
+  "url": "https://example.com/?page_id=234",
+  "edit_url": "https://example.com/wp-admin/post.php?post=234&action=elementor",
+  "sections_built": 5
 }
 ```
 
@@ -1980,6 +2160,46 @@ POST /theme-builder/templates/{id}/assign
 
 Scope options: `entire_site`, `singular`, `archive`, `specific`, `front_page`, `404`
 
+#### Create Theme Template
+
+```http
+POST /theme-builder/templates
+```
+
+*New in v1.1.3.* Create a Theme Builder template, set its type, optionally populate with Elementor data, and assign display conditions — all in one call.
+
+**Body:**
+
+```json
+{
+  "title": "Site Header",
+  "type": "header",
+  "elementor_data": [],
+  "scope": "entire_site"
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `title` | string | *(required)* | Template name |
+| `type` | string | *(required)* | `header`, `footer`, `single`, or `archive` |
+| `elementor_data` | array | - | Optional Elementor JSON to populate the template |
+| `scope` | string | `entire_site` | Display condition scope |
+
+**Response:**
+
+```json
+{
+  "id": 567,
+  "title": "Site Header",
+  "type": "header",
+  "scope": "entire_site",
+  "edit_url": "https://example.com/wp-admin/post.php?post=567&action=elementor"
+}
+```
+
+After creation, open the `edit_url` in Elementor to design the template visually, or use `POST /elementor/{id}` to set Elementor data programmatically.
+
 ---
 
 ### WooCommerce (Pro)
@@ -2880,7 +3100,7 @@ Downloads a Pexels photo to the WordPress media library.
 POST /integrations/generate-image
 ```
 
-Generate an AI image using DALL-E 3 (OpenAI) or Imagen 3 (Gemini) and upload to media library.
+Generate an AI image using GPT-Image-1-Mini (OpenAI) or Imagen 3 (Gemini) and upload to media library.
 
 **Body:**
 
@@ -2889,7 +3109,7 @@ Generate an AI image using DALL-E 3 (OpenAI) or Imagen 3 (Gemini) and upload to 
   "prompt": "A modern minimalist office workspace with plants",
   "provider": "openai",
   "size": "1024x1024",
-  "style": "vivid",
+  "quality": "medium",
   "alt": "Modern office workspace",
   "title": "Office Workspace"
 }
@@ -2899,8 +3119,8 @@ Generate an AI image using DALL-E 3 (OpenAI) or Imagen 3 (Gemini) and upload to 
 |-------|------|---------|-------------|
 | `prompt` | string | *(required)* | Image generation prompt |
 | `provider` | string | auto | `openai` or `gemini` (auto-selects first configured) |
-| `size` | string | `1024x1024` | `1024x1024`, `1792x1024` (landscape), `1024x1792` (portrait) |
-| `style` | string | `vivid` | OpenAI only: `vivid` or `natural` |
+| `size` | string | `1024x1024` | `1024x1024`, `1536x1024` (landscape), `1024x1536` (portrait) |
+| `quality` | string | `medium` | OpenAI only: `low`, `medium`, or `high` |
 | `alt` | string | - | Alt text for the uploaded image |
 | `title` | string | - | Title for the media library item |
 
@@ -2931,8 +3151,8 @@ Generate an AI image and set it as the featured image for a post/page.
   "post_id": 123,
   "prompt": "Abstract technology background with blue gradient",
   "provider": "openai",
-  "size": "1792x1024",
-  "style": "vivid"
+  "size": "1536x1024",
+  "quality": "medium"
 }
 ```
 
@@ -2941,8 +3161,8 @@ Generate an AI image and set it as the featured image for a post/page.
 | `post_id` | integer | *(required)* | Post or page ID |
 | `prompt` | string | *(required)* | Image generation prompt |
 | `provider` | string | auto | `openai` or `gemini` |
-| `size` | string | `1792x1024` | Image size (landscape default for featured images) |
-| `style` | string | `vivid` | OpenAI only: `vivid` or `natural` |
+| `size` | string | `1536x1024` | Image size (landscape default for featured images) |
+| `quality` | string | `medium` | OpenAI only: `low`, `medium`, or `high` |
 
 **Response:**
 
@@ -3109,13 +3329,13 @@ Convert text to speech using ElevenLabs and upload the MP3 to media library.
 
 When `provider` is omitted, the plugin auto-selects the first configured provider for the capability:
 
-| Capability | Priority |
-|-----------|----------|
-| Image generation | OpenAI > Gemini |
-| Vision (alt text, describe) | OpenAI > Gemini |
-| Text (excerpts) | OpenAI > Gemini |
-| Text-to-speech | ElevenLabs only |
-| Stock photos | Pexels only |
+| Capability | Priority | Models Used |
+|-----------|----------|-------------|
+| Image generation | OpenAI > Gemini | GPT-Image-1-Mini / Imagen 3 |
+| Vision (alt text, describe) | OpenAI > Gemini | GPT-4o / Gemini 2.5 Flash |
+| Text (excerpts) | OpenAI > Gemini | GPT-4o / Gemini 2.5 Flash |
+| Text-to-speech | ElevenLabs only | ElevenLabs v1 |
+| Stock photos | Pexels only | Pexels API |
 
 ---
 
@@ -3181,7 +3401,7 @@ On `initialize`, the server returns:
 {
   "serverInfo": {
     "name": "site-pilot-ai:Your Site Name",
-    "version": "1.0.71"
+    "version": "1.1.3"
   }
 }
 ```
