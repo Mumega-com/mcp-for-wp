@@ -63,7 +63,7 @@ curl -X POST "https://your-site.com/wp-json/site-pilot-ai/v1/mcp" \
 
 **Supported Methods:**
 - `initialize` - Initialize MCP session
-- `tools/list` - List all available tools (30 tools)
+- `tools/list` - List all available tools (50+ tools, varies by license)
 - `tools/call` - Execute a tool
 - Batch requests - Execute up to 10 requests in parallel
 
@@ -972,7 +972,7 @@ GET /users/{id}/capabilities
 
 ### Menus
 
-*Requires Pro license*
+Basic menu CRUD is available in the free tier. Pro adds `GET /menus/{id}`, `POST /menus`, and `PUT /menus/{id}`.
 
 #### List Menus
 
@@ -980,10 +980,10 @@ GET /users/{id}/capabilities
 GET /menus
 ```
 
-#### Create Menu
+#### Setup Menu (create + assign + add pages)
 
 ```http
-POST /menus
+POST /menus/setup
 ```
 
 **Body:**
@@ -991,22 +991,32 @@ POST /menus
 ```json
 {
   "name": "Main Navigation",
-  "location": "primary"
+  "location": "primary",
+  "page_ids": [95, 32, 33],
+  "overwrite": false
 }
 ```
 
-#### Get Menu Locations
+#### Menu Locations
 
 ```http
 GET /menus/locations
+POST /menus/assign-location   // body: {"menu_id": 5, "location": "primary"}
 ```
 
-#### Get/Update/Delete Menu
+#### Get/Create/Update/Delete Menu *(Pro)*
 
 ```http
 GET /menus/{id}
-PUT /menus/{id}
+POST /menus            // body: {"name": "Footer", "location": "footer", "items": [...]}
+PUT /menus/{id}        // body: {"name": "New Name", "location": "primary"}
 DELETE /menus/{id}
+```
+
+#### List Menu Items
+
+```http
+GET /menus/{menu_id}/items
 ```
 
 #### Add Menu Item
@@ -1023,15 +1033,51 @@ POST /menus/{menu_id}/items
   "url": "/about/",
   "type": "custom",
   "parent_id": 0,
-  "position": 1
+  "position": 1,
+  "classes": ["highlight", "btn"],
+  "target": "_blank",
+  "description": "Learn more about us"
 }
 ```
+
+| Param | Type | Notes |
+|-------|------|-------|
+| `title` | string | **Required**. Menu item label |
+| `type` | string | `custom`, `post_type`, or `taxonomy` (default: `custom`) |
+| `url` | string | Required for custom links |
+| `object` | string | Object type for post_type/taxonomy (`page`, `category`, etc.) |
+| `object_id` | number | Object ID for post_type/taxonomy items |
+| `parent_id` | number | Parent menu item ID for sub-menus (0 = top level) |
+| `position` | number | Menu order position |
+| `classes` | array | CSS classes for styling |
+| `target` | string | `_blank` (new tab) or `_self` (same tab) |
+| `description` | string | Item description/tooltip (theme-dependent) |
 
 #### Update/Delete Menu Item
 
 ```http
 PUT /menus/{menu_id}/items/{item_id}
 DELETE /menus/{menu_id}/items/{item_id}
+```
+
+Update accepts same params as add (all optional except `menu_id` and `item_id`).
+
+#### Reorder Menu Items
+
+```http
+POST /menus/{menu_id}/items/reorder
+```
+
+**Body:**
+
+```json
+{
+  "items": [
+    {"id": 10, "position": 1, "parent_id": 0},
+    {"id": 11, "position": 2, "parent_id": 0},
+    {"id": 12, "position": 1, "parent_id": 10}
+  ]
+}
 ```
 
 ---
@@ -2273,35 +2319,22 @@ Each GitHub release includes:
 
 ## MCP Server Configuration
 
-Site Pilot AI includes an MCP (Model Context Protocol) server for AI integration.
+Site Pilot AI includes a built-in MCP (Model Context Protocol) server. The MCP endpoint is at `/wp-json/site-pilot-ai/v1/mcp` — no external server needed.
 
-### Installation
+### Server Info
 
-```bash
-# Clone or download the MCP server
-cd mcp-server
-npm install
-```
-
-### Configuration
-
-Create `config.json`:
+On `initialize`, the server returns:
 
 ```json
 {
-  "sites": {
-    "my-site": {
-      "url": "https://example.com",
-      "api_key": "spai_your_api_key_here"
-    },
-    "staging": {
-      "url": "https://staging.example.com",
-      "api_key": "spai_staging_key_here"
-    }
-  },
-  "default_site": "my-site"
+  "serverInfo": {
+    "name": "site-pilot-ai:Your Site Name",
+    "version": "1.0.68"
+  }
 }
 ```
+
+The server name includes the WordPress site title so you can distinguish multiple sites.
 
 ### Claude Desktop Configuration
 
@@ -2311,35 +2344,141 @@ Add to `~/.config/claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "site-pilot-ai": {
-      "command": "node",
-      "args": ["/path/to/mcp-server/index.js"],
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://example.com/wp-json/site-pilot-ai/v1/mcp"],
       "env": {
-        "WORDPRESS_URL": "https://example.com",
-        "WORDPRESS_API_KEY": "spai_your_api_key_here"
+        "API_KEY": "spai_your_api_key_here"
       }
     }
   }
 }
 ```
 
+Or connect directly via the plugin's Streamable HTTP transport (no proxy needed with Claude Code).
+
 ### Available MCP Tools
+
+#### Free Tier
 
 | Tool | Description |
 |------|-------------|
-| `wp_get_site_info` | Get WordPress site information |
-| `wp_list_posts` | List posts with filtering |
-| `wp_create_post` | Create a new post |
-| `wp_update_post` | Update an existing post |
+| **Site & Analytics** | |
+| `wp_site_info` | Get site info, version, theme, plugins, content counts |
+| `wp_introspect` | Machine-readable plugin description for AI self-configuration |
+| `wp_analytics` | Site analytics (post/page/comment/user counts) |
+| `wp_detect_plugins` | Detect active plugins and capabilities |
+| `wp_get_options` | Get WordPress reading options |
+| `wp_update_options` | Update reading options (front page, posts page, visibility) |
+| `wp_get_custom_css` | Get Additional CSS from Customizer |
+| `wp_set_custom_css` | Set/append CSS (mode: replace or append) |
+| **Content** | |
+| `wp_list_posts` | List posts with filters |
+| `wp_create_post` | Create a post |
+| `wp_update_post` | Update a post |
 | `wp_delete_post` | Delete a post |
 | `wp_list_pages` | List pages |
-| `wp_create_page` | Create a new page |
-| `wp_upload_media` | Upload media from URL |
+| `wp_create_page` | Create a page |
+| `wp_update_page` | Update a page |
+| `wp_delete_page` | Delete a page |
+| `wp_clone_page` | Duplicate a page (content + Elementor + template) |
+| `wp_get_page_by_slug` | Fetch page by URL slug |
+| `wp_search` | Search posts/pages |
+| `wp_fetch` | Fetch single post/page by ID or URL (flags Elementor pages) |
+| `wp_list_content` | List any post type (products, courses, etc.) |
+| `wp_delete_content` | Delete any post type by ID |
+| `wp_set_featured_image` | Set/remove featured image |
+| `wp_list_categories` | List post categories |
+| `wp_list_tags` | List post tags |
+| `wp_list_drafts` | List all drafts |
+| `wp_delete_all_drafts` | Bulk delete drafts |
+| `wp_batch_update` | Execute up to 25 REST operations in one call |
+| **Menus** | |
+| `wp_list_menus` | List all navigation menus |
+| `wp_list_menu_locations` | List theme locations and assigned menus |
+| `wp_setup_menu` | Create menu + add pages + assign location |
+| `wp_list_menu_items` | List items in a menu |
+| `wp_add_menu_item` | Add item (custom/post_type/taxonomy, classes/target/description) |
+| `wp_update_menu_item` | Update item (title, url, parent, position, classes, target, description) |
+| `wp_delete_menu_item` | Remove a menu item |
+| `wp_reorder_menu_items` | Bulk reorder and reparent items |
+| `wp_delete_menu` | Delete an entire menu |
+| `wp_assign_menu_location` | Assign menu to theme location |
+| **Elementor** | |
 | `wp_get_elementor` | Get Elementor page data |
-| `wp_set_elementor` | Update Elementor page data |
-| `wp_get_seo` | Get SEO metadata |
-| `wp_set_seo` | Update SEO metadata |
-| `wp_list_menus` | List navigation menus |
-| `wp_update_settings` | Update site settings |
+| `wp_set_elementor` | Set Elementor page data (with validation) |
+| `wp_elementor_status` | Check Elementor status |
+| `wp_regenerate_elementor_css` | Regenerate CSS after API edits |
+| `wp_bulk_find_replace` | Search/replace in Elementor JSON |
+| **Media** | |
+| `wp_list_media` | List media library items |
+| `wp_upload_media` | Upload media (base64 or URL) |
+| `wp_upload_media_from_url` | Upload from URL |
+| `wp_upload_media_b64` | Upload from base64 (bypasses ModSecurity) |
+| **Templates** | |
+| `wp_update_page_template` | Change page template |
+| `wp_list_page_templates` | List available templates |
+| **Other** | |
+| `wp_screenshot_url` | Screenshot a URL (Cloudflare or mshots) |
+| `wp_list_api_keys` | List scoped API keys |
+| `wp_create_api_key` | Create scoped API key |
+| `wp_revoke_api_key` | Revoke an API key |
+| `wp_rate_limit_status` | Get rate limit settings |
+| `wp_update_rate_limit` | Update rate limit settings |
+| `wp_reset_rate_limit` | Reset rate limit counters |
+| `wp_list_webhooks` | List webhooks |
+| `wp_create_webhook` | Create webhook subscription |
+| `wp_update_webhook` | Update webhook |
+| `wp_delete_webhook` | Delete webhook |
+| `wp_test_webhook` | Test webhook delivery |
+| `wp_submit_feedback` | Submit bug report or feature request |
+| `wp_list_feedback` | List feedback entries |
+
+#### Pro Tier (additional tools)
+
+| Tool | Description |
+|------|-------------|
+| **Menu Management** | |
+| `wp_get_menu` | Get single menu with all items and metadata |
+| `wp_create_menu` | Create menu with items and optional location |
+| `wp_update_menu` | Rename menu or change location |
+| **SEO** *(requires SEO plugin)* | |
+| `wp_get_seo` | Get SEO metadata (Yoast, RankMath, AIOSEO, SEOPress) |
+| `wp_set_seo` | Set SEO title, description, keywords, OG data |
+| `wp_analyze_seo` | Analyze SEO quality |
+| `wp_bulk_seo` | Bulk update SEO for multiple posts |
+| `wp_seo_status` | Get SEO plugin status |
+| **Forms** *(requires forms plugin)* | |
+| `wp_list_forms` | List forms (CF7, WPForms, Gravity Forms) |
+| `wp_get_form` | Get form details |
+| `wp_get_form_entries` | Get form submissions |
+| **Elementor Pro** | |
+| `wp_list_elementor_templates` | List templates |
+| `wp_get_elementor_template` | Get template data |
+| `wp_create_elementor_template` | Create template |
+| `wp_update_elementor_template` | Update template |
+| `wp_delete_elementor_template` | Delete template |
+| `wp_apply_elementor_template` | Apply template to page |
+| `wp_create_landing_page` | Create landing page from template |
+| `wp_clone_elementor_page` | Clone Elementor page |
+| `wp_get_elementor_globals` | Get global colors/fonts |
+| `wp_get_elementor_widgets` | List available widgets |
+| **Theme Builder** | |
+| `wp_theme_builder_status` | Theme Builder availability |
+| `wp_list_theme_templates` | List header/footer/single/archive templates |
+| `wp_get_theme_template` | Get template with conditions |
+| `wp_set_template_conditions` | Set display conditions |
+| `wp_assign_template` | Assign template to scope |
+| **Widgets & Sidebars** | |
+| `wp_list_sidebars` | List widget areas |
+| `wp_get_sidebar` | Get sidebar with widgets |
+| `wp_add_widget` | Add widget to sidebar |
+| `wp_update_widget` | Update widget settings |
+| `wp_delete_widget` | Delete widget |
+| `wp_move_widget` | Move widget between sidebars |
+| **Multilingual** | |
+| `wp_languages` | Get languages and plugin status |
+| `wp_get_translations` | Get translations for a post |
+| `wp_create_translation` | Create translation |
 
 ---
 

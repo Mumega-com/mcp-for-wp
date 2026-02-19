@@ -41,6 +41,13 @@ You can help with:
 - Get and set Elementor page data
 - Build professional pages with hero sections, features, and CTAs
 
+**Navigation Menus:**
+- Create, rename, and delete menus
+- Add, update, reorder, and remove menu items
+- Assign menus to theme locations (header, footer, etc.)
+- Set link targets (_blank for new tab), CSS classes, and descriptions
+- Build complete navigation in a single setup call
+
 **Media Management:**
 - Upload images and files to the media library
 - Get media URLs for use in content

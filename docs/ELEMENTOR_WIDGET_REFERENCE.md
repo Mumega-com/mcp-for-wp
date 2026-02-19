@@ -337,6 +337,113 @@ Every element needs: `id` (8-char alphanumeric), `elType`, `settings`, `elements
 }
 ```
 
+## Theme Builder Widgets (Pro)
+
+These widgets are used in Elementor Pro Theme Builder templates (header, footer, single post, archive). All use the `theme-` prefix.
+
+### theme-post-title
+```json
+{"title_tag": "h1", "align": "left", "title_color": "#0B1220", "link": "home"}
+```
+
+### theme-post-content
+```json
+{"align": "left"}
+```
+
+No settings required — renders the post content automatically.
+
+### theme-post-excerpt
+```json
+{"align": "left"}
+```
+
+### theme-post-featured-image
+```json
+{"image_size": "large", "align": "center", "link": "none"}
+```
+
+| Key | Values | Notes |
+|-----|--------|-------|
+| `image_size` | `thumbnail`, `medium`, `large`, `full` | WordPress image size |
+| `link` | `none`, `file`, `custom` | Image link behavior |
+
+### theme-post-info
+```json
+{
+  "layout": "default",
+  "icon_list": [
+    {"type": "author", "icon": {"value": "far fa-user-circle"}},
+    {"type": "date", "icon": {"value": "far fa-calendar"}},
+    {"type": "categories", "icon": {"value": "far fa-folder-open"}},
+    {"type": "comments", "icon": {"value": "far fa-comment-dots"}}
+  ],
+  "text_color": "#4A5568"
+}
+```
+
+| Key | Notes |
+|-----|-------|
+| `icon_list` | Array of meta items. `type`: `author`, `date`, `time`, `comments`, `terms`, `categories`, `tags`, `custom` |
+
+### theme-post-navigation
+```json
+{
+  "show_label": "yes",
+  "prev_label": "Previous",
+  "next_label": "Next",
+  "show_arrow": "yes",
+  "show_title": "yes",
+  "show_borders": "yes"
+}
+```
+
+### theme-archive-title
+```json
+{"title_tag": "h1", "align": "center"}
+```
+
+### theme-archive-posts
+```json
+{
+  "columns": "3",
+  "posts_per_page": 6,
+  "show_image": "yes",
+  "image_position": "top",
+  "show_title": "yes",
+  "show_excerpt": "yes",
+  "show_read_more": "yes",
+  "read_more_text": "Read More"
+}
+```
+
+### theme-site-logo
+```json
+{"width": {"size": 200, "unit": "px"}, "align": "left"}
+```
+
+### theme-site-title
+```json
+{"title_tag": "h1", "link": "home"}
+```
+
+### theme-search-form
+```json
+{"skin": "classic", "placeholder": "Search...", "button_text": "Search"}
+```
+
+### theme-author-box
+```json
+{"show_avatar": "yes", "show_name": "yes", "show_biography": "yes", "show_link": "yes"}
+```
+
+### theme-builder-comments
+```json
+{}
+```
+
+No settings required — renders the comment form and list.
+
 ## Typography Pattern
 
 All widgets follow the same pattern for typography controls:
