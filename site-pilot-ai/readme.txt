@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.7
+Stable tag: 1.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,10 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.8 =
+* New: API key can be passed as URL query parameter (?api_key=spai_...) for Claude Desktop custom connectors and MCP clients that don't support custom headers
+* New: MCP endpoint now responds to GET requests with server info (capability discovery / health check)
 
 = 1.1.7 =
 * New: wp_edit_section — surgically edit a single Elementor element by ID, index, or search criteria without full JSON round-trip

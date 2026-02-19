@@ -156,6 +156,14 @@ trait Spai_Api_Auth {
 			return sanitize_text_field( substr( $auth_header, 7 ) );
 		}
 
+		// Check query parameter (for Claude Desktop custom connectors and similar
+		// MCP clients that don't support custom headers).
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! empty( $_GET['api_key'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return sanitize_text_field( wp_unslash( $_GET['api_key'] ) );
+		}
+
 		return null;
 	}
 

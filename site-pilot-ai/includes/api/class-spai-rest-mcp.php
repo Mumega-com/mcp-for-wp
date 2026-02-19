@@ -340,12 +340,50 @@ class Spai_REST_MCP extends Spai_REST_API {
 					'permission_callback' => array( $this, 'check_permission' ),
 				),
 				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_mcp_get' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
 					'methods'             => 'OPTIONS',
 					'callback'            => array( $this, 'handle_options' ),
 					'permission_callback' => '__return_true',
 				),
 			)
 		);
+	}
+
+	/**
+	 * Handle GET request for MCP endpoint.
+	 *
+	 * Streamable HTTP MCP clients may issue a GET to open an SSE stream.
+	 * WordPress REST API doesn't natively support SSE, so we return server
+	 * metadata as a standard JSON response. This also serves as a health
+	 * check / capability discovery endpoint.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function handle_mcp_get( $request ) {
+		$response = new WP_REST_Response(
+			array(
+				'jsonrpc' => '2.0',
+				'result'  => array(
+					'protocolVersion' => $this->protocol_version,
+					'serverInfo'      => array(
+						'name'    => $this->server_name,
+						'version' => $this->server_version,
+					),
+					'capabilities'    => array(
+						'tools'     => new \stdClass(),
+						'resources' => new \stdClass(),
+					),
+				),
+			),
+			200
+		);
+		$this->add_cors_headers( $response );
+		return $response;
 	}
 
 	/**
