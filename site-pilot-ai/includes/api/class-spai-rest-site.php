@@ -1537,10 +1537,22 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$current_version = defined( 'SPAI_VERSION' ) ? SPAI_VERSION : '0.0.0';
 
-		// Clear Freemius SDK cache so it re-checks against the API.
+		// Clear ALL update caches: Freemius SDK internal options + WP transient.
+		delete_site_transient( 'update_plugins' );
+
+		// Freemius SDK stores update data in options like fs_updates, fs_accounts, etc.
+		// Delete them to force a fresh API check.
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'fs_updates%'" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '%_transient_fs_sdk%'" );
+		if ( function_exists( 'wp_cache_flush' ) ) {
+			wp_cache_flush();
+		}
+
 		if ( function_exists( 'spa_fs' ) ) {
 			$fs = spa_fs();
-			delete_site_transient( 'update_plugins' );
 			if ( is_object( $fs ) && method_exists( $fs, 'get_update' ) ) {
 				$fs->get_update( false, false );
 			}
@@ -1592,10 +1604,20 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		$plugin_file = defined( 'SPAI_PLUGIN_BASENAME' ) ? SPAI_PLUGIN_BASENAME : 'site-pilot-ai/site-pilot-ai.php';
 
-		// Clear Freemius SDK cache so it re-checks against the API.
+		// Clear ALL update caches: Freemius SDK internal options + WP transient.
+		delete_site_transient( 'update_plugins' );
+
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'fs_updates%'" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '%_transient_fs_sdk%'" );
+		if ( function_exists( 'wp_cache_flush' ) ) {
+			wp_cache_flush();
+		}
+
 		if ( function_exists( 'spa_fs' ) ) {
 			$fs = spa_fs();
-			delete_site_transient( 'update_plugins' );
 			if ( is_object( $fs ) && method_exists( $fs, 'get_update' ) ) {
 				$fs->get_update( false, false );
 			}

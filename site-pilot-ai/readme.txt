@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, wordpress, elementor
 Requires at least: 5.0
 Tested up to: 6.9.1
 Requires PHP: 7.4
-Stable tag: 1.0.71
+Stable tag: 1.0.72
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,10 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.72 =
+* Fix: Freemius SDK update cache now fully cleared — deletes fs_updates% options and SDK transients
+* Fix: Plugin self-update endpoint reliably detects new versions on first call
 
 = 1.0.71 =
 * Add: AI Site Context — master prompt / style guide stored in plugin settings
