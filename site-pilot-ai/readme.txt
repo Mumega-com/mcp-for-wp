@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.75
+Stable tag: 1.0.76
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,15 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.76 =
+* New: wp_bulk_create_pages — create multiple pages in one call (up to 50)
+* New: wp_create_term, wp_update_term, wp_delete_term — full taxonomy management (categories, tags, custom)
+* New: wp_get_theme_info — detailed theme info (parent, block vs classic, Elementor layout mode, templates)
+* New: wp_flush_permalinks — flush rewrite rules via MCP
+* New: wp_get_site_health — content counts, orphan pages, missing thumbnails, active plugins
+* New: wp_set_noindex (Pro) — convenience tool for search engine noindex control
+* New: slug parameter added to wp_create_post, wp_update_post, wp_create_page, wp_update_page
 
 = 1.0.75 =
 * Fix: Last Plugin Check issue — i18n translators comment for protocol description, feedback query annotation

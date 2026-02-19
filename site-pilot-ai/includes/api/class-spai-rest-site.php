@@ -555,6 +555,125 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// Theme info
+		register_rest_route(
+			$this->namespace,
+			'/theme-info',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_theme_info' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Flush permalinks
+		register_rest_route(
+			$this->namespace,
+			'/flush-permalinks',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'flush_permalinks' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Site health
+		register_rest_route(
+			$this->namespace,
+			'/site-health',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_site_health' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Taxonomy terms CRUD
+		register_rest_route(
+			$this->namespace,
+			'/terms',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_term' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'taxonomy'    => array(
+							'description' => __( 'Taxonomy name.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'name'        => array(
+							'description' => __( 'Term name.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'slug'        => array(
+							'description' => __( 'Term slug.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'description' => array(
+							'description' => __( 'Term description.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'parent'      => array(
+							'description' => __( 'Parent term ID.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/terms/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_term' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'taxonomy'    => array(
+							'description' => __( 'Taxonomy name.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'name'        => array(
+							'description' => __( 'New term name.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'slug'        => array(
+							'description' => __( 'New term slug.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'description' => array(
+							'description' => __( 'New term description.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_term' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'taxonomy' => array(
+							'description' => __( 'Taxonomy name.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Single option get/update (whitelisted keys only).
 		register_rest_route(
 			$this->namespace,
@@ -2192,6 +2311,326 @@ class Spai_REST_Site extends Spai_REST_API {
 			'css'    => $css,
 			'length' => strlen( $css ),
 			'mode'   => $mode,
+		) );
+	}
+
+	/**
+	 * Get detailed theme information.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_theme_info( $request ) {
+		$this->log_activity( 'get_theme_info', $request );
+
+		$theme  = wp_get_theme();
+		$parent = $theme->parent();
+
+		$info = array(
+			'name'        => $theme->get( 'Name' ),
+			'version'     => $theme->get( 'Version' ),
+			'author'      => $theme->get( 'Author' ),
+			'author_uri'  => $theme->get( 'AuthorURI' ),
+			'theme_uri'   => $theme->get( 'ThemeURI' ),
+			'description' => $theme->get( 'Description' ),
+			'text_domain' => $theme->get( 'TextDomain' ),
+			'is_child'    => (bool) $parent,
+			'parent'      => $parent ? array(
+				'name'    => $parent->get( 'Name' ),
+				'version' => $parent->get( 'Version' ),
+			) : null,
+			'is_block_theme' => function_exists( 'wp_is_block_theme' ) && wp_is_block_theme(),
+			'template'       => $theme->get_template(),
+			'stylesheet'     => $theme->get_stylesheet(),
+		);
+
+		// Page templates
+		$templates = $theme->get_page_templates();
+		$info['page_templates'] = array();
+		foreach ( $templates as $slug => $name ) {
+			$info['page_templates'][] = array(
+				'slug' => $slug,
+				'name' => $name,
+			);
+		}
+
+		// Elementor compatibility
+		$info['elementor'] = array(
+			'active'      => defined( 'ELEMENTOR_VERSION' ),
+			'version'     => defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : null,
+			'layout_mode' => 'section',
+		);
+
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			$experiment = get_option( 'elementor_experiment-container' );
+			if ( 'active' === $experiment || 'default' === $experiment ) {
+				$info['elementor']['layout_mode'] = 'container';
+			}
+		}
+
+		return $this->success_response( $info );
+	}
+
+	/**
+	 * Flush permalink rewrite rules.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function flush_permalinks( $request ) {
+		$this->log_activity( 'flush_permalinks', $request );
+
+		flush_rewrite_rules();
+
+		return $this->success_response( array(
+			'success'   => true,
+			'message'   => __( 'Permalink rewrite rules flushed.', 'site-pilot-ai' ),
+			'structure' => get_option( 'permalink_structure' ),
+		) );
+	}
+
+	/**
+	 * Get site health snapshot.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_site_health( $request ) {
+		$this->log_activity( 'get_site_health', $request );
+
+		// Content counts by status.
+		$post_counts = array();
+		foreach ( array( 'post', 'page' ) as $type ) {
+			$counts = (array) wp_count_posts( $type );
+			$post_counts[ $type ] = array();
+			foreach ( $counts as $status => $count ) {
+				if ( (int) $count > 0 ) {
+					$post_counts[ $type ][ $status ] = (int) $count;
+				}
+			}
+		}
+
+		// Pages not in any menu.
+		$menu_page_ids = array();
+		$menus = wp_get_nav_menus();
+		foreach ( $menus as $menu ) {
+			$items = wp_get_nav_menu_items( $menu->term_id );
+			if ( $items ) {
+				foreach ( $items as $item ) {
+					if ( 'page' === $item->object ) {
+						$menu_page_ids[] = (int) $item->object_id;
+					}
+				}
+			}
+		}
+		$menu_page_ids = array_unique( $menu_page_ids );
+
+		$all_pages = get_posts( array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		) );
+
+		$orphan_pages = array_diff( $all_pages, $menu_page_ids );
+		$orphan_list  = array();
+		foreach ( array_slice( $orphan_pages, 0, 20 ) as $pid ) {
+			$orphan_list[] = array(
+				'id'    => $pid,
+				'title' => get_the_title( $pid ),
+				'slug'  => get_post_field( 'post_name', $pid ),
+			);
+		}
+
+		// Pages missing featured images.
+		$no_thumb = array();
+		$pages_query = get_posts( array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				array(
+					'key'     => '_thumbnail_id',
+					'compare' => 'NOT EXISTS',
+				),
+			),
+		) );
+		foreach ( array_slice( $pages_query, 0, 20 ) as $pid ) {
+			$no_thumb[] = array(
+				'id'    => $pid,
+				'title' => get_the_title( $pid ),
+			);
+		}
+
+		// Active plugins.
+		$active_plugins = get_option( 'active_plugins', array() );
+		$plugins_list   = array();
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		$all_plugins = get_plugins();
+		foreach ( $active_plugins as $plugin_file ) {
+			if ( isset( $all_plugins[ $plugin_file ] ) ) {
+				$plugins_list[] = array(
+					'name'    => $all_plugins[ $plugin_file ]['Name'],
+					'version' => $all_plugins[ $plugin_file ]['Version'],
+				);
+			}
+		}
+
+		return $this->success_response( array(
+			'content_counts'          => $post_counts,
+			'orphan_pages'            => array(
+				'count' => count( $orphan_pages ),
+				'items' => $orphan_list,
+			),
+			'pages_missing_thumbnail' => array(
+				'count' => count( $pages_query ),
+				'items' => $no_thumb,
+			),
+			'active_plugins'          => $plugins_list,
+			'wp_version'              => get_bloginfo( 'version' ),
+			'php_version'             => PHP_VERSION,
+			'permalink_structure'     => get_option( 'permalink_structure' ),
+		) );
+	}
+
+	/**
+	 * Create a taxonomy term.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function create_term( $request ) {
+		$this->log_activity( 'create_term', $request );
+
+		$taxonomy = sanitize_key( $request->get_param( 'taxonomy' ) );
+		$name     = sanitize_text_field( $request->get_param( 'name' ) );
+
+		if ( ! taxonomy_exists( $taxonomy ) ) {
+			return $this->error_response( 'invalid_taxonomy', __( 'Taxonomy does not exist.', 'site-pilot-ai' ), 400 );
+		}
+
+		$args = array();
+		if ( $request->get_param( 'slug' ) ) {
+			$args['slug'] = sanitize_title( $request->get_param( 'slug' ) );
+		}
+		if ( $request->get_param( 'description' ) ) {
+			$args['description'] = sanitize_textarea_field( $request->get_param( 'description' ) );
+		}
+		if ( $request->get_param( 'parent' ) ) {
+			$args['parent'] = absint( $request->get_param( 'parent' ) );
+		}
+
+		$result = wp_insert_term( $name, $taxonomy, $args );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
+		}
+
+		$term = get_term( $result['term_id'], $taxonomy );
+
+		return $this->success_response( array(
+			'id'          => $term->term_id,
+			'name'        => $term->name,
+			'slug'        => $term->slug,
+			'taxonomy'    => $term->taxonomy,
+			'description' => $term->description,
+			'parent'      => $term->parent,
+			'count'       => $term->count,
+		), 201 );
+	}
+
+	/**
+	 * Update a taxonomy term.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function update_term( $request ) {
+		$this->log_activity( 'update_term', $request );
+
+		$term_id  = absint( $request->get_param( 'id' ) );
+		$taxonomy = sanitize_key( $request->get_param( 'taxonomy' ) );
+
+		if ( ! taxonomy_exists( $taxonomy ) ) {
+			return $this->error_response( 'invalid_taxonomy', __( 'Taxonomy does not exist.', 'site-pilot-ai' ), 400 );
+		}
+
+		$term = get_term( $term_id, $taxonomy );
+		if ( ! $term || is_wp_error( $term ) ) {
+			return $this->error_response( 'not_found', __( 'Term not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		$args = array();
+		if ( $request->get_param( 'name' ) ) {
+			$args['name'] = sanitize_text_field( $request->get_param( 'name' ) );
+		}
+		if ( $request->get_param( 'slug' ) ) {
+			$args['slug'] = sanitize_title( $request->get_param( 'slug' ) );
+		}
+		if ( null !== $request->get_param( 'description' ) ) {
+			$args['description'] = sanitize_textarea_field( $request->get_param( 'description' ) );
+		}
+
+		if ( empty( $args ) ) {
+			return $this->error_response( 'no_changes', __( 'No fields to update.', 'site-pilot-ai' ), 400 );
+		}
+
+		$result = wp_update_term( $term_id, $taxonomy, $args );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
+		}
+
+		$term = get_term( $result['term_id'], $taxonomy );
+
+		return $this->success_response( array(
+			'id'          => $term->term_id,
+			'name'        => $term->name,
+			'slug'        => $term->slug,
+			'taxonomy'    => $term->taxonomy,
+			'description' => $term->description,
+			'parent'      => $term->parent,
+			'count'       => $term->count,
+		) );
+	}
+
+	/**
+	 * Delete a taxonomy term.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function delete_term( $request ) {
+		$this->log_activity( 'delete_term', $request );
+
+		$term_id  = absint( $request->get_param( 'id' ) );
+		$taxonomy = sanitize_key( $request->get_param( 'taxonomy' ) );
+
+		if ( ! taxonomy_exists( $taxonomy ) ) {
+			return $this->error_response( 'invalid_taxonomy', __( 'Taxonomy does not exist.', 'site-pilot-ai' ), 400 );
+		}
+
+		$term = get_term( $term_id, $taxonomy );
+		if ( ! $term || is_wp_error( $term ) ) {
+			return $this->error_response( 'not_found', __( 'Term not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		$result = wp_delete_term( $term_id, $taxonomy );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
+		}
+
+		if ( false === $result ) {
+			return $this->error_response( 'delete_failed', __( 'Failed to delete term.', 'site-pilot-ai' ), 500 );
+		}
+
+		return $this->success_response( array(
+			'deleted' => true,
+			'term_id' => $term_id,
 		) );
 	}
 }

@@ -92,6 +92,11 @@ class Spai_Pages {
 			$page_data['post_status'] = 'draft';
 		}
 
+		// Slug
+		if ( isset( $data['slug'] ) ) {
+			$page_data['post_name'] = sanitize_title( $data['slug'] );
+		}
+
 		// Parent page
 		if ( ! empty( $data['parent'] ) ) {
 			$page_data['post_parent'] = absint( $data['parent'] );

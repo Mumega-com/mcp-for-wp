@@ -95,6 +95,10 @@ class Spai_Posts {
 			$post_data['post_status'] = 'draft';
 		}
 
+		if ( isset( $data['slug'] ) ) {
+			$post_data['post_name'] = sanitize_title( $data['slug'] );
+		}
+
 		$post_id = wp_insert_post( $post_data, true );
 
 		if ( is_wp_error( $post_id ) ) {
@@ -159,6 +163,10 @@ class Spai_Posts {
 
 		if ( isset( $data['excerpt'] ) ) {
 			$post_data['post_excerpt'] = sanitize_textarea_field( $data['excerpt'] );
+		}
+
+		if ( isset( $data['slug'] ) ) {
+			$post_data['post_name'] = sanitize_title( $data['slug'] );
 		}
 
 		$result = wp_update_post( $post_data, true );

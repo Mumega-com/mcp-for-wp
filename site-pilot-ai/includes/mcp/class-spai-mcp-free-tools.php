@@ -627,6 +627,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'description' => 'Post excerpt',
 					'default'     => '',
 				),
+				'slug'    => array(
+					'type'        => 'string',
+					'description' => 'Post URL slug (e.g. "my-post")',
+				),
 			)
 		);
 
@@ -654,6 +658,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'excerpt' => array(
 					'type'        => 'string',
 					'description' => 'Post excerpt',
+				),
+				'slug'    => array(
+					'type'        => 'string',
+					'description' => 'Post URL slug (e.g. "my-post")',
 				),
 			)
 		);
@@ -721,6 +729,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'description' => 'Page status (publish, draft, pending, private)',
 					'default'     => 'draft',
 				),
+				'slug'    => array(
+					'type'        => 'string',
+					'description' => 'Page URL slug (e.g. "about-us")',
+				),
 			)
 		);
 
@@ -744,6 +756,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'status'  => array(
 					'type'        => 'string',
 					'description' => 'Page status (publish, draft, pending, private)',
+				),
+				'slug'    => array(
+					'type'        => 'string',
+					'description' => 'Page URL slug (e.g. "about-us")',
 				),
 			)
 		);
@@ -1410,6 +1426,116 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Bulk Create Pages
+		$tools[] = $this->define_tool(
+			'wp_bulk_create_pages',
+			'Create multiple pages in one call. Returns array of created pages with IDs and slugs.',
+			array(
+				'pages' => array(
+					'type'        => 'array',
+					'description' => 'Array of page objects with: title (required), content, status (default: draft), slug, parent, template',
+					'required'    => true,
+				),
+			)
+		);
+
+		// Taxonomy Management
+		$tools[] = $this->define_tool(
+			'wp_create_term',
+			'Create a new taxonomy term (category, tag, or custom taxonomy)',
+			array(
+				'taxonomy' => array(
+					'type'        => 'string',
+					'description' => 'Taxonomy name (category, post_tag, or custom)',
+					'required'    => true,
+				),
+				'name'     => array(
+					'type'        => 'string',
+					'description' => 'Term name',
+					'required'    => true,
+				),
+				'slug'     => array(
+					'type'        => 'string',
+					'description' => 'Term URL slug',
+				),
+				'description' => array(
+					'type'        => 'string',
+					'description' => 'Term description',
+				),
+				'parent'   => array(
+					'type'        => 'number',
+					'description' => 'Parent term ID (for hierarchical taxonomies)',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_term',
+			'Update an existing taxonomy term (rename, change slug, update description)',
+			array(
+				'id'       => array(
+					'type'        => 'number',
+					'description' => 'Term ID',
+					'required'    => true,
+				),
+				'taxonomy' => array(
+					'type'        => 'string',
+					'description' => 'Taxonomy name (category, post_tag, or custom)',
+					'required'    => true,
+				),
+				'name'     => array(
+					'type'        => 'string',
+					'description' => 'New term name',
+				),
+				'slug'     => array(
+					'type'        => 'string',
+					'description' => 'New term slug',
+				),
+				'description' => array(
+					'type'        => 'string',
+					'description' => 'New term description',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_delete_term',
+			'Delete a taxonomy term',
+			array(
+				'id'       => array(
+					'type'        => 'number',
+					'description' => 'Term ID',
+					'required'    => true,
+				),
+				'taxonomy' => array(
+					'type'        => 'string',
+					'description' => 'Taxonomy name (category, post_tag, or custom)',
+					'required'    => true,
+				),
+			)
+		);
+
+		// Theme Info
+		$tools[] = $this->define_tool(
+			'wp_get_theme_info',
+			'Get detailed theme information: name, version, parent theme, block vs classic, Elementor compatibility, and template locations',
+			array()
+		);
+
+		// Flush Permalinks
+		$tools[] = $this->define_tool(
+			'wp_flush_permalinks',
+			'Flush WordPress rewrite rules (equivalent to visiting Settings > Permalinks). Use after creating pages or changing slugs.',
+			array()
+		);
+
+		// Site Health
+		$tools[] = $this->define_tool(
+			'wp_get_site_health',
+			'Get a site health snapshot: content counts by status, pages missing SEO metadata, orphan pages not in menus, missing featured images, and active plugins',
+			array()
+		);
+
 		return $tools;
 	}
 
@@ -1744,6 +1870,40 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_list_feedback'       => array(
 				'method' => 'GET',
 				'route'  => '/feedback',
+			),
+
+			// Bulk Pages
+			'wp_bulk_create_pages'   => array(
+				'method' => 'POST',
+				'route'  => '/pages/bulk',
+			),
+
+			// Taxonomy Management
+			'wp_create_term'         => array(
+				'method' => 'POST',
+				'route'  => '/terms',
+			),
+			'wp_update_term'         => array(
+				'method' => 'POST',
+				'route'  => '/terms/{id}',
+			),
+			'wp_delete_term'         => array(
+				'method' => 'DELETE',
+				'route'  => '/terms/{id}',
+			),
+
+			// Theme & Site Utilities
+			'wp_get_theme_info'      => array(
+				'method' => 'GET',
+				'route'  => '/theme-info',
+			),
+			'wp_flush_permalinks'    => array(
+				'method' => 'POST',
+				'route'  => '/flush-permalinks',
+			),
+			'wp_get_site_health'     => array(
+				'method' => 'GET',
+				'route'  => '/site-health',
 			),
 		);
 	}

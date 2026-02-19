@@ -51,6 +51,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_analyze_seo'        => 'seo',
 			'wp_bulk_seo'           => 'seo',
 			'wp_seo_status'         => 'seo',
+			'wp_set_noindex'        => 'seo',
 			// Forms tools — any forms plugin.
 			'wp_list_forms'         => 'forms',
 			'wp_get_form'           => 'forms',
@@ -765,6 +766,23 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		$pro_tools[] = $this->define_tool(
+			'wp_set_noindex',
+			'Set or remove noindex on a page or post (controls search engine indexing). Convenience wrapper around wp_set_seo.',
+			array(
+				'id'      => array(
+					'type'        => 'number',
+					'description' => 'Page or post ID',
+					'required'    => true,
+				),
+				'noindex' => array(
+					'type'        => 'boolean',
+					'description' => 'true to add noindex (hide from search), false to remove it (allow indexing)',
+					'required'    => true,
+				),
+			)
+		);
+
 		return $pro_tools;
 	}
 
@@ -799,6 +817,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_seo_status'                  => array(
 				'method' => 'GET',
 				'route'  => '/seo/status',
+			),
+			'wp_set_noindex'                 => array(
+				'method' => 'POST',
+				'route'  => '/seo/{id}/noindex',
 			),
 
 			// Forms

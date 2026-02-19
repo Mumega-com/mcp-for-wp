@@ -139,6 +139,24 @@ class Spai_REST_SEO extends Spai_REST_API {
 			)
 		);
 
+		// Set noindex convenience endpoint.
+		register_rest_route(
+			$this->namespace,
+			'/seo/(?P<id>\d+)/noindex',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'set_noindex' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'noindex' => array(
+						'description' => __( 'Whether to noindex the page.', 'site-pilot-ai' ),
+						'type'        => 'boolean',
+						'required'    => true,
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			$this->namespace,
 			'/seo/seopress/(?P<id>\d+)',
@@ -465,5 +483,42 @@ class Spai_REST_SEO extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result );
+	}
+
+	/**
+	 * Set noindex for a post.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function set_noindex( $request ) {
+		$post_id = absint( $request->get_param( 'id' ) );
+		$noindex = (bool) $request->get_param( 'noindex' );
+
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return $this->error_response( 'not_found', __( 'Post not found.', 'site-pilot-ai' ), 404 );
+		}
+
+		$data = array(
+			'robots_noindex' => $noindex,
+		);
+
+		$result = $this->seo->update_post_seo( $post_id, $data );
+
+		if ( is_wp_error( $result ) ) {
+			return $this->error_response( $result->get_error_code(), $result->get_error_message(), 400 );
+		}
+
+		$this->log_activity( 'set_noindex', $request, array(
+			'post_id' => $post_id,
+			'noindex' => $noindex,
+		) );
+
+		return $this->success_response( array(
+			'post_id' => $post_id,
+			'title'   => $post->post_title,
+			'noindex' => $noindex,
+		) );
 	}
 }
