@@ -17,6 +17,51 @@ class Spai_Posts {
 	use Spai_Sanitization;
 
 	/**
+	 * Allowed post types for the posts controller.
+	 *
+	 * @var array
+	 */
+	private $allowed_post_types = array( 'post', 'wp_block' );
+
+	/**
+	 * Post types that should never be created/managed through this controller.
+	 *
+	 * @var array
+	 */
+	private $blocked_post_types = array( 'attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'wp_global_styles', 'wp_navigation', 'wp_template', 'wp_template_part' );
+
+	/**
+	 * Validate and return a post type string.
+	 *
+	 * @param string $type Requested post type.
+	 * @return string|WP_Error Sanitized type or error.
+	 */
+	private function validate_post_type( $type ) {
+		$type = sanitize_key( $type );
+
+		if ( in_array( $type, $this->blocked_post_types, true ) ) {
+			return new WP_Error(
+				'invalid_post_type',
+				__( 'Invalid or unsupported post type.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! in_array( $type, $this->allowed_post_types, true ) ) {
+			// Also allow any public custom post type that isn't blocked.
+			if ( ! post_type_exists( $type ) || ! get_post_type_object( $type )->public ) {
+				return new WP_Error(
+					'invalid_post_type',
+					__( 'Invalid or unsupported post type.', 'site-pilot-ai' ),
+					array( 'status' => 400 )
+				);
+			}
+		}
+
+		return $type;
+	}
+
+	/**
 	 * List posts.
 	 *
 	 * @param array $args Query arguments.
@@ -33,6 +78,15 @@ class Spai_Posts {
 		);
 
 		$args = wp_parse_args( $args, $defaults );
+
+		// Validate post type if overridden.
+		if ( isset( $args['post_type'] ) && 'post' !== $args['post_type'] ) {
+			$validated = $this->validate_post_type( $args['post_type'] );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+			$args['post_type'] = $validated;
+		}
 
 		// Sanitize arguments
 		$args['posts_per_page'] = absint( $args['posts_per_page'] );
@@ -63,7 +117,7 @@ class Spai_Posts {
 	public function get_post( $post_id ) {
 		$post = get_post( absint( $post_id ) );
 
-		if ( ! $post || 'post' !== $post->post_type ) {
+		if ( ! $post || 'page' === $post->post_type || is_wp_error( $this->validate_post_type( $post->post_type ) ) ) {
 			return new WP_Error(
 				'not_found',
 				__( 'Post not found.', 'site-pilot-ai' ),
@@ -81,8 +135,17 @@ class Spai_Posts {
 	 * @return array|WP_Error Created post data or error.
 	 */
 	public function create_post( $data ) {
+		$post_type = 'post';
+		if ( ! empty( $data['post_type'] ) ) {
+			$validated = $this->validate_post_type( $data['post_type'] );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+			$post_type = $validated;
+		}
+
 		$post_data = array(
-			'post_type'    => 'post',
+			'post_type'    => $post_type,
 			'post_title'   => isset( $data['title'] ) ? sanitize_text_field( $data['title'] ) : '',
 			'post_content' => isset( $data['content'] ) ? wp_kses_post( $data['content'] ) : '',
 			'post_status'  => isset( $data['status'] ) ? sanitize_key( $data['status'] ) : 'draft',
@@ -135,7 +198,7 @@ class Spai_Posts {
 	public function update_post( $post_id, $data ) {
 		$post = get_post( absint( $post_id ) );
 
-		if ( ! $post || 'post' !== $post->post_type ) {
+		if ( ! $post || 'page' === $post->post_type || is_wp_error( $this->validate_post_type( $post->post_type ) ) ) {
 			return new WP_Error(
 				'not_found',
 				__( 'Post not found.', 'site-pilot-ai' ),
@@ -209,7 +272,7 @@ class Spai_Posts {
 	public function delete_post( $post_id, $force = false ) {
 		$post = get_post( absint( $post_id ) );
 
-		if ( ! $post || 'post' !== $post->post_type ) {
+		if ( ! $post || 'page' === $post->post_type || is_wp_error( $this->validate_post_type( $post->post_type ) ) ) {
 			return new WP_Error(
 				'not_found',
 				__( 'Post not found.', 'site-pilot-ai' ),

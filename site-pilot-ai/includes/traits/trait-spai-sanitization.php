@@ -166,6 +166,10 @@ trait Spai_Sanitization {
 			$sanitized['s'] = sanitize_text_field( $args['search'] );
 		}
 
+		if ( isset( $args['post_type'] ) ) {
+			$sanitized['post_type'] = sanitize_key( $args['post_type'] );
+		}
+
 		return $sanitized;
 	}
 

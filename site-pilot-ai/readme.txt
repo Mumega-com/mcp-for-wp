@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.76
+Stable tag: 1.0.77
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.0.77 =
+* New: post_type parameter on wp_create_post, wp_list_posts — create reusable blocks (synced patterns) with post_type=wp_block
+* New: Support for any public custom post type through the posts controller
+* Security: Blocked dangerous post types (attachment, revision, nav_menu_item, etc.)
 
 = 1.0.76 =
 * New: wp_bulk_create_pages — create multiple pages in one call (up to 50)

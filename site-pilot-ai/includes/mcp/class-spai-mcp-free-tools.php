@@ -575,8 +575,13 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Posts
 		$tools[] = $this->define_tool(
 			'wp_list_posts',
-			'List blog posts with optional filters for status, category, search, and pagination',
+			'List posts with optional filters. Supports custom post types including wp_block (reusable blocks/synced patterns).',
 			array(
+				'post_type' => array(
+					'type'        => 'string',
+					'description' => 'Post type (default: post). Use wp_block for reusable blocks/synced patterns, or any public custom post type.',
+					'default'     => 'post',
+				),
 				'per_page' => array(
 					'type'        => 'number',
 					'description' => 'Number of posts per page (1-100)',
@@ -605,29 +610,34 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_create_post',
-			'Create a new blog post. Defaults to draft status. Set status to "publish" to publish immediately.',
+			'Create a new post. Supports custom post types: use post_type=wp_block to create a reusable block (synced pattern).',
 			array(
-				'title'   => array(
+				'title'     => array(
 					'type'        => 'string',
 					'description' => 'Post title',
 					'required'    => true,
 				),
-				'content' => array(
+				'content'   => array(
 					'type'        => 'string',
-					'description' => 'Post content (HTML)',
+					'description' => 'Post content (HTML or Gutenberg block markup)',
 					'default'     => '',
 				),
-				'status'  => array(
+				'status'    => array(
 					'type'        => 'string',
 					'description' => 'Post status (publish, draft, pending, private)',
 					'default'     => 'draft',
 				),
-				'excerpt' => array(
+				'post_type' => array(
+					'type'        => 'string',
+					'description' => 'Post type (default: post). Use wp_block for reusable blocks/synced patterns.',
+					'default'     => 'post',
+				),
+				'excerpt'   => array(
 					'type'        => 'string',
 					'description' => 'Post excerpt',
 					'default'     => '',
 				),
-				'slug'    => array(
+				'slug'      => array(
 					'type'        => 'string',
 					'description' => 'Post URL slug (e.g. "my-post")',
 				),
