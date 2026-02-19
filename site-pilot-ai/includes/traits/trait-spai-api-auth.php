@@ -507,7 +507,7 @@ trait Spai_Api_Auth {
 			return 'admin';
 		}
 
-		if ( preg_match( '/^wp_(create|update|delete|set|upload|bulk)/', $tool_name ) ) {
+		if ( preg_match( '/^wp_(create|update|delete|set|upload|bulk|generate|download)/', $tool_name ) ) {
 			return 'write';
 		}
 

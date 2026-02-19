@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.77
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,18 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.0 =
+* New: AI Integrations — connect OpenAI, Gemini, ElevenLabs, and Pexels via admin settings page
+* New: 8 MCP tools — wp_search_stock_photos, wp_download_stock_photo, wp_generate_image, wp_generate_featured_image, wp_generate_alt_text, wp_describe_image, wp_generate_excerpt, wp_text_to_speech
+* New: Admin page (Site Pilot AI > Integrations) for managing API keys with test-connection and encrypted storage
+* New: Free tier includes Pexels stock photo search and download; Pro tier unlocks AI generation tools
+* New: Auto-provider selection — tools pick the best configured provider (OpenAI > Gemini) automatically
+
+= 1.0.78 =
+* Fix: MCP tools/list now emits `"properties": {}` instead of `"properties": []` for parameterless tools (JSON Schema compliance)
+* New: Input validation on tools/call — missing required params and unknown params return clear errors with "did you mean?" suggestions
+* Improved: REST dispatch errors now include the route for easier debugging
 
 = 1.0.77 =
 * New: post_type parameter on wp_create_post, wp_list_posts — create reusable blocks (synced patterns) with post_type=wp_block

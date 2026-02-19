@@ -63,11 +63,15 @@ class Spai_Loader {
 	private function define_admin_hooks() {
 		$admin = new Spai_Admin();
 		$settings = new Spai_Settings();
+		$integrations_admin = new Spai_Integrations_Admin();
 
 		// Admin menu
 		$this->add_action( 'admin_menu', $admin, 'add_admin_menu' );
 		$this->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_styles' );
 		$this->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_scripts' );
+
+		// Integrations admin page assets
+		$this->add_action( 'admin_enqueue_scripts', $integrations_admin, 'enqueue_assets' );
 
 		// Settings
 		$this->add_action( 'admin_init', $settings, 'register_settings' );
@@ -79,9 +83,28 @@ class Spai_Loader {
 		$this->add_action( 'wp_ajax_spai_test_connection', $admin, 'ajax_test_connection' );
 		$this->add_action( 'wp_ajax_spai_dismiss_welcome', $admin, 'ajax_dismiss_welcome' );
 
+		// Integrations AJAX handlers
+		$this->add_action( 'wp_ajax_spai_save_integration_key', $integrations_admin, 'ajax_save_key' );
+		$this->add_action( 'wp_ajax_spai_remove_integration_key', $integrations_admin, 'ajax_remove_key' );
+		$this->add_action( 'wp_ajax_spai_test_integration', $integrations_admin, 'ajax_test_connection' );
+
 		// Plugin action links
 		// Run late so we can prune any Freemius-injected "upgrade" links when Pro is active.
 		$this->add_filter( 'plugin_action_links_' . SPAI_PLUGIN_BASENAME, $admin, 'add_action_links', 100 );
+
+		// Register AI integration with MCP via the spai_integrations filter.
+		$this->add_filter( 'spai_integrations', $this, 'register_ai_integration' );
+	}
+
+	/**
+	 * Register the built-in AI integration.
+	 *
+	 * @param array $integrations Existing integrations.
+	 * @return array
+	 */
+	public function register_ai_integration( $integrations ) {
+		$integrations[] = new Spai_MCP_AI_Integration();
+		return $integrations;
 	}
 
 	/**

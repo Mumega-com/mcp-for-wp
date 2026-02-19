@@ -597,6 +597,12 @@ class Spai_REST_MCP extends Spai_REST_API {
 			);
 		}
 
+		// Validate arguments against tool schema.
+		$validation_error = $this->validate_tool_arguments( $tool_name, $arguments );
+		if ( $validation_error ) {
+			return $this->jsonrpc_error( $id, -32602, $validation_error );
+		}
+
 		$mapping = $tool_map[ $tool_name ];
 		$route   = $mapping['route'];
 		$method  = $mapping['method'];
@@ -647,11 +653,11 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$is_error = $status >= 400;
 
 		if ( $is_error && isset( $data['code'] ) && isset( $data['message'] ) ) {
-			// WordPress REST error format
+			// WordPress REST error format — include route for debugging.
 			return $this->jsonrpc_error(
 				$id,
 				-32000,
-				'Tool execution failed: ' . $data['message'],
+				'Tool execution failed: ' . $data['message'] . ' (route: ' . $method . ' /site-pilot-ai/v1' . $route . ')',
 				$data
 			);
 		}
@@ -672,6 +678,74 @@ class Spai_REST_MCP extends Spai_REST_API {
 		);
 	}
 
+	/**
+	 * Validate tool arguments against the tool's inputSchema.
+	 *
+	 * Checks for missing required parameters and unknown parameters.
+	 * Does NOT type-check values (MCP clients often send strings for all types).
+	 *
+	 * @param string $tool_name The tool name.
+	 * @param array  $arguments The arguments to validate.
+	 * @return string|null Error message, or null if valid.
+	 */
+	private function validate_tool_arguments( $tool_name, $arguments ) {
+		// Ensure tools cache is populated.
+		if ( $this->tools_cache === null ) {
+			$this->tools_cache = $this->get_all_tools();
+		}
+
+		// Find the tool schema.
+		$schema = null;
+		foreach ( $this->tools_cache as $tool ) {
+			if ( $tool['name'] === $tool_name ) {
+				$schema = isset( $tool['inputSchema'] ) ? $tool['inputSchema'] : null;
+				break;
+			}
+		}
+
+		if ( ! $schema ) {
+			return null; // No schema to validate against.
+		}
+
+		// Get properties as an array (may be stdClass if empty).
+		$properties = isset( $schema['properties'] ) ? (array) $schema['properties'] : array();
+		$required   = isset( $schema['required'] ) ? $schema['required'] : array();
+
+		// Check required parameters.
+		foreach ( $required as $param ) {
+			if ( ! array_key_exists( $param, $arguments ) ) {
+				return 'Missing required parameter: ' . $param;
+			}
+		}
+
+		// Check for unknown parameters.
+		if ( ! empty( $properties ) ) {
+			$known_params = array_keys( $properties );
+			foreach ( array_keys( $arguments ) as $param ) {
+				if ( ! in_array( $param, $known_params, true ) ) {
+					// Fuzzy-match for "did you mean?" suggestion.
+					$best_match = null;
+					$best_score = 0;
+					foreach ( $known_params as $known ) {
+						$score = 0;
+						similar_text( $param, $known, $score );
+						if ( $score > $best_score ) {
+							$best_score = $score;
+							$best_match = $known;
+						}
+					}
+
+					$msg = 'Unknown parameter: ' . $param;
+					if ( $best_match && $best_score >= 50 ) {
+						$msg .= '. Did you mean: ' . $best_match . '?';
+					}
+					return $msg;
+				}
+			}
+		}
+
+		return null;
+	}
 
 	/**
 	 * Get detected integrations for introspection.

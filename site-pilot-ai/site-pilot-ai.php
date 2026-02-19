@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://sitepilotai.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.0.77
+ * Version:           1.1.0
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -86,7 +86,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.0.77' );
+define( 'SPAI_VERSION', '1.1.0' );
 
 /**
  * Plugin directory path.
@@ -237,12 +237,19 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-elementor-basic.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-screenshot.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-feedback.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-encryption.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-integration-manager.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-provider-openai.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-provider-gemini.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-provider-elevenlabs.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-provider-pexels.php';
 
 	// Load MCP tool registries
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-tool-registry.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-integration.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-free-tools.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-pro-tools.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-ai-integration.php';
 
 	// Load REST API
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-api.php';
@@ -259,11 +266,13 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-blocks.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-mcp.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-batch.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-integrations.php';
 
 	// Load admin
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-admin.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-activity-log.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-settings.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-integrations-admin.php';
 
 	// Load Pro modules (premium package only).
 	$pro_bootstrap = SPAI_PLUGIN_DIR . 'includes/pro/class-spai-pro-bootstrap.php';

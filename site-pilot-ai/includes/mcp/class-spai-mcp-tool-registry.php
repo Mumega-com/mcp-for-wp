@@ -67,7 +67,7 @@ abstract class Spai_MCP_Tool_Registry {
 
 		$schema = array(
 			'type'       => 'object',
-			'properties' => $properties,
+			'properties' => empty( $properties ) ? new \stdClass() : $properties,
 		);
 
 		if ( ! empty( $required ) ) {

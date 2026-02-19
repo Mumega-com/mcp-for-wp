@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.0.71
+**Version:** 1.1.0
 
 ## Table of Contents
 
@@ -34,6 +34,7 @@
   - [WooCommerce (Pro)](#woocommerce-pro)
   - [Multilanguage (Pro)](#multilanguage-pro)
   - [Webhooks](#webhooks)
+  - [AI Integrations](#ai-integrations)
 - [Rate Limiting](#rate-limiting)
 - [Auto-Updates](#auto-updates)
 - [MCP Server Configuration](#mcp-server-configuration)
@@ -251,11 +252,13 @@ Returns WordPress site details and detected capabilities.
     "rankmath": false,
     "cf7": true,
     "wpforms": false,
-    "gutenberg": true
+    "gutenberg": true,
+    "ai_integrations": true,
+    "ai_configured_providers": ["openai", "pexels"]
   },
   "plugin": {
     "name": "Site Pilot AI",
-    "version": "1.0.0"
+    "version": "1.1.0"
   }
 }
 ```
@@ -2657,6 +2660,425 @@ if (hash_equals($expected, $signature)) {
 
 ---
 
+### AI Integrations
+
+*New in v1.1.0.* Third-party AI services (OpenAI, Gemini, ElevenLabs, Pexels) integrated directly into Site Pilot AI. Configure API keys via **WP Admin → Site Pilot AI → Integrations**. Generated assets are auto-uploaded to the WordPress media library.
+
+**Tier gating:** Stock photo tools are free. All AI generation tools require Pro.
+
+#### Provider Management (Admin)
+
+##### List Providers
+
+```http
+GET /integrations/providers
+```
+
+Returns all supported providers and their configuration status.
+
+**Response:**
+
+```json
+{
+  "openai": {
+    "name": "OpenAI",
+    "configured": true,
+    "tier": "pro",
+    "last_tested": "2026-02-19T10:30:00",
+    "test_status": "ok"
+  },
+  "gemini": {
+    "name": "Google Gemini",
+    "configured": false,
+    "tier": "pro",
+    "last_tested": null,
+    "test_status": null
+  },
+  "elevenlabs": {
+    "name": "ElevenLabs",
+    "configured": false,
+    "tier": "pro",
+    "last_tested": null,
+    "test_status": null
+  },
+  "pexels": {
+    "name": "Pexels",
+    "configured": true,
+    "tier": "free",
+    "last_tested": "2026-02-19T10:25:00",
+    "test_status": "ok"
+  }
+}
+```
+
+##### Store Provider Key
+
+```http
+POST /integrations/providers/{provider}/key
+```
+
+**Body:**
+
+```json
+{
+  "key": "sk-your-api-key-here"
+}
+```
+
+Keys are encrypted at rest using Sodium (libsodium).
+
+##### Remove Provider Key
+
+```http
+DELETE /integrations/providers/{provider}/key
+```
+
+##### Test Provider Connection
+
+```http
+POST /integrations/providers/{provider}/test
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "provider": "openai",
+  "message": "Connection successful."
+}
+```
+
+#### Stock Photos (Free)
+
+##### Search Stock Photos
+
+```http
+GET /integrations/stock-photos
+```
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `query` | string | *(required)* | Search query (e.g., "sunset beach") |
+| `per_page` | integer | 10 | Results per page (1-80) |
+| `page` | integer | 1 | Page number |
+
+**Response:**
+
+```json
+{
+  "total_results": 5000,
+  "page": 1,
+  "per_page": 10,
+  "photos": [
+    {
+      "id": 1234567,
+      "width": 4000,
+      "height": 2667,
+      "url": "https://www.pexels.com/photo/...",
+      "photographer": "John Doe",
+      "photographer_url": "https://www.pexels.com/@johndoe",
+      "src": {
+        "original": "https://images.pexels.com/photos/1234567/...",
+        "large2x": "...",
+        "large": "...",
+        "medium": "...",
+        "small": "..."
+      },
+      "alt": "Sunset over the ocean"
+    }
+  ]
+}
+```
+
+##### Download Stock Photo
+
+```http
+POST /integrations/stock-photos/download
+```
+
+Downloads a Pexels photo to the WordPress media library.
+
+**Body:**
+
+```json
+{
+  "photo_id": 1234567,
+  "size": "large",
+  "alt": "Sunset beach photo",
+  "title": "Beach Sunset"
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `photo_id` | integer | *(required)* | Pexels photo ID from search results |
+| `size` | string | `large` | Image size: `original`, `large2x`, `large`, `medium`, `small` |
+| `alt` | string | - | Alt text for the image |
+| `title` | string | - | Title for the media library item |
+
+**Response:**
+
+```json
+{
+  "id": 456,
+  "url": "https://example.com/wp-content/uploads/2026/02/pexels-1234567.jpg",
+  "title": "Beach Sunset",
+  "alt": "Sunset beach photo",
+  "photographer": "John Doe",
+  "pexels_url": "https://www.pexels.com/photo/1234567/"
+}
+```
+
+#### AI Image Generation (Pro)
+
+##### Generate Image
+
+```http
+POST /integrations/generate-image
+```
+
+Generate an AI image using DALL-E 3 (OpenAI) or Imagen 3 (Gemini) and upload to media library.
+
+**Body:**
+
+```json
+{
+  "prompt": "A modern minimalist office workspace with plants",
+  "provider": "openai",
+  "size": "1024x1024",
+  "style": "vivid",
+  "alt": "Modern office workspace",
+  "title": "Office Workspace"
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `prompt` | string | *(required)* | Image generation prompt |
+| `provider` | string | auto | `openai` or `gemini` (auto-selects first configured) |
+| `size` | string | `1024x1024` | `1024x1024`, `1792x1024` (landscape), `1024x1792` (portrait) |
+| `style` | string | `vivid` | OpenAI only: `vivid` or `natural` |
+| `alt` | string | - | Alt text for the uploaded image |
+| `title` | string | - | Title for the media library item |
+
+**Response:**
+
+```json
+{
+  "id": 789,
+  "url": "https://example.com/wp-content/uploads/2026/02/ai-generated-abc123.png",
+  "title": "Office Workspace",
+  "alt": "Modern office workspace",
+  "provider": "openai"
+}
+```
+
+##### Generate Featured Image
+
+```http
+POST /integrations/generate-featured-image
+```
+
+Generate an AI image and set it as the featured image for a post/page.
+
+**Body:**
+
+```json
+{
+  "post_id": 123,
+  "prompt": "Abstract technology background with blue gradient",
+  "provider": "openai",
+  "size": "1792x1024",
+  "style": "vivid"
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `post_id` | integer | *(required)* | Post or page ID |
+| `prompt` | string | *(required)* | Image generation prompt |
+| `provider` | string | auto | `openai` or `gemini` |
+| `size` | string | `1792x1024` | Image size (landscape default for featured images) |
+| `style` | string | `vivid` | OpenAI only: `vivid` or `natural` |
+
+**Response:**
+
+```json
+{
+  "id": 790,
+  "url": "https://example.com/wp-content/uploads/2026/02/ai-generated-def456.png",
+  "title": "Featured Image - My Blog Post",
+  "set_as_featured": true,
+  "post_id": 123,
+  "provider": "openai"
+}
+```
+
+#### AI Vision (Pro)
+
+##### Generate Alt Text
+
+```http
+POST /integrations/generate-alt-text
+```
+
+Use AI vision to generate alt text for an existing media library image.
+
+**Body:**
+
+```json
+{
+  "attachment_id": 456,
+  "provider": "openai",
+  "auto_save": true
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `attachment_id` | integer | *(required)* | WordPress attachment ID |
+| `provider` | string | auto | `openai` or `gemini` |
+| `auto_save` | boolean | `false` | Save generated alt text to the attachment |
+
+**Response:**
+
+```json
+{
+  "attachment_id": 456,
+  "alt_text": "A golden retriever playing fetch on a sandy beach at sunset",
+  "saved": true,
+  "provider": "openai"
+}
+```
+
+##### Describe Image
+
+```http
+POST /integrations/describe-image
+```
+
+Get a detailed AI-powered description of an image.
+
+**Body:**
+
+```json
+{
+  "attachment_id": 456,
+  "provider": "openai",
+  "instruction": "Describe this image focusing on colors and composition."
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `attachment_id` | integer | *(required)* | WordPress attachment ID |
+| `provider` | string | auto | `openai` or `gemini` |
+| `instruction` | string | `Describe this image in detail.` | Custom instruction for the vision model |
+
+**Response:**
+
+```json
+{
+  "attachment_id": 456,
+  "description": "The image shows a golden retriever mid-leap catching a red frisbee...",
+  "provider": "openai"
+}
+```
+
+#### AI Content (Pro)
+
+##### Generate Excerpt
+
+```http
+POST /integrations/generate-excerpt
+```
+
+Use AI to generate a compelling excerpt/summary for a post.
+
+**Body:**
+
+```json
+{
+  "post_id": 123,
+  "provider": "openai",
+  "max_length": 160,
+  "auto_save": true
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `post_id` | integer | *(required)* | Post or page ID |
+| `provider` | string | auto | `openai` or `gemini` |
+| `max_length` | integer | `160` | Maximum excerpt length in characters (50-500) |
+| `auto_save` | boolean | `false` | Save generated excerpt to the post |
+
+**Response:**
+
+```json
+{
+  "post_id": 123,
+  "excerpt": "Discover the top AI trends reshaping industries in 2026, from autonomous agents to multimodal models.",
+  "saved": true,
+  "provider": "openai"
+}
+```
+
+#### Text-to-Speech (Pro)
+
+##### Convert Text to Speech
+
+```http
+POST /integrations/text-to-speech
+```
+
+Convert text to speech using ElevenLabs and upload the MP3 to media library.
+
+**Body:**
+
+```json
+{
+  "text": "Welcome to our website. We're glad you're here.",
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "title": "Welcome Audio"
+}
+```
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `text` | string | *(required)* | Text to convert to speech |
+| `voice_id` | string | Rachel | ElevenLabs voice ID (default: Rachel) |
+| `title` | string | - | Title for the audio file in media library |
+
+**Response:**
+
+```json
+{
+  "id": 801,
+  "url": "https://example.com/wp-content/uploads/2026/02/tts-welcome-audio.mp3",
+  "title": "Welcome Audio",
+  "mime_type": "audio/mpeg",
+  "provider": "elevenlabs"
+}
+```
+
+#### Provider Auto-Selection
+
+When `provider` is omitted, the plugin auto-selects the first configured provider for the capability:
+
+| Capability | Priority |
+|-----------|----------|
+| Image generation | OpenAI > Gemini |
+| Vision (alt text, describe) | OpenAI > Gemini |
+| Text (excerpts) | OpenAI > Gemini |
+| Text-to-speech | ElevenLabs only |
+| Stock photos | Pexels only |
+
+---
+
 ## Auto-Updates
 
 Site Pilot AI supports automatic updates directly from GitHub releases, without requiring WordPress.org hosting.
@@ -2833,6 +3255,9 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_test_webhook` | Test webhook delivery |
 | `wp_submit_feedback` | Submit bug report or feature request |
 | `wp_list_feedback` | List feedback entries |
+| **AI Integrations (Free)** | |
+| `wp_search_stock_photos` | Search Pexels for free stock photos (returns IDs, URLs, dimensions, photographer) |
+| `wp_download_stock_photo` | Download a Pexels photo to the WordPress media library |
 
 #### Pro Tier (additional tools)
 
@@ -2881,6 +3306,13 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_languages` | Get languages and plugin status |
 | `wp_get_translations` | Get translations for a post |
 | `wp_create_translation` | Create translation |
+| **AI Integrations (Pro)** | |
+| `wp_generate_image` | Generate AI image (DALL-E 3 / Imagen 3) → media library |
+| `wp_generate_featured_image` | Generate AI image and set as featured image for a post/page |
+| `wp_generate_alt_text` | AI vision → alt text for an existing image (optional auto-save) |
+| `wp_describe_image` | AI vision → detailed image description |
+| `wp_generate_excerpt` | AI → compelling post excerpt/summary (optional auto-save) |
+| `wp_text_to_speech` | ElevenLabs TTS → MP3 in media library |
 
 ---
 
