@@ -3,7 +3,7 @@
 > Control WordPress with AI through a powerful REST API
 
 **Base URL:** `https://your-site.com/wp-json/site-pilot-ai/v1`
-**Version:** 1.0.15
+**Version:** 1.0.69
 
 ## Table of Contents
 
@@ -15,6 +15,7 @@
   - [Site Info](#site-info)
   - [Posts](#posts)
   - [Pages](#pages)
+  - [Post Meta](#post-meta)
   - [Media](#media)
   - [Elementor (Free)](#elementor-free)
   - [Elementor Pro](#elementor-pro)
@@ -447,6 +448,70 @@ GET /templates/page
 
 ---
 
+### Post Meta
+
+#### Get Post Meta
+
+```http
+GET /post-meta/{id}
+```
+
+Returns all public meta fields for a post or page. Blocked keys (e.g. `_edit_lock`, `_wp_old_slug`, internal Elementor keys) are excluded for safety.
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `id` | integer | Post or page ID |
+
+**Response:**
+
+```json
+{
+  "post_id": 123,
+  "meta": {
+    "custom_field": "value",
+    "another_field": "value2"
+  }
+}
+```
+
+#### Set Post Meta
+
+```http
+POST /post-meta/{id}
+```
+
+Set one or more meta fields on a post or page. Blocked keys are rejected with an error.
+
+**Body:**
+
+```json
+{
+  "meta": {
+    "custom_field": "new value",
+    "another_field": "new value2"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "post_id": 123,
+  "updated": ["custom_field", "another_field"],
+  "blocked": []
+}
+```
+
+**Blocked Keys:**
+
+Internal WordPress and plugin keys are blocked to prevent accidental corruption. These include `_edit_lock`, `_edit_last`, `_wp_old_slug`, `_encloseme`, and internal Elementor meta keys. Attempting to set a blocked key returns an error listing the blocked key names.
+
+---
+
 ### Media
 
 #### List Media
@@ -722,6 +787,48 @@ GET /elementor/widgets
 
 ```http
 GET /elementor/globals
+```
+
+#### Set Global Settings
+
+```http
+POST /elementor/globals
+```
+
+*Requires Pro license*
+
+Set Elementor global colors, fonts, and typography settings.
+
+**Body:**
+
+```json
+{
+  "colors": {
+    "primary": "#0B1220",
+    "secondary": "#1B4DFF",
+    "text": "#4A5568",
+    "accent": "#F6F8FF"
+  },
+  "typography": {
+    "primary": {
+      "font_family": "Poppins",
+      "font_weight": "600"
+    },
+    "secondary": {
+      "font_family": "Poppins",
+      "font_weight": "400"
+    }
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "updated": ["colors", "typography"]
+}
 ```
 
 ---
@@ -1177,6 +1284,65 @@ PUT /options
 | `page_on_front` | Homepage page ID |
 | `page_for_posts` | Blog page ID |
 | `posts_per_page` | Posts per page (1-100) |
+
+#### Get Single Option
+
+```http
+GET /option
+```
+
+Retrieve a single WordPress option by key. Only whitelisted keys are allowed.
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `key` | string | Option name (must be whitelisted) |
+
+**Example:**
+
+```bash
+curl -H "X-API-Key: spai_xxx" \
+  "https://example.com/wp-json/site-pilot-ai/v1/option?key=blogname"
+```
+
+**Response:**
+
+```json
+{
+  "key": "blogname",
+  "value": "My Website"
+}
+```
+
+#### Update Single Option
+
+```http
+POST /option
+```
+
+Update a single WordPress option. Only whitelisted keys are allowed.
+
+**Body:**
+
+```json
+{
+  "key": "blogname",
+  "value": "New Site Title"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "key": "blogname",
+  "value": "New Site Title"
+}
+```
+
+**Whitelisted Keys:** Only safe, non-sensitive options are allowed. These include site identity options (`blogname`, `blogdescription`), reading settings (`show_on_front`, `page_on_front`, `page_for_posts`, `posts_per_page`), and other general settings. Attempting to read or write a non-whitelisted key returns a `permission_denied` error.
 
 ---
 
@@ -2329,7 +2495,7 @@ On `initialize`, the server returns:
 {
   "serverInfo": {
     "name": "site-pilot-ai:Your Site Name",
-    "version": "1.0.68"
+    "version": "1.0.69"
   }
 }
 ```
@@ -2391,7 +2557,11 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_list_tags` | List post tags |
 | `wp_list_drafts` | List all drafts |
 | `wp_delete_all_drafts` | Bulk delete drafts |
-| `wp_batch_update` | Execute up to 25 REST operations in one call |
+| `wp_get_post_meta` | Get all public meta fields for a post/page |
+| `wp_set_post_meta` | Set meta fields on a post/page (blocked-key safety) |
+| `wp_get_option` | Get a single WordPress option (whitelisted keys only) |
+| `wp_update_option` | Update a single WordPress option (whitelisted keys only) |
+| `wp_batch_update` | Execute up to 25 REST operations in one call (v1.0.69: fixed error handling for mixed success/failure batches) |
 | **Menus** | |
 | `wp_list_menus` | List all navigation menus |
 | `wp_list_menu_locations` | List theme locations and assigned menus |
@@ -2461,6 +2631,7 @@ Or connect directly via the plugin's Streamable HTTP transport (no proxy needed 
 | `wp_create_landing_page` | Create landing page from template |
 | `wp_clone_elementor_page` | Clone Elementor page |
 | `wp_get_elementor_globals` | Get global colors/fonts |
+| `wp_set_elementor_globals` | Set global colors, fonts, and typography |
 | `wp_get_elementor_widgets` | List available widgets |
 | **Theme Builder** | |
 | `wp_theme_builder_status` | Theme Builder availability |

@@ -30,6 +30,7 @@ You can help with:
 - List and search existing content
 - Manage drafts and publish content
 - View site analytics and content overview
+- Get and set post/page meta fields (custom fields, with blocked-key safety)
 
 **SEO Optimization:**
 - View and edit SEO metadata (title, description, keywords)
@@ -56,6 +57,7 @@ You can help with:
 - View WordPress, theme, and plugin information
 - Check what features are available (Elementor, WooCommerce, etc.)
 - Get site analytics and activity overview
+- Read and update individual WordPress options (whitelisted keys only)
 
 ## Behavior Rules
 
