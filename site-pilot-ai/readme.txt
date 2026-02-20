@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.13
+Stable tag: 1.1.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,14 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.14 =
+* New: Elementor dry-run/validate mode — pass `dry_run=true` to POST /elementor/{id} to validate data without saving (returns warnings and fixes)
+* New: RTL site detection — `is_rtl` and `text_direction` fields in GET /site-info response
+* New: RTL-aware Elementor validation warnings — flags hardcoded `align: left`, `float: left`, and one-sided margin/padding in custom CSS on RTL sites
+* New: RTL flag on multilingual language lists (Pro) — WPML, Polylang, and TranslatePress language arrays now include `is_rtl` per language
+* Updated: wp_set_elementor MCP tool supports `dry_run` parameter
+* Updated: wp_site_info MCP tool description mentions RTL detection
 
 = 1.1.13 =
 * New: `fields` parameter on GET /posts and GET /pages — control which fields are returned (e.g. `fields=id,title,word_count`)

@@ -17,6 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Spai_Multilang {
 
 	/**
+	 * ISO 639-1 codes for right-to-left languages.
+	 *
+	 * @var array
+	 */
+	private static $rtl_codes = array( 'ar', 'he', 'fa', 'ur', 'ps', 'ku', 'sd', 'dv', 'yi', 'ug' );
+
+	/**
 	 * Detected plugin.
 	 *
 	 * @var string|null
@@ -277,6 +284,19 @@ class Spai_Multilang {
 		}
 	}
 
+	/**
+	 * Check if a language code is RTL.
+	 *
+	 * Matches the first two characters of the code against known RTL language codes.
+	 *
+	 * @param string $code Language code (e.g. 'ar', 'fa_IR', 'he').
+	 * @return bool
+	 */
+	private function is_rtl_language( $code ) {
+		$short = strtolower( substr( $code, 0, 2 ) );
+		return in_array( $short, self::$rtl_codes, true );
+	}
+
 	// =========================================================================
 	// WPML Methods
 	// =========================================================================
@@ -303,6 +323,7 @@ class Spai_Multilang {
 				'flag'        => isset( $lang['country_flag_url'] ) ? $lang['country_flag_url'] : null,
 				'is_default'  => (bool) $lang['is_default_language'],
 				'active'      => (bool) $lang['active'],
+				'is_rtl'      => $this->is_rtl_language( $lang['code'] ),
 			);
 		}
 
@@ -456,6 +477,7 @@ class Spai_Multilang {
 				'is_default'  => (bool) $lang->is_default,
 				'active'      => true,
 				'locale'      => $lang->locale,
+				'is_rtl'      => $this->is_rtl_language( $lang->slug ),
 			);
 		}
 
@@ -617,6 +639,7 @@ class Spai_Multilang {
 					'flag'        => null,
 					'is_default'  => ( $lang_code === $trp_settings['default-language'] ),
 					'active'      => true,
+					'is_rtl'      => $this->is_rtl_language( $lang_code ),
 				);
 			}
 		}

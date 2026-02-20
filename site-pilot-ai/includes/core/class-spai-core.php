@@ -41,6 +41,8 @@ class Spai_Core {
 			),
 			'timezone'     => wp_timezone_string(),
 			'language'     => get_locale(),
+			'is_rtl'       => function_exists( 'is_rtl' ) ? is_rtl() : false,
+			'text_direction' => ( function_exists( 'is_rtl' ) && is_rtl() ) ? 'rtl' : 'ltr',
 			'capabilities' => $this->get_capabilities(),
 			'plugin'       => array(
 				'name'    => 'Site Pilot AI',

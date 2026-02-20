@@ -200,7 +200,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Site & Analytics
 		$tools[] = $this->define_tool(
 			'wp_site_info',
-			'Get WordPress site information including name, URL, version, theme, active plugins, and content counts',
+			'Get WordPress site information including name, URL, version, theme, active plugins, content counts, and RTL/text direction detection',
 			array()
 		);
 
@@ -1199,7 +1199,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_set_elementor',
-			'Set Elementor page data for a specific page or post',
+			'Set Elementor page data for a specific page or post. Use dry_run=true to validate data without saving — returns warnings and validation fixes without modifying the page.',
 			array(
 				'id'             => array(
 					'type'        => 'number',
@@ -1210,6 +1210,11 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'string',
 					'description' => 'Elementor JSON data',
 					'required'    => true,
+				),
+				'dry_run'        => array(
+					'type'        => 'boolean',
+					'description' => 'If true, validate only — no changes are saved. Returns warnings and fixes without writing to database.',
+					'default'     => false,
 				),
 			)
 		);

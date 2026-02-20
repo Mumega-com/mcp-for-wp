@@ -75,6 +75,11 @@ class Spai_REST_Elementor extends Spai_REST_API {
 							'description' => __( 'Elementor data as JSON string.', 'site-pilot-ai' ),
 							'type'        => 'string',
 						),
+						'dry_run' => array(
+							'description' => __( 'If true, validate only — no changes are saved.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
 					),
 				),
 			)
@@ -293,12 +298,13 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$this->log_activity( 'set_elementor', $request );
 
 		$page_id = $request->get_param( 'id' );
+		$dry_run = (bool) $request->get_param( 'dry_run' );
 		$data    = array(
 			'elementor_data' => $request->get_param( 'elementor_data' ),
 			'elementor_json' => $request->get_param( 'elementor_json' ),
 		);
 
-		$result = $this->elementor->set_elementor_data( $page_id, $data );
+		$result = $this->elementor->set_elementor_data( $page_id, $data, $dry_run );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;

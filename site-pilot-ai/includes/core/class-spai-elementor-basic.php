@@ -286,11 +286,12 @@ class Spai_Elementor_Basic {
 	/**
 	 * Set Elementor data for a page.
 	 *
-	 * @param int   $page_id Page ID.
-	 * @param array $data    Elementor data.
+	 * @param int   $page_id  Page ID.
+	 * @param array $data     Elementor data.
+	 * @param bool  $dry_run  If true, validate only — no DB writes, no cache clear.
 	 * @return array|WP_Error Result or error.
 	 */
-	public function set_elementor_data( $page_id, $data ) {
+	public function set_elementor_data( $page_id, $data, $dry_run = false ) {
 		if ( ! $this->is_active() ) {
 			return new WP_Error(
 				'elementor_not_active',
@@ -371,6 +372,41 @@ class Spai_Elementor_Basic {
 				__( 'No Elementor data provided.', 'site-pilot-ai' ),
 				array( 'status' => 400 )
 			);
+		}
+
+		// --- Dry-run mode: validate only, no DB writes ---
+		if ( $dry_run ) {
+			$dry_json   = $elementor_json; // work on a copy
+			$validation = $this->validate_and_fix_elements( $dry_json );
+
+			$all_warnings = array_merge(
+				$validation['warnings'],
+				$validation['fixes']
+			);
+
+			// Check RTL issues if site is RTL.
+			if ( function_exists( 'is_rtl' ) && is_rtl() ) {
+				$rtl_warnings = $this->check_rtl_issues( $dry_json );
+				$all_warnings = array_merge( $all_warnings, $rtl_warnings );
+			}
+
+			$result = array(
+				'success'  => true,
+				'dry_run'  => true,
+				'page_id'  => (string) $page_id,
+				'message'  => __( 'Validation complete — no changes saved.', 'site-pilot-ai' ),
+			);
+
+			if ( ! empty( $all_warnings ) ) {
+				$result['warnings'] = $all_warnings;
+			}
+
+			$result['debug'] = array(
+				'validation_fixes'    => $validation['fixes'],
+				'validation_warnings' => $validation['warnings'],
+			);
+
+			return $result;
 		}
 
 		$save_debug    = array();
@@ -479,6 +515,15 @@ class Spai_Elementor_Basic {
 		$this->purge_page_cache( $page_id );
 		$save_debug['page_cache_purged'] = true;
 
+		// --- 7. Check RTL issues if site is RTL ---
+
+		if ( function_exists( 'is_rtl' ) && is_rtl() ) {
+			$rtl_warnings = $this->check_rtl_issues( $elementor_json );
+			if ( ! empty( $rtl_warnings ) ) {
+				$save_debug['rtl_warnings'] = $rtl_warnings;
+			}
+		}
+
 		// Build top-level warnings from validation results.
 		$all_warnings = array();
 		if ( ! empty( $save_debug['validation_warnings'] ) ) {
@@ -486,6 +531,9 @@ class Spai_Elementor_Basic {
 		}
 		if ( ! empty( $save_debug['validation_fixes'] ) ) {
 			$all_warnings = array_merge( $all_warnings, $save_debug['validation_fixes'] );
+		}
+		if ( ! empty( $save_debug['rtl_warnings'] ) ) {
+			$all_warnings = array_merge( $all_warnings, $save_debug['rtl_warnings'] );
 		}
 
 		$result = array(
@@ -876,6 +924,66 @@ class Spai_Elementor_Basic {
 	private function sanitize_element_settings( &$elementor_json ) {
 		$result = $this->validate_and_fix_elements( $elementor_json );
 		return array_merge( $result['warnings'], $result['fixes'] );
+	}
+
+	/**
+	 * Check Elementor data for RTL-unfriendly patterns.
+	 *
+	 * Walks the element tree looking for hardcoded LTR alignment, floats,
+	 * and one-sided margins/padding that may break on RTL sites.
+	 * Returns informational warnings only — no auto-fixes.
+	 *
+	 * @param string $elementor_json JSON string.
+	 * @return array Warning strings.
+	 */
+	private function check_rtl_issues( $elementor_json ) {
+		$elements = json_decode( $elementor_json, true );
+		if ( ! is_array( $elements ) ) {
+			return array();
+		}
+
+		$warnings = array();
+
+		$walk = function ( $el, $path = '' ) use ( &$walk, &$warnings ) {
+			$settings = isset( $el['settings'] ) && is_array( $el['settings'] ) ? $el['settings'] : array();
+
+			// Check hardcoded align: left (should use 'start' or 'right' for RTL).
+			$align_keys = array( 'align', 'title_align', 'description_align', 'content_align', 'text_align' );
+			foreach ( $align_keys as $key ) {
+				if ( isset( $settings[ $key ] ) && 'left' === $settings[ $key ] ) {
+					$warnings[] = "{$path}: '{$key}' is 'left' — consider 'start' or 'right' for RTL sites";
+				}
+			}
+
+			// Check custom_css for float: left or one-sided margin/padding.
+			if ( ! empty( $settings['custom_css'] ) && is_string( $settings['custom_css'] ) ) {
+				$css = $settings['custom_css'];
+				if ( preg_match( '/float\s*:\s*left/i', $css ) ) {
+					$warnings[] = "{$path}: custom_css contains 'float: left' — may need 'float: right' for RTL";
+				}
+				if ( preg_match( '/margin-left\s*:/i', $css ) && ! preg_match( '/margin-right\s*:/i', $css ) ) {
+					$warnings[] = "{$path}: custom_css has margin-left without margin-right — may need mirroring for RTL";
+				}
+				if ( preg_match( '/padding-left\s*:/i', $css ) && ! preg_match( '/padding-right\s*:/i', $css ) ) {
+					$warnings[] = "{$path}: custom_css has padding-left without padding-right — may need mirroring for RTL";
+				}
+			}
+
+			// Recurse into children.
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				foreach ( $el['elements'] as $idx => $child ) {
+					$child_type = isset( $child['elType'] ) ? $child['elType'] : 'element';
+					$walk( $child, $path . '.' . $child_type . "[{$idx}]" );
+				}
+			}
+		};
+
+		foreach ( $elements as $idx => $el ) {
+			$top_type = isset( $el['elType'] ) ? $el['elType'] : 'element';
+			$walk( $el, "{$top_type}[{$idx}]" );
+		}
+
+		return $warnings;
 	}
 
 	/**
