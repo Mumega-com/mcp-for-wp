@@ -201,10 +201,11 @@ class Spai_REST_Batch extends Spai_REST_API {
 			$internal_request->set_query_params( $body );
 		}
 
-		// Copy authentication
+		// Copy authentication and mark as batch sub-request (skips rate limiting).
 		if ( $api_key ) {
 			$internal_request->set_header( 'X-API-Key', $api_key );
 		}
+		$internal_request->set_header( 'X-SPAI-Batch-Sub-Request', '1' );
 
 		// Execute the request
 		$response = rest_do_request( $internal_request );

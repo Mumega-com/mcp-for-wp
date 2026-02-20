@@ -170,6 +170,14 @@ trait Spai_Sanitization {
 			$sanitized['post_type'] = sanitize_key( $args['post_type'] );
 		}
 
+		if ( isset( $args['ids'] ) && '' !== $args['ids'] ) {
+			$sanitized['post__in'] = array_filter( array_map( 'absint', explode( ',', (string) $args['ids'] ) ) );
+		}
+
+		if ( isset( $args['fields'] ) && '' !== $args['fields'] ) {
+			$sanitized['_spai_fields'] = array_map( 'sanitize_key', explode( ',', (string) $args['fields'] ) );
+		}
+
 		return $sanitized;
 	}
 

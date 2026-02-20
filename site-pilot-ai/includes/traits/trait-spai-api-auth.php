@@ -21,10 +21,16 @@ trait Spai_Api_Auth {
 	 * @return bool|WP_Error True if valid, error otherwise.
 	 */
 	public function verify_api_key( $request ) {
-		$api_key = $this->get_api_key_from_request( $request );
+		// Skip rate limiting for batch sub-requests (already counted on the outer request).
+		if ( $request->get_header( 'X-SPAI-Batch-Sub-Request' ) ) {
+			return $this->verify_api_key_auth_only( $request );
+		}
+
+		$http_method = method_exists( $request, 'get_method' ) ? $request->get_method() : 'POST';
+		$api_key     = $this->get_api_key_from_request( $request );
 
 		if ( empty( $api_key ) ) {
-			$rate_limit_check = $this->check_rate_limit( 'missing:' . $this->get_client_ip() );
+			$rate_limit_check = $this->check_rate_limit( 'missing:' . $this->get_client_ip(), $http_method );
 			if ( is_wp_error( $rate_limit_check ) ) {
 				return $rate_limit_check;
 			}
@@ -56,7 +62,7 @@ trait Spai_Api_Auth {
 		if ( ! $matched_key ) {
 			$has_configured_keys = $this->has_configured_api_keys( $legacy_key );
 			$rate_identifier     = $has_configured_keys ? 'invalid:' . $this->get_client_ip() : 'unconfigured:' . $this->get_client_ip();
-			$rate_limit_check    = $this->check_rate_limit( $rate_identifier );
+			$rate_limit_check    = $this->check_rate_limit( $rate_identifier, $http_method );
 
 			if ( is_wp_error( $rate_limit_check ) ) {
 				return $rate_limit_check;
@@ -83,7 +89,7 @@ trait Spai_Api_Auth {
 			? 'key:' . sanitize_key( $matched_key['id'] )
 			: 'key:' . hash( 'sha256', $api_key );
 
-		$rate_limit_check = $this->check_rate_limit( $rate_identifier );
+		$rate_limit_check = $this->check_rate_limit( $rate_identifier, $http_method );
 		if ( is_wp_error( $rate_limit_check ) ) {
 			return $rate_limit_check;
 		}
@@ -121,17 +127,75 @@ trait Spai_Api_Auth {
 	}
 
 	/**
+	 * Verify API key without rate limiting (for batch sub-requests).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool|WP_Error True if valid, error otherwise.
+	 */
+	protected function verify_api_key_auth_only( $request ) {
+		$api_key = $this->get_api_key_from_request( $request );
+
+		if ( empty( $api_key ) ) {
+			return new WP_Error(
+				'missing_api_key',
+				__( 'API key is required.', 'site-pilot-ai' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		$matched_key = $this->find_scoped_api_key( $api_key );
+		$legacy_key  = get_option( 'spai_api_key' );
+
+		if ( ! $matched_key && ! empty( $legacy_key ) && $this->is_api_key_match( $api_key, $legacy_key ) ) {
+			$matched_key = $this->migrate_legacy_key_to_scoped_store( $legacy_key );
+		}
+
+		if ( ! $matched_key ) {
+			return new WP_Error(
+				'invalid_api_key',
+				__( 'Invalid API key.', 'site-pilot-ai' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		$required_scope = $this->get_required_scope_for_request( $request );
+		if ( ! $this->key_has_scope( $matched_key, $required_scope ) ) {
+			return new WP_Error(
+				'insufficient_scope',
+				sprintf(
+					/* translators: %s: scope name */
+					__( 'API key lacks required scope: %s', 'site-pilot-ai' ),
+					$required_scope
+				),
+				array( 'status' => 403 )
+			);
+		}
+
+		if ( ! $this->set_api_user_context() ) {
+			return new WP_Error(
+				'api_user_missing',
+				__( 'API user context is not configured.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Check rate limit for current request.
 	 *
+	 * @param string $identifier Rate-limit bucket identifier.
+	 * @param string $method     HTTP method (GET requests get higher limits).
 	 * @return bool|WP_Error True if allowed, error if rate limited.
 	 */
-	protected function check_rate_limit( $identifier = null ) {
+	protected function check_rate_limit( $identifier = null, $method = 'POST' ) {
 		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
 			return true;
 		}
 
 		$limiter = Spai_Rate_Limiter::get_instance();
-		return $limiter->check_limit( $identifier );
+		return $limiter->check_limit( $identifier, $method );
 	}
 
 	/**

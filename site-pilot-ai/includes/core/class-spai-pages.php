@@ -23,6 +23,9 @@ class Spai_Pages {
 	 * @return array Pages data.
 	 */
 	public function list_pages( $args = array() ) {
+		$spai_fields = isset( $args['_spai_fields'] ) ? $args['_spai_fields'] : null;
+		unset( $args['_spai_fields'] );
+
 		$defaults = array(
 			'post_type'      => 'page',
 			'posts_per_page' => 10,
@@ -39,8 +42,14 @@ class Spai_Pages {
 		$query = new WP_Query( $args );
 		$pages = array();
 
+		$include_full = $spai_fields && ( in_array( 'content', $spai_fields, true ) || in_array( 'word_count', $spai_fields, true ) );
+
 		foreach ( $query->posts as $page ) {
-			$pages[] = $this->format_page( $page );
+			$formatted = $this->format_page( $page, $include_full );
+			if ( $spai_fields ) {
+				$formatted = $this->filter_fields( $formatted, $spai_fields );
+			}
+			$pages[] = $formatted;
 		}
 
 		return array(
@@ -279,7 +288,8 @@ class Spai_Pages {
 		);
 
 		if ( $include_full ) {
-			$data['content'] = $page->post_content;
+			$data['content']    = $page->post_content;
+			$data['word_count'] = str_word_count( wp_strip_all_tags( $page->post_content ) );
 		}
 
 		return $data;
@@ -321,5 +331,19 @@ class Spai_Pages {
 
 		$elementor_data = get_post_meta( $page_id, '_elementor_data', true );
 		return ! empty( $elementor_data );
+	}
+
+	/**
+	 * Filter formatted data to only include requested fields.
+	 *
+	 * @param array $data   Formatted data.
+	 * @param array $fields Requested field names.
+	 * @return array Filtered data (always includes 'id').
+	 */
+	protected function filter_fields( $data, $fields ) {
+		$fields[] = 'id';
+		$fields   = array_unique( $fields );
+
+		return array_intersect_key( $data, array_flip( $fields ) );
 	}
 }

@@ -68,6 +68,9 @@ class Spai_Posts {
 	 * @return array Posts data.
 	 */
 	public function list_posts( $args = array() ) {
+		$spai_fields = isset( $args['_spai_fields'] ) ? $args['_spai_fields'] : null;
+		unset( $args['_spai_fields'] );
+
 		$defaults = array(
 			'post_type'      => 'post',
 			'posts_per_page' => 10,
@@ -95,8 +98,14 @@ class Spai_Posts {
 		$query = new WP_Query( $args );
 		$posts = array();
 
+		$include_full = $spai_fields && ( in_array( 'content', $spai_fields, true ) || in_array( 'word_count', $spai_fields, true ) );
+
 		foreach ( $query->posts as $post ) {
-			$posts[] = $this->format_post( $post );
+			$formatted = $this->format_post( $post, $include_full );
+			if ( $spai_fields ) {
+				$formatted = $this->filter_fields( $formatted, $spai_fields );
+			}
+			$posts[] = $formatted;
 		}
 
 		return array(
@@ -328,8 +337,9 @@ class Spai_Posts {
 		);
 
 		if ( $include_full ) {
-			$data['content'] = $post->post_content;
-			$data['excerpt'] = $post->post_excerpt;
+			$data['content']    = $post->post_content;
+			$data['excerpt']    = $post->post_excerpt;
+			$data['word_count'] = str_word_count( wp_strip_all_tags( $post->post_content ) );
 		} else {
 			$data['excerpt'] = wp_trim_words( $post->post_excerpt ?: $post->post_content, 30 );
 		}
@@ -384,5 +394,19 @@ class Spai_Posts {
 			},
 			$terms
 		);
+	}
+
+	/**
+	 * Filter formatted data to only include requested fields.
+	 *
+	 * @param array $data   Formatted data.
+	 * @param array $fields Requested field names.
+	 * @return array Filtered data (always includes 'id').
+	 */
+	protected function filter_fields( $data, $fields ) {
+		$fields[] = 'id';
+		$fields   = array_unique( $fields );
+
+		return array_intersect_key( $data, array_flip( $fields ) );
 	}
 }

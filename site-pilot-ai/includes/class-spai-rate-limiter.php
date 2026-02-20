@@ -91,9 +91,10 @@ class Spai_Rate_Limiter {
 	 * Check rate limit for current request.
 	 *
 	 * @param string $identifier Unique identifier (IP or API key).
+	 * @param string $method     HTTP method (GET requests get 2x burst/minute limits).
 	 * @return bool|WP_Error True if allowed, WP_Error if rate limited.
 	 */
-	public function check_limit( $identifier = null ) {
+	public function check_limit( $identifier = null, $method = 'POST' ) {
 		if ( ! $this->is_enabled() ) {
 			return true;
 		}
@@ -106,6 +107,11 @@ class Spai_Rate_Limiter {
 		if ( $this->is_whitelisted( $identifier ) ) {
 			return true;
 		}
+
+		// GET/HEAD/OPTIONS requests get 2x burst and minute limits (reads are non-destructive).
+		$is_read      = in_array( strtoupper( $method ), array( 'GET', 'HEAD', 'OPTIONS' ), true );
+		$burst_limit  = $is_read ? $this->settings['burst_limit'] * 2 : $this->settings['burst_limit'];
+		$minute_limit = $is_read ? $this->settings['requests_per_minute'] * 2 : $this->settings['requests_per_minute'];
 
 		$cache_key_minute = 'spai_rate_' . md5( $identifier . '_minute' );
 		$cache_key_hour   = 'spai_rate_' . md5( $identifier . '_hour' );
@@ -124,11 +130,11 @@ class Spai_Rate_Limiter {
 		$burst_data  = $this->initialize_window_data( $burst_data, $burst_window, $now );
 
 		// Check short burst limit first.
-		if ( $burst_data['count'] >= $this->settings['burst_limit'] ) {
+		if ( $burst_data['count'] >= $burst_limit ) {
 			$retry_after = max( 0, $burst_data['reset'] - $now );
 
 			$this->current_data = array(
-				'limit'       => $this->settings['burst_limit'],
+				'limit'       => $burst_limit,
 				'remaining'   => 0,
 				'reset'       => $burst_data['reset'],
 				'window'      => 'burst',
@@ -140,14 +146,14 @@ class Spai_Rate_Limiter {
 				sprintf(
 					/* translators: 1: burst request limit 2: burst window in seconds 3: seconds until retry */
 					__( 'Burst limit exceeded. %1$d requests per %2$d seconds allowed. Try again in %3$d seconds.', 'site-pilot-ai' ),
-					$this->settings['burst_limit'],
+					$burst_limit,
 					$burst_window,
 					$retry_after
 				),
 				array(
 					'status'           => 429,
 					'retry_after'      => $retry_after,
-					'limit'            => $this->settings['burst_limit'],
+					'limit'            => $burst_limit,
 					'remaining'        => 0,
 					'reset'            => $burst_data['reset'],
 				)
@@ -155,11 +161,11 @@ class Spai_Rate_Limiter {
 		}
 
 		// Check minute limit.
-		if ( $minute_data['count'] >= $this->settings['requests_per_minute'] ) {
+		if ( $minute_data['count'] >= $minute_limit ) {
 			$retry_after = max( 0, $minute_data['reset'] - $now );
 
 			$this->current_data = array(
-				'limit'     => $this->settings['requests_per_minute'],
+				'limit'     => $minute_limit,
 				'remaining' => 0,
 				'reset'     => $minute_data['reset'],
 				'window'    => 'minute',
@@ -171,13 +177,13 @@ class Spai_Rate_Limiter {
 				sprintf(
 					/* translators: 1: request limit per minute 2: seconds until retry */
 					__( 'Rate limit exceeded. %1$d requests per minute allowed. Try again in %2$d seconds.', 'site-pilot-ai' ),
-					$this->settings['requests_per_minute'],
+					$minute_limit,
 					$retry_after
 				),
 				array(
 					'status'           => 429,
 					'retry_after'      => $retry_after,
-					'limit'            => $this->settings['requests_per_minute'],
+					'limit'            => $minute_limit,
 					'remaining'        => 0,
 					'reset'            => $minute_data['reset'],
 				)
@@ -226,8 +232,8 @@ class Spai_Rate_Limiter {
 
 		// Store current data for headers.
 		$this->current_data = array(
-			'limit'     => $this->settings['requests_per_minute'],
-			'remaining' => $this->settings['requests_per_minute'] - $minute_data['count'],
+			'limit'     => $minute_limit,
+			'remaining' => $minute_limit - $minute_data['count'],
 			'reset'     => $minute_data['reset'],
 			'window'    => 'minute',
 			'retry_after' => max( 0, $minute_data['reset'] - $now ),

@@ -65,6 +65,14 @@ class Spai_REST_Posts extends Spai_REST_API {
 								'description' => __( 'Search term.', 'site-pilot-ai' ),
 								'type'        => 'string',
 							),
+							'ids'      => array(
+								'description' => __( 'Comma-separated post IDs to fetch.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+							'fields'   => array(
+								'description' => __( 'Comma-separated field names to return (e.g. id,title,word_count,content).', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
 						)
 					),
 				),

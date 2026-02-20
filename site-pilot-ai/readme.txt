@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.12
+Stable tag: 1.1.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,14 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.13 =
+* New: `fields` parameter on GET /posts and GET /pages — control which fields are returned (e.g. `fields=id,title,word_count`)
+* New: `ids` parameter on GET /posts and GET /pages — fetch specific items by ID without N+1 queries (e.g. `ids=41,42,43`)
+* New: `word_count` field available on posts and pages when using `fields` or fetching single items
+* Improvement: GET requests now get 2x burst and minute rate limits (reads are non-destructive)
+* Improvement: Batch sub-requests no longer consume individual rate limit tokens
+* Updated: wp_list_posts and wp_list_pages MCP tool schemas include new ids and fields parameters
 
 = 1.1.12 =
 * New: wp_build_page gains 6 section types — contact_form, map, countdown, stats, logo_grid, video

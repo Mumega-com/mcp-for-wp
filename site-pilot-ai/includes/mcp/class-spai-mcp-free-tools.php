@@ -119,6 +119,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_upload_media'            => 'media',
 			'wp_upload_media_from_url'   => 'media',
 			'wp_upload_media_b64'        => 'media',
+			'wp_upload_media_b64'        => 'media',
 			'wp_delete_media'            => 'media',
 			'wp_screenshot_url'          => 'media',
 
@@ -707,7 +708,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Posts
 		$tools[] = $this->define_tool(
 			'wp_list_posts',
-			'List posts with optional filters. Supports custom post types including wp_block (reusable blocks/synced patterns).',
+			'List posts with optional filters. Supports custom post types including wp_block (reusable blocks/synced patterns). Use ids to fetch specific posts and fields to control which data is returned (e.g. fields=id,title,word_count to get word counts without full content).',
 			array(
 				'post_type' => array(
 					'type'        => 'string',
@@ -736,6 +737,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'search'   => array(
 					'type'        => 'string',
 					'description' => 'Search term',
+				),
+				'ids'      => array(
+					'type'        => 'string',
+					'description' => 'Comma-separated post IDs to fetch (e.g. "41,42,43")',
+				),
+				'fields'   => array(
+					'type'        => 'string',
+					'description' => 'Comma-separated field names to return (e.g. "id,title,word_count,content"). id is always included. Use "content" or "word_count" to include full content and word counts.',
 				),
 			)
 		);
@@ -828,7 +837,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Pages
 		$tools[] = $this->define_tool(
 			'wp_list_pages',
-			'List pages with optional filters for status, search, and pagination',
+			'List pages with optional filters for status, search, and pagination. Use ids to fetch specific pages and fields to control which data is returned (e.g. fields=id,title,word_count).',
 			array(
 				'per_page' => array(
 					'type'        => 'number',
@@ -848,6 +857,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'search'   => array(
 					'type'        => 'string',
 					'description' => 'Search term',
+				),
+				'ids'      => array(
+					'type'        => 'string',
+					'description' => 'Comma-separated page IDs to fetch (e.g. "95,33,34")',
+				),
+				'fields'   => array(
+					'type'        => 'string',
+					'description' => 'Comma-separated field names to return (e.g. "id,title,word_count,content"). id is always included. Use "content" or "word_count" to include full content and word counts.',
 				),
 			)
 		);

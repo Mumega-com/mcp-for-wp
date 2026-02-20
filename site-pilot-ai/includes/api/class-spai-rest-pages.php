@@ -53,6 +53,14 @@ class Spai_REST_Pages extends Spai_REST_API {
 								'description' => __( 'Parent page ID.', 'site-pilot-ai' ),
 								'type'        => 'integer',
 							),
+							'ids'    => array(
+								'description' => __( 'Comma-separated page IDs to fetch.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+							'fields' => array(
+								'description' => __( 'Comma-separated field names to return (e.g. id,title,word_count,content).', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
 						)
 					),
 				),
