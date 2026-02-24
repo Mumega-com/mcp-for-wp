@@ -180,7 +180,7 @@ class Spai_REST_Feedback extends Spai_REST_API {
 	 */
 	public function relay_feedback( $request ) {
 		// Basic rate limiting by IP — max 10 relay requests per minute.
-		$ip        = $this->get_client_ip();
+		$ip        = $this->get_relay_client_ip();
 		$transient = 'spai_relay_' . md5( $ip );
 		$count     = (int) get_transient( $transient );
 		if ( $count >= 10 ) {
@@ -225,16 +225,15 @@ class Spai_REST_Feedback extends Spai_REST_API {
 	}
 
 	/**
-	 * Get client IP address.
+	 * Get client IP address for relay rate limiting.
 	 *
 	 * @return string
 	 */
-	private function get_client_ip() {
+	private function get_relay_client_ip() {
 		$headers = array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR' );
 		foreach ( $headers as $header ) {
 			if ( ! empty( $_SERVER[ $header ] ) ) {
 				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) );
-				// X-Forwarded-For may contain multiple IPs; take the first.
 				if ( false !== strpos( $ip, ',' ) ) {
 					$ip = trim( explode( ',', $ip )[0] );
 				}
