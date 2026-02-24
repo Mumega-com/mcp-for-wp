@@ -323,6 +323,8 @@ class Spai_REST_Theme_Builder extends Spai_REST_API {
 			'type'           => $request->get_param( 'type' ),
 			'elementor_data' => $request->get_param( 'elementor_data' ),
 			'scope'          => $request->get_param( 'scope' ),
+			'post_type'      => $request->get_param( 'post_type' ),
+			'post_ids'       => $request->get_param( 'post_ids' ),
 		);
 
 		$result = $this->theme_builder->create_theme_template( $data );

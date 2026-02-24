@@ -300,6 +300,17 @@ class Spai_Theme_Builder {
 	public function assign_to_location( $template_id, $location, $scope = 'entire_site', $options = array() ) {
 		$conditions = array();
 
+		// Normalize scope aliases to canonical names.
+		$scope_aliases = array(
+			'all_singular'       => 'singular',
+			'specific_post_type' => 'singular',
+			'all_archive'        => 'archive',
+			'specific_posts'     => 'specific',
+		);
+		if ( isset( $scope_aliases[ $scope ] ) ) {
+			$scope = $scope_aliases[ $scope ];
+		}
+
 		switch ( $scope ) {
 			case 'entire_site':
 				$conditions[] = array(
@@ -360,7 +371,16 @@ class Spai_Theme_Builder {
 		}
 
 		if ( empty( $conditions ) ) {
-			return new WP_Error( 'invalid_scope', __( 'Invalid scope specified.', 'site-pilot-ai' ) );
+			$valid_scopes = array( 'entire_site', 'singular', 'specific_post_type', 'archive', 'all_archive', 'specific', 'specific_posts', 'front_page', '404' );
+			return new WP_Error(
+				'invalid_scope',
+				sprintf(
+					/* translators: 1: provided scope 2: valid scopes */
+					__( 'Invalid scope "%1$s". Valid scopes: %2$s', 'site-pilot-ai' ),
+					$scope,
+					implode( ', ', $valid_scopes )
+				)
+			);
 		}
 
 		return $this->set_template_conditions( $template_id, $conditions );
@@ -440,8 +460,17 @@ class Spai_Theme_Builder {
 			}
 		}
 
+		// Build options for assign_to_location.
+		$assign_options = array();
+		if ( ! empty( $data['post_type'] ) ) {
+			$assign_options['post_type'] = sanitize_text_field( $data['post_type'] );
+		}
+		if ( ! empty( $data['post_ids'] ) ) {
+			$assign_options['post_ids'] = array_map( 'absint', (array) $data['post_ids'] );
+		}
+
 		// Assign to location. The type maps to the Elementor location name.
-		$result = $this->assign_to_location( $template_id, $type, $scope );
+		$result = $this->assign_to_location( $template_id, $type, $scope, $assign_options );
 		if ( is_wp_error( $result ) ) {
 			// Template was created but conditions failed — still return the template.
 			$template = $this->get_template( $template_id );

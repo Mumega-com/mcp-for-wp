@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,13 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.4.2 =
+* Fix: Template assignment scopes (specific_post_type, specific_posts, all_singular, all_archive) now work correctly
+* Fix: wp_create_theme_template now accepts post_type and post_ids params for targeted template assignment
+* Fix: Custom post types (tp_event, lp_course, etc.) can now be targeted in template conditions
+* Enhancement: Better error messages for invalid scope — shows all valid options
+* Enhancement: MCP tool descriptions updated with custom post type examples
 
 = 1.4.1 =
 * Fix: MCP create/update endpoints now receive parameters correctly (get_json_params → get_params fallback)

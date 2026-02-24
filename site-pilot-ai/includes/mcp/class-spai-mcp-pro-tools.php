@@ -844,7 +844,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				),
 				'post_type' => array(
 					'type'        => 'string',
-					'description' => 'Post type for specific_post_type scope (e.g., post, page)',
+					'description' => 'Post type for specific_post_type scope (e.g., post, page, tp_event, lp_course)',
 				),
 				'post_ids' => array(
 					'type'        => 'array',
@@ -873,8 +873,16 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				),
 				'scope' => array(
 					'type'        => 'string',
-					'description' => 'Display scope: entire_site (default), singular, archive, front_page, 404',
+					'description' => 'Display scope: entire_site, specific_post_type, specific_posts, archive, front_page, 404',
 					'default'     => 'entire_site',
+				),
+				'post_type' => array(
+					'type'        => 'string',
+					'description' => 'Post type for specific_post_type scope (e.g., post, page, tp_event, lp_course)',
+				),
+				'post_ids' => array(
+					'type'        => 'array',
+					'description' => 'Array of post IDs for specific_posts scope',
 				),
 			)
 		);
