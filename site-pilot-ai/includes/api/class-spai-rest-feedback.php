@@ -88,6 +88,58 @@ class Spai_REST_Feedback extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Public relay endpoint — receives feedback from any Site Pilot AI install.
+		// No API key required; rate-limited by IP.
+		register_rest_route(
+			$this->namespace,
+			'/feedback/relay',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'relay_feedback' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'type'           => array(
+						'type'     => 'string',
+						'required' => true,
+						'enum'     => array( 'bug_report', 'feature_request', 'feedback' ),
+					),
+					'title'          => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'description'    => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'agent'          => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'priority'       => array(
+						'type'    => 'string',
+						'enum'    => array( 'low', 'medium', 'high', 'critical' ),
+						'default' => 'medium',
+					),
+					'meta'           => array(
+						'type'    => 'object',
+						'default' => array(),
+					),
+					'site_url'       => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'site_name'      => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'plugin_version' => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -115,6 +167,81 @@ class Spai_REST_Feedback extends Spai_REST_API {
 		$this->log_activity( 'submit_feedback', $request, $result );
 
 		return $this->success_response( $result, 201 );
+	}
+
+	/**
+	 * Relay feedback from remote Site Pilot AI installs.
+	 *
+	 * Public endpoint — no API key required.
+	 * Creates a GitHub issue using this server's github_token.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function relay_feedback( $request ) {
+		// Basic rate limiting by IP — max 10 relay requests per minute.
+		$ip        = $this->get_client_ip();
+		$transient = 'spai_relay_' . md5( $ip );
+		$count     = (int) get_transient( $transient );
+		if ( $count >= 10 ) {
+			return new WP_Error(
+				'rate_limited',
+				__( 'Too many feedback submissions. Please try again later.', 'site-pilot-ai' ),
+				array( 'status' => 429 )
+			);
+		}
+		set_transient( $transient, $count + 1, 60 );
+
+		$data = array(
+			'type'           => $request->get_param( 'type' ),
+			'title'          => $request->get_param( 'title' ),
+			'description'    => $request->get_param( 'description' ),
+			'agent'          => $request->get_param( 'agent' ),
+			'priority'       => $request->get_param( 'priority' ),
+			'meta'           => $request->get_param( 'meta' ),
+			'site_url'       => $request->get_param( 'site_url' ),
+			'site_name'      => $request->get_param( 'site_name' ),
+			'plugin_version' => $request->get_param( 'plugin_version' ),
+		);
+
+		$result = Spai_Feedback::create_github_issue_from_relay( $data );
+
+		if ( ! $result['success'] ) {
+			return new WP_Error(
+				'relay_failed',
+				$result['message'],
+				array( 'status' => 502 )
+			);
+		}
+
+		return new WP_REST_Response(
+			array(
+				'success'          => true,
+				'github_issue_url' => $result['github_issue_url'],
+				'message'          => $result['message'],
+			),
+			201
+		);
+	}
+
+	/**
+	 * Get client IP address.
+	 *
+	 * @return string
+	 */
+	private function get_client_ip() {
+		$headers = array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR' );
+		foreach ( $headers as $header ) {
+			if ( ! empty( $_SERVER[ $header ] ) ) {
+				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) );
+				// X-Forwarded-For may contain multiple IPs; take the first.
+				if ( false !== strpos( $ip, ',' ) ) {
+					$ip = trim( explode( ',', $ip )[0] );
+				}
+				return $ip;
+			}
+		}
+		return '0.0.0.0';
 	}
 
 	/**

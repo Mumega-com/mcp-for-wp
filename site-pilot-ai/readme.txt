@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.19
+Stable tag: 1.1.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.20 =
+* New: Feedback relay — all customer feedback automatically creates GitHub issues for plugin authors
+* New: Public `/feedback/relay` endpoint with rate limiting and duplicate detection
+* Enhancement: `wp_submit_feedback` now phones home to central relay so developers always receive bug reports
+* Enhancement: Feedback includes site URL, site name, and plugin version for context
 
 = 1.1.19 =
 * Fix: All plugin URLs now use correct domain (sitepilotai.mumega.com) with HTTPS
