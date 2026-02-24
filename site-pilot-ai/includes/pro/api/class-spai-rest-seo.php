@@ -173,6 +173,46 @@ class Spai_REST_SEO extends Spai_REST_API {
 				),
 			)
 		);
+
+		// SEO scan — bulk audit.
+		register_rest_route(
+			$this->namespace,
+			'/seo/scan',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'scan_all' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'threshold' => array(
+						'description' => __( 'Minimum word count for thin content detection.', 'site-pilot-ai' ),
+						'type'        => 'integer',
+						'default'     => 300,
+					),
+				),
+			)
+		);
+
+		// SEO report — export metadata.
+		register_rest_route(
+			$this->namespace,
+			'/seo/report',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'export_report' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'post_type' => array(
+						'description' => __( 'Filter by post type.', 'site-pilot-ai' ),
+						'type'        => 'string',
+					),
+					'limit' => array(
+						'description' => __( 'Maximum number of posts to return.', 'site-pilot-ai' ),
+						'type'        => 'integer',
+						'default'     => 100,
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -232,6 +272,8 @@ class Spai_REST_SEO extends Spai_REST_API {
 			'twitter_title'   => $request->get_param( 'twitter_title' ),
 			'twitter_description' => $request->get_param( 'twitter_description' ),
 			'twitter_image'   => $request->get_param( 'twitter_image' ),
+			'noindex'         => $request->get_param( 'noindex' ),
+			'nofollow'        => $request->get_param( 'nofollow' ),
 			'robots_noindex'  => $request->get_param( 'robots_noindex' ),
 			'robots_nofollow' => $request->get_param( 'robots_nofollow' ),
 		);
@@ -289,6 +331,14 @@ class Spai_REST_SEO extends Spai_REST_API {
 				}
 				if ( ! empty( $data ) ) {
 					$updates[ $i ]['data'] = $data;
+				}
+			}
+
+			// Normalize field aliases in the data sub-array.
+			if ( isset( $updates[ $i ]['data'] ) ) {
+				if ( isset( $updates[ $i ]['data']['canonical_url'] ) && ! isset( $updates[ $i ]['data']['canonical'] ) ) {
+					$updates[ $i ]['data']['canonical'] = $updates[ $i ]['data']['canonical_url'];
+					unset( $updates[ $i ]['data']['canonical_url'] );
 				}
 			}
 		}
@@ -494,6 +544,8 @@ class Spai_REST_SEO extends Spai_REST_API {
 			'twitter_title'   => $request->get_param( 'twitter_title' ),
 			'twitter_description' => $request->get_param( 'twitter_description' ),
 			'twitter_image'   => $request->get_param( 'twitter_image' ),
+			'noindex'         => $request->get_param( 'noindex' ),
+			'nofollow'        => $request->get_param( 'nofollow' ),
 			'robots_noindex'  => $request->get_param( 'robots_noindex' ),
 			'robots_nofollow' => $request->get_param( 'robots_nofollow' ),
 		);
@@ -547,5 +599,44 @@ class Spai_REST_SEO extends Spai_REST_API {
 			'title'   => $post->post_title,
 			'noindex' => $noindex,
 		) );
+	}
+
+	/**
+	 * Scan all published content for SEO issues.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function scan_all( $request ) {
+		$threshold = absint( $request->get_param( 'threshold' ) );
+		if ( ! $threshold ) {
+			$threshold = 300;
+		}
+
+		$results = $this->seo->scan_all( $threshold );
+
+		$this->log_activity( 'seo_scan', $request, array( 'total' => count( $results ) ) );
+
+		return $this->success_response( $results );
+	}
+
+	/**
+	 * Export SEO metadata report for all published content.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function export_report( $request ) {
+		$post_type = $request->get_param( 'post_type' );
+		$limit     = absint( $request->get_param( 'limit' ) );
+		if ( ! $limit ) {
+			$limit = 100;
+		}
+
+		$results = $this->seo->export_report( $post_type, $limit );
+
+		$this->log_activity( 'seo_report', $request, array( 'total' => count( $results ) ) );
+
+		return $this->success_response( $results );
 	}
 }

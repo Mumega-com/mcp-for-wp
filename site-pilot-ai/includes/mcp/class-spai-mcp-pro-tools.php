@@ -45,6 +45,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 	 */
 	public function get_tool_categories() {
 		return array(
+			// Google Indexing
+			'wp_submit_to_google_index'          => 'seo',
+			'wp_google_index_status'             => 'seo',
+
 			// Multilanguage
 			'wp_languages'                      => 'content',
 			'wp_set_language'                    => 'content',
@@ -58,6 +62,8 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_bulk_seo'                        => 'seo',
 			'wp_seo_status'                      => 'seo',
 			'wp_set_noindex'                     => 'seo',
+			'wp_seo_scan'                        => 'seo',
+			'wp_seo_report'                      => 'seo',
 
 			// Forms
 			'wp_list_forms'                      => 'forms',
@@ -123,6 +129,8 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_bulk_seo'           => 'seo',
 			'wp_seo_status'         => 'seo',
 			'wp_set_noindex'        => 'seo',
+			'wp_seo_scan'           => 'seo',
+			'wp_seo_report'         => 'seo',
 			// Forms tools — any forms plugin.
 			'wp_list_forms'         => 'forms',
 			'wp_get_form'           => 'forms',
@@ -161,6 +169,36 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 	 */
 	public function get_tools() {
 		$pro_tools = array();
+
+		// Google Indexing API Tools.
+		$tools[] = $this->define_tool(
+			'wp_submit_to_google_index',
+			'Submit one or more URLs to Google for indexing via the Indexing API. Requires Google Indexing API integration to be configured. Use action URL_UPDATED for new/updated pages and URL_DELETED for removed pages. Limited to 200 URLs per day by Google.',
+			array(
+				'urls'   => array(
+					'type'        => 'array',
+					'description' => 'Array of URLs to submit for indexing',
+					'required'    => true,
+				),
+				'action' => array(
+					'type'        => 'string',
+					'description' => 'Notification type: URL_UPDATED (new/updated page) or URL_DELETED (removed page)',
+					'default'     => 'URL_UPDATED',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_google_index_status',
+			'Check Google indexing status for a URL. Returns the latest update and removal notification times from the Indexing API. Requires Google Indexing API integration to be configured.',
+			array(
+				'url' => array(
+					'type'        => 'string',
+					'description' => 'URL to check indexing status for',
+					'required'    => true,
+				),
+			)
+		);
 
 		// Multilanguage Tools (WPML, Polylang, TranslatePress).
 		$pro_tools[] = $this->define_tool(
@@ -271,6 +309,42 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'string',
 					'description' => 'Focus keyword',
 				),
+				'canonical'       => array(
+					'type'        => 'string',
+					'description' => 'Canonical URL',
+				),
+				'noindex'         => array(
+					'type'        => 'boolean',
+					'description' => 'Set to true to add noindex meta robots tag',
+				),
+				'nofollow'        => array(
+					'type'        => 'boolean',
+					'description' => 'Set to true to add nofollow meta robots tag',
+				),
+				'og_title'        => array(
+					'type'        => 'string',
+					'description' => 'Open Graph title for social sharing',
+				),
+				'og_description'  => array(
+					'type'        => 'string',
+					'description' => 'Open Graph description for social sharing',
+				),
+				'og_image'        => array(
+					'type'        => 'string',
+					'description' => 'Open Graph image URL for social sharing',
+				),
+				'twitter_title'   => array(
+					'type'        => 'string',
+					'description' => 'Twitter card title',
+				),
+				'twitter_description' => array(
+					'type'        => 'string',
+					'description' => 'Twitter card description',
+				),
+				'twitter_image'   => array(
+					'type'        => 'string',
+					'description' => 'Twitter card image URL',
+				),
 			)
 		);
 
@@ -302,6 +376,32 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_seo_status',
 			'Get SEO plugin status and configuration',
 			array()
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_seo_scan',
+			'Scan all published content for SEO issues. Returns missing titles, descriptions, thin content, and more.',
+			array(
+				'threshold' => array(
+					'type'        => 'number',
+					'description' => 'Minimum word count for thin content detection (default: 300)',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_seo_report',
+			'Export complete SEO metadata for all published content. Returns title, description, keyword, noindex, canonical, word count for every post and page.',
+			array(
+				'post_type' => array(
+					'type'        => 'string',
+					'description' => 'Filter by post type (e.g. post, page)',
+				),
+				'limit' => array(
+					'type'        => 'number',
+					'description' => 'Maximum number of posts to return (default: 100, max: 500)',
+				),
+			)
 		);
 
 		// Form Tools (Read-only)
@@ -940,6 +1040,14 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'POST',
 				'route'  => '/seo/{id}/noindex',
 			),
+			'wp_seo_scan'                    => array(
+				'method' => 'GET',
+				'route'  => '/seo/scan',
+			),
+			'wp_seo_report'                  => array(
+				'method' => 'GET',
+				'route'  => '/seo/report',
+			),
 
 			// Forms
 			'wp_list_forms'                  => array(
@@ -1101,6 +1209,16 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_reorder_widgets'    => array(
 				'method' => 'POST',
 				'route'  => '/sidebars/{id}/reorder',
+			),
+
+			// Google Indexing
+			'wp_submit_to_google_index'  => array(
+				'method' => 'POST',
+				'route'  => '/google-indexing/submit',
+			),
+			'wp_google_index_status'     => array(
+				'method' => 'GET',
+				'route'  => '/google-indexing/status',
 			),
 
 			// Multilanguage (map these at the end after Widgets)

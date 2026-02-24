@@ -136,12 +136,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_elementor_bulk'      => 'elementor',
 			'wp_get_elementor_summary'   => 'elementor',
 			'wp_edit_section'            => 'elementor',
+			'wp_edit_widget'             => 'elementor',
 			'wp_set_elementor'           => 'elementor',
 			'wp_elementor_status'        => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
 			'wp_bulk_find_replace'       => 'elementor',
 			'wp_get_elementor_widgets'   => 'elementor',
 			'wp_get_widget_schema'       => 'elementor',
+			'wp_preview_elementor'       => 'elementor',
 
 			// Gutenberg
 			'wp_get_blocks'              => 'gutenberg',
@@ -193,12 +195,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_elementor_bulk'       => 'elementor',
 			'wp_get_elementor_summary'    => 'elementor',
 			'wp_edit_section'             => 'elementor',
+			'wp_edit_widget'              => 'elementor',
 			'wp_set_elementor'            => 'elementor',
 			'wp_elementor_status'         => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
 			'wp_bulk_find_replace'        => 'elementor',
 			'wp_get_elementor_widgets'    => 'elementor',
 			'wp_get_widget_schema'        => 'elementor',
+			'wp_preview_elementor'        => 'elementor',
 			'wp_get_blocks'               => 'gutenberg',
 			'wp_set_blocks'               => 'gutenberg',
 			'wp_list_block_types'         => 'gutenberg',
@@ -1251,6 +1255,31 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_edit_widget',
+			'Edit a single Elementor widget\'s settings by its element ID, without requiring the full page JSON round-trip. Much more efficient than get+set for updating text, colors, or other widget properties. The widget must be a widget element (not section/container).',
+			array(
+				'id'              => array(
+					'type'        => 'number',
+					'description' => 'Page or post ID',
+					'required'    => true,
+				),
+				'widget_id'       => array(
+					'type'        => 'string',
+					'description' => 'Elementor widget element ID (8-char alphanumeric, from summary or previous get)',
+					'required'    => true,
+				),
+				'settings'        => array(
+					'type'        => 'object',
+					'description' => 'Settings to merge into the widget (e.g. {"title": "New Heading", "align": "center"})',
+				),
+				'delete_settings' => array(
+					'type'        => 'array',
+					'description' => 'Setting keys to remove from the widget',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_set_elementor',
 			'Set Elementor page data for a specific page or post. Use dry_run=true to validate data without saving — returns warnings and validation fixes without modifying the page.',
 			array(
@@ -1312,6 +1341,18 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'widget_type' => array(
 					'type'        => 'string',
 					'description' => 'Widget type name (e.g. "heading", "image", "button")',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_preview_elementor',
+			'Get rendered HTML output of Elementor content for a page. Returns the HTML that Elementor generates, without the full page template. Useful for verifying what the page looks like after setting Elementor data.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Page/post ID to preview',
 					'required'    => true,
 				),
 			)
@@ -2113,6 +2154,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'DELETE',
 				'route'  => '/menus/{menu_id}/items/{item_id}',
 			),
+			'wp_update_menu_item_auto' => array(
+				'method' => 'POST',
+				'route'  => '/menus/items/{item_id}',
+			),
+			'wp_delete_menu_item_auto' => array(
+				'method' => 'DELETE',
+				'route'  => '/menus/items/{item_id}',
+			),
 			'wp_reorder_menu_items'  => array(
 				'method' => 'POST',
 				'route'  => '/menus/{menu_id}/items/reorder',
@@ -2263,6 +2312,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'POST',
 				'route'  => '/elementor/{id}/edit-section',
 			),
+			'wp_edit_widget'           => array(
+				'method' => 'POST',
+				'route'  => '/elementor/{id}/edit-widget',
+			),
 			'wp_set_elementor'         => array(
 				'method' => 'POST',
 				'route'  => '/elementor/{id}',
@@ -2282,6 +2335,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_widget_schema'         => array(
 				'method' => 'GET',
 				'route'  => '/elementor/widgets/{widget_type}',
+			),
+			'wp_preview_elementor'         => array(
+				'method' => 'GET',
+				'route'  => '/elementor/{id}/preview',
 			),
 			'wp_screenshot_url'            => array(
 				'method' => 'POST',

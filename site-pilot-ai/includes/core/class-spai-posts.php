@@ -41,7 +41,7 @@ class Spai_Posts {
 	 *
 	 * @var array
 	 */
-	private $safe_nonpublic_types = array( 'elementor_snippet' );
+	private $safe_nonpublic_types = array( 'elementor_snippet', 'elementor_library' );
 
 	private function validate_post_type( $type ) {
 		$type = sanitize_key( $type );

@@ -2203,19 +2203,38 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		if ( $this->is_blocked_meta_key( $key ) ) {
-			$message = __( 'This meta key is not accessible via API.', 'site-pilot-ai' );
-			if ( 0 === strpos( $key, '_elementor' ) ) {
-				$message = __( 'Elementor meta keys are blocked. Use the /elementor/{id} endpoint to modify Elementor data.', 'site-pilot-ai' );
+			// Provide specific guidance for Elementor meta keys.
+			if ( '_elementor_data' === $key ) {
+				return $this->error_response(
+					'use_elementor_endpoint',
+					__( 'Use wp_set_elementor (POST /elementor/{id}) to set Elementor page data.', 'site-pilot-ai' ),
+					400
+				);
 			}
-			return $this->error_response( 'forbidden_meta_key', $message, 403 );
+			if ( '_elementor_page_settings' === $key ) {
+				return $this->error_response(
+					'use_elementor_endpoint',
+					__( 'Use wp_set_elementor with the page_settings parameter to update Elementor page settings.', 'site-pilot-ai' ),
+					400
+				);
+			}
+			if ( 0 === strpos( $key, '_elementor' ) ) {
+				return $this->error_response(
+					'use_elementor_endpoint',
+					__( 'Elementor meta keys cannot be set via wp_set_post_meta. Use the /elementor/{id} endpoints instead.', 'site-pilot-ai' ),
+					400
+				);
+			}
+			return $this->error_response( 'forbidden_meta_key', __( 'This meta key is not accessible via API.', 'site-pilot-ai' ), 403 );
 		}
 
-		// Sanitize value — preserve JSON structure if value looks like JSON.
+		// Sanitize value — decode JSON objects/arrays to PHP arrays so WordPress
+		// serializes them properly (instead of storing raw JSON strings).
 		if ( is_string( $value ) ) {
 			$trimmed = ltrim( $value );
 			if ( ( '{' === substr( $trimmed, 0, 1 ) || '[' === substr( $trimmed, 0, 1 ) ) && null !== json_decode( $value ) ) {
-				// Re-encode to ensure valid JSON without mangling structure.
-				$value = wp_json_encode( json_decode( $value, true ) );
+				// Decode JSON to a PHP array — WordPress will auto-serialize it.
+				$value = json_decode( $value, true );
 			} else {
 				$value = sanitize_text_field( $value );
 			}
@@ -2532,9 +2551,31 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		$post_types = 'any' === $type ? array( 'post', 'page' ) : array( $type );
-		$post       = get_page_by_path( $path, OBJECT, $post_types );
 
-		return $post instanceof WP_Post ? (int) $post->ID : 0;
+		// First try published posts (default behavior).
+		$post = get_page_by_path( $path, OBJECT, $post_types );
+		if ( $post instanceof WP_Post ) {
+			return (int) $post->ID;
+		}
+
+		// Also check private, draft, and pending posts (admin API key has full access).
+		$non_public_statuses = array( 'private', 'draft', 'pending' );
+		foreach ( $non_public_statuses as $status ) {
+			$found = get_posts(
+				array(
+					'name'           => basename( $path ),
+					'post_type'      => $post_types,
+					'post_status'    => $status,
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+				)
+			);
+			if ( ! empty( $found ) ) {
+				return (int) $found[0];
+			}
+		}
+
+		return 0;
 	}
 
 	/**
@@ -2702,6 +2743,18 @@ class Spai_REST_Site extends Spai_REST_API {
 			$response['theme_warning'] = $theme_warning;
 		}
 
+		// Detect if the theme has removed the wp_custom_css_cb callback from wp_head.
+		// This callback is what outputs the <style id="wp-custom-css"> tag on the frontend.
+		$css_callback_hooked = has_action( 'wp_head', 'wp_custom_css_cb' );
+		$response['wp_custom_css_cb_active'] = (bool) $css_callback_hooked;
+
+		if ( ! $css_callback_hooked ) {
+			$response['warning'] = __(
+				'CSS saved but may not render on this theme. The active theme does not have the wp_custom_css_cb callback hooked to wp_head, which means WordPress Additional CSS will not be output. Consider using Elementor Custom CSS or a code snippets plugin as an alternative.',
+				'site-pilot-ai'
+			);
+		}
+
 		// CSS rendering verification via loopback.
 		$verification = array( 'checked' => false );
 		$loopback     = wp_remote_get(
@@ -2722,8 +2775,13 @@ class Spai_REST_Site extends Spai_REST_API {
 			$verification['snippet_found']   = ! empty( $snippet ) && false !== strpos( $body, $snippet );
 			$verification['verified']        = $verification['style_tag_found'] && $verification['snippet_found'];
 
-			if ( ! $verification['verified'] ) {
+			if ( ! $verification['verified'] && $css_callback_hooked ) {
 				$verification['warning'] = __( 'CSS was saved but could not be confirmed in the rendered page. It may be overridden by theme or caching.', 'site-pilot-ai' );
+			} elseif ( ! $verification['verified'] && ! $css_callback_hooked ) {
+				$verification['warning'] = __(
+					'CSS saved but may not render on this theme. The active theme may not support WordPress Additional CSS (wp_custom_css_cb is not hooked). Consider using Elementor Custom CSS or a code snippets plugin as an alternative.',
+					'site-pilot-ai'
+				);
 			}
 		}
 

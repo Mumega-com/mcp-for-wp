@@ -118,6 +118,19 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			)
 		);
 
+		// Get rendered HTML preview.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/preview',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_elementor_preview' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Edit a single Elementor element (surgical patch).
 		register_rest_route(
 			$this->namespace,
@@ -146,6 +159,35 @@ class Spai_REST_Elementor extends Spai_REST_API {
 						),
 						'delete_settings' => array(
 							'description' => __( 'Setting keys to remove from the element.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'items'       => array( 'type' => 'string' ),
+						),
+					),
+				),
+			)
+		);
+
+		// Edit a single widget's settings by widget ID (lightweight patch).
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/edit-widget',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'edit_widget' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'widget_id'       => array(
+							'description' => __( 'Elementor widget element ID (8-char alphanumeric).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'settings'        => array(
+							'description' => __( 'Settings to merge into the widget.', 'site-pilot-ai' ),
+							'type'        => 'object',
+						),
+						'delete_settings' => array(
+							'description' => __( 'Setting keys to remove from the widget.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'items'       => array( 'type' => 'string' ),
 						),
@@ -369,6 +411,25 @@ class Spai_REST_Elementor extends Spai_REST_API {
 	}
 
 	/**
+	 * Get rendered HTML preview of Elementor content.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_elementor_preview( $request ) {
+		$this->log_activity( 'get_elementor_preview', $request );
+
+		$page_id = $request->get_param( 'id' );
+		$result  = $this->elementor->get_rendered_content( $page_id );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
+	}
+
+	/**
 	 * Set Elementor data for page.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -426,6 +487,34 @@ class Spai_REST_Elementor extends Spai_REST_API {
 	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response|WP_Error Response.
 	 */
+	/**
+	 * Edit a single widget's settings by widget ID.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function edit_widget( $request ) {
+		$this->log_activity( 'edit_elementor_widget', $request );
+
+		$page_id         = absint( $request->get_param( 'id' ) );
+		$widget_id       = (string) $request->get_param( 'widget_id' );
+		$settings        = $request->get_param( 'settings' );
+		$delete_settings = $request->get_param( 'delete_settings' );
+
+		$result = $this->elementor->edit_widget(
+			$page_id,
+			$widget_id,
+			is_array( $settings ) ? $settings : array(),
+			is_array( $delete_settings ) ? $delete_settings : array()
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
+	}
+
 	public function create_elementor_page( $request ) {
 		$this->log_activity( 'create_elementor_page', $request );
 

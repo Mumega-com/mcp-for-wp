@@ -80,6 +80,20 @@ class Spai_Integration_Manager {
 				),
 			),
 		),
+		'google_indexing' => array(
+			'name'        => 'Google Indexing API',
+			'url'         => 'https://console.cloud.google.com/apis/credentials',
+			'key_prefix'  => '',
+			'tier'        => 'pro',
+			'description' => 'Submit URLs to Google for indexing via the Indexing API. Requires a service account with Indexing API access.',
+			'fields'      => array(
+				'service_account_json' => array(
+					'label'       => 'Service Account JSON',
+					'type'        => 'textarea',
+					'placeholder' => 'Paste your Google service account JSON key',
+				),
+			),
+		),
 	);
 
 	/**
@@ -94,6 +108,7 @@ class Spai_Integration_Manager {
 		'tts'              => array( 'elevenlabs' ),
 		'stock_photos'     => array( 'pexels' ),
 		'screenshots'      => array( 'screenshot' ),
+		'indexing'          => array( 'google_indexing' ),
 	);
 
 	/**
@@ -268,6 +283,11 @@ class Spai_Integration_Manager {
 			return $this->test_screenshot_provider();
 		}
 
+		// Google Indexing uses multi-field config with its own test logic.
+		if ( 'google_indexing' === $provider ) {
+			return $this->test_google_indexing_provider();
+		}
+
 		$key = $this->get_provider_key( $provider );
 		if ( false === $key ) {
 			return array(
@@ -350,6 +370,33 @@ class Spai_Integration_Manager {
 		if ( is_array( $data ) && isset( $data['screenshot'] ) ) {
 			$data['screenshot']['last_tested'] = current_time( 'mysql' );
 			$data['screenshot']['test_status'] = $result['success'] ? 'ok' : 'failed';
+			update_option( self::OPTION_NAME, $data );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Test the Google Indexing API connection.
+	 *
+	 * @return array{success: bool, message: string}
+	 */
+	private function test_google_indexing_provider() {
+		if ( ! class_exists( 'Spai_Google_Indexing' ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Google Indexing API requires the Pro version.', 'site-pilot-ai' ),
+			);
+		}
+
+		$indexing = new Spai_Google_Indexing();
+		$result   = $indexing->test_connection();
+
+		// Update test status.
+		$data = get_option( self::OPTION_NAME, array() );
+		if ( is_array( $data ) && isset( $data['google_indexing'] ) ) {
+			$data['google_indexing']['last_tested'] = current_time( 'mysql' );
+			$data['google_indexing']['test_status'] = $result['success'] ? 'ok' : 'failed';
 			update_option( self::OPTION_NAME, $data );
 		}
 

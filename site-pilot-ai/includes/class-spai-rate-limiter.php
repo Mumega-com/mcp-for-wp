@@ -90,11 +90,12 @@ class Spai_Rate_Limiter {
 	/**
 	 * Check rate limit for current request.
 	 *
-	 * @param string $identifier Unique identifier (IP or API key).
-	 * @param string $method     HTTP method (GET requests get 2x burst/minute limits).
+	 * @param string     $identifier Unique identifier (IP or API key).
+	 * @param string     $method     HTTP method (GET requests get 2x burst/minute limits).
+	 * @param array|null $key_record Optional scoped API key record with per-key rate_limits overrides.
 	 * @return bool|WP_Error True if allowed, WP_Error if rate limited.
 	 */
-	public function check_limit( $identifier = null, $method = 'POST' ) {
+	public function check_limit( $identifier = null, $method = 'POST', $key_record = null ) {
 		if ( ! $this->is_enabled() ) {
 			return true;
 		}
@@ -108,10 +109,14 @@ class Spai_Rate_Limiter {
 			return true;
 		}
 
+		// Apply per-key rate limit overrides if present.
+		$effective_limits = $this->get_effective_limits( $key_record );
+
 		// GET/HEAD/OPTIONS requests get 2x burst and minute limits (reads are non-destructive).
 		$is_read      = in_array( strtoupper( $method ), array( 'GET', 'HEAD', 'OPTIONS' ), true );
-		$burst_limit  = $is_read ? $this->settings['burst_limit'] * 2 : $this->settings['burst_limit'];
-		$minute_limit = $is_read ? $this->settings['requests_per_minute'] * 2 : $this->settings['requests_per_minute'];
+		$burst_limit  = $is_read ? $effective_limits['burst_limit'] * 2 : $effective_limits['burst_limit'];
+		$minute_limit = $is_read ? $effective_limits['requests_per_minute'] * 2 : $effective_limits['requests_per_minute'];
+		$hour_limit   = $effective_limits['requests_per_hour'];
 
 		$cache_key_minute = 'spai_rate_' . md5( $identifier . '_minute' );
 		$cache_key_hour   = 'spai_rate_' . md5( $identifier . '_hour' );
@@ -191,11 +196,11 @@ class Spai_Rate_Limiter {
 		}
 
 		// Check hour limit.
-		if ( $hour_data['count'] >= $this->settings['requests_per_hour'] ) {
+		if ( $hour_data['count'] >= $hour_limit ) {
 			$retry_after = max( 0, $hour_data['reset'] - $now );
 
 			$this->current_data = array(
-				'limit'     => $this->settings['requests_per_hour'],
+				'limit'     => $hour_limit,
 				'remaining' => 0,
 				'reset'     => $hour_data['reset'],
 				'window'    => 'hour',
@@ -207,13 +212,13 @@ class Spai_Rate_Limiter {
 				sprintf(
 					/* translators: 1: request limit per hour 2: seconds until retry */
 					__( 'Rate limit exceeded. %1$d requests per hour allowed. Try again in %2$d seconds.', 'site-pilot-ai' ),
-					$this->settings['requests_per_hour'],
+					$hour_limit,
 					$retry_after
 				),
 				array(
 					'status'           => 429,
 					'retry_after'      => $retry_after,
-					'limit'            => $this->settings['requests_per_hour'],
+					'limit'            => $hour_limit,
 					'remaining'        => 0,
 					'reset'            => $hour_data['reset'],
 				)
@@ -252,10 +257,12 @@ class Spai_Rate_Limiter {
 			return array();
 		}
 
+		$now = time();
+
 		$headers = array(
 			'X-RateLimit-Limit'     => $this->current_data['limit'],
 			'X-RateLimit-Remaining' => max( 0, $this->current_data['remaining'] ),
-			'X-RateLimit-Reset'     => $this->current_data['reset'],
+			'X-RateLimit-Reset'     => max( 0, $this->current_data['reset'] - $now ),
 		);
 
 		if ( isset( $this->current_data['retry_after'] ) && $this->current_data['remaining'] <= 0 ) {
@@ -478,6 +485,52 @@ class Spai_Rate_Limiter {
 	 */
 	private function get_burst_window() {
 		return 10;
+	}
+
+	/**
+	 * Get effective rate limits, applying per-key overrides if present.
+	 *
+	 * Scoped API keys stored in the `spai_scoped_api_keys` option may include
+	 * an optional `rate_limits` field, e.g. {"burst": 50, "per_minute": 120, "per_hour": 2000}.
+	 * These values override the global defaults for that specific key.
+	 *
+	 * @param array|null $key_record Scoped API key record (or null for defaults).
+	 * @return array Effective limits with keys: burst_limit, requests_per_minute, requests_per_hour.
+	 */
+	private function get_effective_limits( $key_record = null ) {
+		$limits = array(
+			'burst_limit'         => $this->settings['burst_limit'],
+			'requests_per_minute' => $this->settings['requests_per_minute'],
+			'requests_per_hour'   => $this->settings['requests_per_hour'],
+		);
+
+		if ( ! is_array( $key_record ) || empty( $key_record['rate_limits'] ) ) {
+			return $limits;
+		}
+
+		$overrides = $key_record['rate_limits'];
+		if ( ! is_array( $overrides ) ) {
+			return $limits;
+		}
+
+		if ( isset( $overrides['burst'] ) ) {
+			$limits['burst_limit'] = max( 1, min( 100000, (int) $overrides['burst'] ) );
+		}
+
+		if ( isset( $overrides['per_minute'] ) ) {
+			$limits['requests_per_minute'] = max( 1, min( 100000, (int) $overrides['per_minute'] ) );
+		}
+
+		if ( isset( $overrides['per_hour'] ) ) {
+			$limits['requests_per_hour'] = max( 1, min( 100000, (int) $overrides['per_hour'] ) );
+		}
+
+		// Burst cannot exceed per-minute limit.
+		if ( $limits['burst_limit'] > $limits['requests_per_minute'] ) {
+			$limits['burst_limit'] = $limits['requests_per_minute'];
+		}
+
+		return $limits;
 	}
 
 	/**

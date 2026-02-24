@@ -108,7 +108,7 @@ trait Spai_Api_Auth {
 			? 'key:' . sanitize_key( $matched_key['id'] )
 			: 'key:' . hash( 'sha256', $api_key );
 
-		$rate_limit_check = $this->check_rate_limit( $rate_identifier, $http_method );
+		$rate_limit_check = $this->check_rate_limit( $rate_identifier, $http_method, $matched_key );
 		if ( is_wp_error( $rate_limit_check ) ) {
 			return $rate_limit_check;
 		}
@@ -211,13 +211,13 @@ trait Spai_Api_Auth {
 	 * @param string $method     HTTP method (GET requests get higher limits).
 	 * @return bool|WP_Error True if allowed, error if rate limited.
 	 */
-	protected function check_rate_limit( $identifier = null, $method = 'POST' ) {
+	protected function check_rate_limit( $identifier = null, $method = 'POST', $key_record = null ) {
 		if ( ! class_exists( 'Spai_Rate_Limiter' ) ) {
 			return true;
 		}
 
 		$limiter = Spai_Rate_Limiter::get_instance();
-		return $limiter->check_limit( $identifier, $method );
+		return $limiter->check_limit( $identifier, $method, $key_record );
 	}
 
 	/**
@@ -895,6 +895,7 @@ trait Spai_Api_Auth {
 			'scopes'          => $this->sanitize_scopes( isset( $record['scopes'] ) ? (array) $record['scopes'] : array() ),
 			'role'            => $role,
 			'tool_categories' => $tool_categories,
+			'rate_limits'     => $this->sanitize_rate_limits( isset( $record['rate_limits'] ) ? $record['rate_limits'] : null ),
 			'created_at'      => isset( $record['created_at'] ) ? (string) $record['created_at'] : null,
 			'last_used_at'    => isset( $record['last_used_at'] ) ? (string) $record['last_used_at'] : null,
 			'revoked_at'      => isset( $record['revoked_at'] ) ? (string) $record['revoked_at'] : null,
@@ -907,6 +908,32 @@ trait Spai_Api_Auth {
 	 * @param array $scopes Scopes input.
 	 * @return array Sanitized scopes.
 	 */
+	/**
+	 * Sanitize per-key rate limit overrides.
+	 *
+	 * Accepts an optional array with keys: burst, per_minute, per_hour.
+	 * Returns null if no valid overrides are present, or a sanitized array.
+	 *
+	 * @param mixed $rate_limits Raw rate_limits value from key record.
+	 * @return array|null Sanitized rate limits or null.
+	 */
+	protected function sanitize_rate_limits( $rate_limits ) {
+		if ( ! is_array( $rate_limits ) ) {
+			return null;
+		}
+
+		$sanitized = array();
+		$valid_keys = array( 'burst', 'per_minute', 'per_hour' );
+
+		foreach ( $valid_keys as $key ) {
+			if ( isset( $rate_limits[ $key ] ) ) {
+				$sanitized[ $key ] = max( 1, min( 100000, (int) $rate_limits[ $key ] ) );
+			}
+		}
+
+		return empty( $sanitized ) ? null : $sanitized;
+	}
+
 	protected function sanitize_scopes( $scopes ) {
 		$allowed = array( 'read', 'write', 'admin' );
 		$scopes  = array_map( 'sanitize_key', (array) $scopes );

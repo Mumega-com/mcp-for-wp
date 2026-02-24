@@ -382,8 +382,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			),
 			200
 		);
-		$this->add_cors_headers( $response );
-		return $response;
+		return $this->prepare_mcp_response( $response );
 	}
 
 	/**
@@ -394,8 +393,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 */
 	public function handle_options( $request ) {
 		$response = new WP_REST_Response( null, 200 );
-		$this->add_cors_headers( $response );
-		return $response;
+		return $this->prepare_mcp_response( $response );
 	}
 
 	/**
@@ -438,8 +436,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			}
 
 			$rest_response = new WP_REST_Response( array_values( $responses ), 200 );
-			$this->add_cors_headers( $rest_response );
-			return $rest_response;
+			return $this->prepare_mcp_response( $rest_response );
 		}
 
 		// Single request
@@ -448,13 +445,11 @@ class Spai_REST_MCP extends Spai_REST_API {
 		if ( $response === null ) {
 			// Notification - no response
 			$rest_response = new WP_REST_Response( null, 204 );
-			$this->add_cors_headers( $rest_response );
-			return $rest_response;
+			return $this->prepare_mcp_response( $rest_response );
 		}
 
 		$rest_response = new WP_REST_Response( $response, 200 );
-		$this->add_cors_headers( $rest_response );
-		return $rest_response;
+		return $this->prepare_mcp_response( $rest_response );
 	}
 
 	/**
@@ -1110,8 +1105,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			$this->jsonrpc_error( $id, $code, $message ),
 			200 // JSON-RPC errors return 200 with error in body
 		);
-		$this->add_cors_headers( $response );
-		return $response;
+		return $this->prepare_mcp_response( $response );
 	}
 
 	/**
@@ -1119,6 +1113,38 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 *
 	 * @param WP_REST_Response $response Response object.
 	 */
+	/**
+	 * Prepare MCP response with proper headers.
+	 *
+	 * Ensures correct Content-Type, no-cache headers, rate limit headers,
+	 * and cleans any output buffering to prevent SSE/content-type interference.
+	 *
+	 * @param WP_REST_Response $response Response object.
+	 * @return WP_REST_Response Prepared response.
+	 */
+	private function prepare_mcp_response( $response ) {
+		// Clean any output buffering that might interfere with content-type.
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+
+		// Force correct content type for JSON-RPC responses.
+		$response->header( 'Content-Type', 'application/json; charset=UTF-8' );
+
+		// Prevent caching of API responses.
+		$response->header( 'Cache-Control', 'no-cache, no-store, must-revalidate' );
+		$response->header( 'Pragma', 'no-cache' );
+		$response->header( 'Expires', '0' );
+
+		// Add rate limit headers.
+		$this->add_rate_limit_headers( $response );
+
+		// Add CORS headers.
+		$this->add_cors_headers( $response );
+
+		return $response;
+	}
+
 	private function add_cors_headers( $response ) {
 		// Use configured allowed origins; fall back to site URL only.
 		$settings = get_option( 'spai_settings', array() );

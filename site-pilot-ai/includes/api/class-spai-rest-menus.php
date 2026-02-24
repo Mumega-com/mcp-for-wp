@@ -237,6 +237,56 @@ class Spai_REST_Menus extends Spai_REST_API {
 			)
 		);
 
+		// Update/delete a menu item without menu_id (auto-resolve menu).
+		register_rest_route(
+			$this->namespace,
+			'/menus/items/(?P<item_id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_menu_item_auto' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'title'       => array(
+							'description' => __( 'Menu item label.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'url'         => array(
+							'description' => __( 'URL (for custom links).', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'parent_id'   => array(
+							'description' => __( 'Parent menu item ID.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'position'    => array(
+							'description' => __( 'Menu order position.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'classes'     => array(
+							'description' => __( 'CSS classes.', 'site-pilot-ai' ),
+							'type'        => 'array',
+							'items'       => array( 'type' => 'string' ),
+						),
+						'target'      => array(
+							'description' => __( 'Link target: _blank or _self.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'enum'        => array( '_blank', '_self' ),
+						),
+						'description' => array(
+							'description' => __( 'Item description or tooltip.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_menu_item_auto' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Bulk reorder menu items.
 		register_rest_route(
 			$this->namespace,
@@ -896,6 +946,80 @@ class Spai_REST_Menus extends Spai_REST_API {
 				'errors'  => $errors,
 			)
 		);
+	}
+
+	/**
+	 * Resolve menu ID from a nav_menu_item post ID.
+	 *
+	 * @param int $item_id Menu item (post) ID.
+	 * @return int|WP_Error Menu term ID or error.
+	 */
+	private function resolve_menu_for_item( $item_id ) {
+		$item_id = absint( $item_id );
+
+		$existing = get_post( $item_id );
+		if ( ! $existing || 'nav_menu_item' !== $existing->post_type ) {
+			return new WP_Error(
+				'item_not_found',
+				__( 'Menu item not found.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$menus = wp_get_object_terms( $item_id, 'nav_menu' );
+		if ( is_wp_error( $menus ) || empty( $menus ) ) {
+			return new WP_Error(
+				'menu_not_found',
+				__( 'Could not determine which menu this item belongs to.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		return (int) $menus[0]->term_id;
+	}
+
+	/**
+	 * Update a menu item without requiring menu_id (auto-resolve).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function update_menu_item_auto( $request ) {
+		$item_id = absint( $request->get_param( 'item_id' ) );
+		$menu_id = $this->resolve_menu_for_item( $item_id );
+
+		if ( is_wp_error( $menu_id ) ) {
+			return $this->error_response(
+				$menu_id->get_error_code(),
+				$menu_id->get_error_message(),
+				$menu_id->get_error_data()['status'] ?? 404
+			);
+		}
+
+		$request->set_param( 'menu_id', $menu_id );
+		return $this->update_menu_item( $request );
+	}
+
+	/**
+	 * Delete a menu item without requiring menu_id (auto-resolve).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function delete_menu_item_auto( $request ) {
+		$item_id = absint( $request->get_param( 'item_id' ) );
+		$menu_id = $this->resolve_menu_for_item( $item_id );
+
+		if ( is_wp_error( $menu_id ) ) {
+			return $this->error_response(
+				$menu_id->get_error_code(),
+				$menu_id->get_error_message(),
+				$menu_id->get_error_data()['status'] ?? 404
+			);
+		}
+
+		$request->set_param( 'menu_id', $menu_id );
+		return $this->delete_menu_item( $request );
 	}
 
 	/**

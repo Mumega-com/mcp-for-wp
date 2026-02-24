@@ -513,11 +513,36 @@ class Spai_Elementor_Basic {
 			// Delete compiled CSS meta to force regeneration on next page load.
 			delete_post_meta( $page_id, '_elementor_css' );
 
+			// Load the Elementor document fresh so it reads the updated meta.
+			if ( method_exists( \Elementor\Plugin::$instance, 'documents' ) ) {
+				// Flush the documents cache so the document is re-read from DB.
+				$documents_manager = \Elementor\Plugin::$instance->documents;
+				if ( method_exists( $documents_manager, 'get' ) ) {
+					// Force a fresh document instance by clearing internal cache.
+					wp_cache_delete( $page_id, 'post_meta' );
+					clean_post_cache( $page_id );
+
+					$document = $documents_manager->get( $page_id, false );
+					if ( $document ) {
+						$save_debug['document_loaded'] = true;
+					}
+				}
+			}
+
 			// Regenerate CSS for this page.
 			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 				$css_file->update();
 				$save_debug['css_regenerated'] = true;
+			}
+
+			// Also regenerate the global CSS (kit styles) if applicable.
+			if ( class_exists( '\Elementor\Core\Files\CSS\Global_CSS' ) ) {
+				$global_css = \Elementor\Core\Files\CSS\Global_CSS::create( 'global.css' );
+				if ( $global_css ) {
+					$global_css->update();
+					$save_debug['global_css_regenerated'] = true;
+				}
 			}
 		}
 
@@ -873,6 +898,7 @@ class Spai_Elementor_Basic {
 					$el['settings'] = array();
 				}
 				if ( empty( $el['settings']['isInner'] ) ) {
+					$warnings[] = "{$path}: nested container missing isInner flag (renders as e-parent instead of e-child, breaking flex layout)";
 					$el['settings']['isInner'] = true;
 					$fixes[]  = "{$path}: auto-set isInner for child container";
 					$changed  = true;
@@ -1236,7 +1262,9 @@ class Spai_Elementor_Basic {
 			$css_path = $css_dir . 'post-' . $page_id . '.css';
 			$css_size = file_exists( $css_path ) ? filesize( $css_path ) : 0;
 
-			return array(
+			$has_elementor_data = ! empty( get_post_meta( $page_id, '_elementor_data', true ) );
+
+			$result = array(
 				'success'  => true,
 				'page_id'  => $page_id,
 				'title'    => get_the_title( $page_id ),
@@ -1244,10 +1272,25 @@ class Spai_Elementor_Basic {
 				'force'    => $force,
 				'css_file' => 'post-' . $page_id . '.css',
 				'css_size' => $css_size,
-				'message'  => 'css_regenerated' === $method
-					? __( 'CSS regenerated for page.', 'site-pilot-ai' )
-					: __( 'Elementor cache cleared (document not found, CSS will regenerate on next page load).', 'site-pilot-ai' ),
 			);
+
+			if ( 'css_regenerated' === $method ) {
+				$result['regenerated'] = array( $page_id );
+				$result['skipped']     = array();
+				$result['message']     = __( 'CSS regenerated for page.', 'site-pilot-ai' );
+			} else {
+				$result['regenerated'] = array();
+				$reason = ! $has_elementor_data ? 'no_elementor_data' : 'document_not_found';
+				$result['skipped']     = array(
+					array(
+						'page_id' => $page_id,
+						'reason'  => $reason,
+					),
+				);
+				$result['message'] = __( 'Elementor cache cleared (document not found, CSS will regenerate on next page load).', 'site-pilot-ai' );
+			}
+
+			return $result;
 		}
 
 		// Full site CSS regeneration — find all Elementor posts first.
@@ -1313,26 +1356,39 @@ class Spai_Elementor_Basic {
 			}
 		}
 
+		// Regenerate the global Elementor kit CSS.
+		$global_kit_regenerated = false;
+		if ( method_exists( $plugin, 'kits_manager' ) ) {
+			$kit_id = $plugin->kits_manager->get_active_id();
+			if ( $kit_id ) {
+				try {
+					$kit_css = \Elementor\Core\Files\CSS\Post::create( $kit_id );
+					$kit_css->update();
+					$global_kit_regenerated = true;
+				} catch ( \Exception $e ) {
+					// Kit CSS regeneration failed — not critical.
+					$global_kit_regenerated = false;
+				}
+			}
+		}
+
 		$result = array(
-			'success'           => true,
-			'force'             => $force,
-			'pages_found'       => count( $elementor_posts ),
-			'pages_regenerated' => count( $regenerated ),
-			'pages'             => $regenerated,
-			'message'           => sprintf(
-				/* translators: 1: regenerated count 2: total found */
-				__( 'CSS regenerated for %1$d of %2$d Elementor pages. Global cache cleared.', 'site-pilot-ai' ),
+			'success'                => true,
+			'force'                  => $force,
+			'global_kit_regenerated' => $global_kit_regenerated,
+			'pages_found'            => count( $elementor_posts ),
+			'pages_regenerated'      => count( $regenerated ),
+			'pages_skipped'          => $skipped,
+			'pages_failed'           => $failed,
+			'pages'                  => $regenerated,
+			'message'                => sprintf(
+				/* translators: 1: regenerated count 2: total found 3: skipped count */
+				__( 'CSS regenerated for %1$d of %2$d Elementor pages (%3$d skipped). Global cache cleared.', 'site-pilot-ai' ),
 				count( $regenerated ),
-				count( $elementor_posts )
+				count( $elementor_posts ),
+				count( $skipped )
 			),
 		);
-
-		if ( ! empty( $skipped ) ) {
-			$result['pages_skipped'] = $skipped;
-		}
-		if ( ! empty( $failed ) ) {
-			$result['pages_failed'] = $failed;
-		}
 
 		return $result;
 	}
@@ -1509,6 +1565,166 @@ class Spai_Elementor_Basic {
 	}
 
 	/**
+	 * Edit a single widget's settings by widget ID.
+	 *
+	 * Lightweight alternative to edit_section that targets widgets specifically.
+	 * Loads current elementor_data, finds the widget by its 8-char ID, merges
+	 * new settings, and saves the updated data.
+	 *
+	 * @param int    $page_id   Page/post ID.
+	 * @param string $widget_id The 8-char Elementor element ID of the widget.
+	 * @param array  $settings  Settings to merge into the widget.
+	 * @param array  $delete_settings Optional setting keys to remove.
+	 * @return array|WP_Error Result with the modified widget, or error.
+	 */
+	public function edit_widget( $page_id, $widget_id, $settings, $delete_settings = array() ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error(
+				'elementor_not_active',
+				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$page = $this->validate_post( $page_id );
+		if ( is_wp_error( $page ) ) {
+			return $page;
+		}
+
+		if ( empty( $widget_id ) ) {
+			return new WP_Error(
+				'missing_widget_id',
+				__( 'widget_id is required.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( empty( $settings ) && empty( $delete_settings ) ) {
+			return new WP_Error(
+				'no_changes',
+				__( 'No settings or delete_settings provided.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$elementor_data = get_post_meta( $page_id, '_elementor_data', true );
+		if ( empty( $elementor_data ) ) {
+			return new WP_Error(
+				'no_elementor_data',
+				__( 'This page has no Elementor data.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$elements = json_decode( $elementor_data, true );
+		if ( ! is_array( $elements ) ) {
+			return new WP_Error(
+				'invalid_elementor_data',
+				__( 'Elementor data is not valid JSON.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// Find widget by ID.
+		$found_path = '';
+		$found      =& $this->find_element_by_id( $elements, (string) $widget_id, $found_path );
+
+		if ( null === $found ) {
+			return new WP_Error(
+				'widget_not_found',
+				sprintf(
+					/* translators: %s: widget ID */
+					__( 'No element with ID "%s" found in the Elementor tree.', 'site-pilot-ai' ),
+					$widget_id
+				),
+				array( 'status' => 404 )
+			);
+		}
+
+		// Verify it is actually a widget.
+		$el_type = isset( $found['elType'] ) ? $found['elType'] : '';
+		if ( 'widget' !== $el_type ) {
+			return new WP_Error(
+				'not_a_widget',
+				sprintf(
+					/* translators: 1: element ID, 2: actual elType */
+					__( 'Element "%1$s" is a %2$s, not a widget. Use wp_edit_section for non-widget elements.', 'site-pilot-ai' ),
+					$widget_id,
+					$el_type
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Apply settings merge.
+		$changes = array();
+		if ( ! isset( $found['settings'] ) || ! is_array( $found['settings'] ) ) {
+			$found['settings'] = array();
+		}
+
+		if ( ! empty( $settings ) && is_array( $settings ) ) {
+			foreach ( $settings as $key => $value ) {
+				$found['settings'][ $key ] = $value;
+				$changes[] = "set {$key}";
+			}
+		}
+
+		// Delete settings.
+		if ( ! empty( $delete_settings ) && is_array( $delete_settings ) ) {
+			foreach ( $delete_settings as $key ) {
+				if ( isset( $found['settings'][ $key ] ) ) {
+					unset( $found['settings'][ $key ] );
+					$changes[] = "removed {$key}";
+				}
+			}
+		}
+
+		// Save back.
+		$elementor_json = wp_json_encode( $elements );
+
+		// Run validation/fixes.
+		$validation = $this->validate_and_fix_elements( $elementor_json );
+
+		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+
+		// Regenerate CSS.
+		delete_post_meta( $page_id, '_elementor_css' );
+		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+			$css_file->update();
+		}
+
+		// Purge caches.
+		$this->purge_page_cache( $page_id );
+
+		// Re-read the widget to return its final state.
+		$saved_data     = get_post_meta( $page_id, '_elementor_data', true );
+		$saved_elements = json_decode( $saved_data, true );
+		$saved_widget   = $this->find_element_by_id_readonly( $saved_elements, (string) $widget_id );
+
+		$result = array(
+			'success'     => true,
+			'page_id'     => $page_id,
+			'widget_id'   => $widget_id,
+			'widget_type' => isset( $found['widgetType'] ) ? $found['widgetType'] : null,
+			'path'        => $found_path,
+			'changes'     => $changes,
+			'widget'      => $saved_widget ? $saved_widget : $found,
+			'edit_url'    => admin_url( "post.php?post={$page_id}&action=elementor" ),
+		);
+
+		$all_warnings = array_merge(
+			isset( $validation['warnings'] ) ? $validation['warnings'] : array(),
+			isset( $validation['fixes'] ) ? $validation['fixes'] : array()
+		);
+		if ( ! empty( $all_warnings ) ) {
+			$result['warnings'] = $all_warnings;
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Find an element by ID recursively (returns reference).
 	 *
 	 * @param array  &$elements Element tree (by reference for modification).
@@ -1643,4 +1859,78 @@ class Spai_Elementor_Basic {
 		}
 		return null;
 	}
+
+	/**
+	 * Get rendered HTML content for an Elementor page.
+	 *
+	 * Uses Elementor's frontend builder to render the page content to HTML,
+	 * without the full page template/header/footer.
+	 *
+	 * @since 1.1.22
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array|WP_Error Rendered content data or error.
+	 */
+	public function get_rendered_content( $post_id ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error(
+				'elementor_not_active',
+				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$post = $this->validate_post( $post_id );
+		if ( is_wp_error( $post ) ) {
+			return $post;
+		}
+
+		if ( ! class_exists( '\Elementor\Plugin' ) ) {
+			return new WP_Error(
+				'elementor_not_loaded',
+				__( 'Elementor plugin class not available.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// Check if the post has Elementor data.
+		$elementor_data = get_post_meta( $post_id, '_elementor_data', true );
+		if ( empty( $elementor_data ) ) {
+			return new WP_Error(
+				'no_elementor_data',
+				__( 'This page has no Elementor data.', 'site-pilot-ai' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// Use Elementor's frontend to render the content.
+		$frontend = \Elementor\Plugin::$instance->frontend;
+		if ( ! $frontend ) {
+			return new WP_Error(
+				'frontend_not_available',
+				__( 'Elementor frontend renderer not available.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// Render the builder content (with CSS inline).
+		$html = $frontend->get_builder_content( $post_id, true );
+
+		if ( empty( $html ) ) {
+			return array(
+				'post_id' => $post_id,
+				'title'   => get_the_title( $post_id ),
+				'html'    => '',
+				'message' => __( 'Elementor returned empty HTML. The page may need to be saved in the Elementor editor first.', 'site-pilot-ai' ),
+			);
+		}
+
+		return array(
+			'post_id'     => $post_id,
+			'title'       => get_the_title( $post_id ),
+			'html'        => $html,
+			'html_length' => strlen( $html ),
+		);
+	}
+
 }

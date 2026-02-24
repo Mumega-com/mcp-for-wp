@@ -168,6 +168,9 @@ class Spai_SEO {
 	 * @return array SEO data.
 	 */
 	private function get_yoast_data( $post_id ) {
+		$noindex_raw  = get_post_meta( $post_id, '_yoast_wpseo_meta-robots-noindex', true );
+		$nofollow_raw = get_post_meta( $post_id, '_yoast_wpseo_meta-robots-nofollow', true );
+
 		return array(
 			'plugin'          => 'yoast',
 			'title'           => get_post_meta( $post_id, '_yoast_wpseo_title', true ),
@@ -180,8 +183,10 @@ class Spai_SEO {
 			'twitter_title'   => get_post_meta( $post_id, '_yoast_wpseo_twitter-title', true ),
 			'twitter_description' => get_post_meta( $post_id, '_yoast_wpseo_twitter-description', true ),
 			'twitter_image'   => get_post_meta( $post_id, '_yoast_wpseo_twitter-image', true ),
-			'robots_index'    => get_post_meta( $post_id, '_yoast_wpseo_meta-robots-noindex', true ),
-			'robots_follow'   => get_post_meta( $post_id, '_yoast_wpseo_meta-robots-nofollow', true ),
+			'noindex'         => ( '1' === $noindex_raw ),
+			'nofollow'        => ( '1' === $nofollow_raw ),
+			'robots_index'    => $noindex_raw,
+			'robots_follow'   => $nofollow_raw,
 			'schema_type'     => get_post_meta( $post_id, '_yoast_wpseo_schema_page_type', true ),
 			'cornerstone'     => get_post_meta( $post_id, '_yoast_wpseo_is_cornerstone', true ),
 		);
@@ -195,6 +200,16 @@ class Spai_SEO {
 	 * @return array Updated data.
 	 */
 	private function set_yoast_data( $post_id, $data ) {
+		// Normalize aliases: noindex/nofollow -> robots_noindex/robots_nofollow.
+		if ( array_key_exists( 'noindex', $data ) && ! array_key_exists( 'robots_noindex', $data ) ) {
+			$data['robots_noindex'] = $data['noindex'];
+			unset( $data['noindex'] );
+		}
+		if ( array_key_exists( 'nofollow', $data ) && ! array_key_exists( 'robots_nofollow', $data ) ) {
+			$data['robots_nofollow'] = $data['nofollow'];
+			unset( $data['nofollow'] );
+		}
+
 		$meta_map = array(
 			'title'           => '_yoast_wpseo_title',
 			'description'     => '_yoast_wpseo_metadesc',
@@ -206,15 +221,25 @@ class Spai_SEO {
 			'twitter_title'   => '_yoast_wpseo_twitter-title',
 			'twitter_description' => '_yoast_wpseo_twitter-description',
 			'twitter_image'   => '_yoast_wpseo_twitter-image',
-			'robots_index'    => '_yoast_wpseo_meta-robots-noindex',
-			'robots_follow'   => '_yoast_wpseo_meta-robots-nofollow',
+			'robots_noindex'  => '_yoast_wpseo_meta-robots-noindex',
+			'robots_nofollow' => '_yoast_wpseo_meta-robots-nofollow',
 			'schema_type'     => '_yoast_wpseo_schema_page_type',
 			'cornerstone'     => '_yoast_wpseo_is_cornerstone',
 		);
 
+		// Boolean fields that map to '1' or '' in Yoast.
+		$boolean_fields = array( 'robots_noindex', 'robots_nofollow', 'cornerstone' );
+
 		foreach ( $data as $key => $value ) {
 			if ( isset( $meta_map[ $key ] ) ) {
-				if ( empty( $value ) ) {
+				// Convert booleans to Yoast format ('1' or delete).
+				if ( in_array( $key, $boolean_fields, true ) ) {
+					if ( $value && '0' !== $value ) {
+						update_post_meta( $post_id, $meta_map[ $key ], '1' );
+					} else {
+						delete_post_meta( $post_id, $meta_map[ $key ] );
+					}
+				} elseif ( empty( $value ) && ! is_numeric( $value ) ) {
 					delete_post_meta( $post_id, $meta_map[ $key ] );
 				} else {
 					update_post_meta( $post_id, $meta_map[ $key ], sanitize_text_field( $value ) );
@@ -232,6 +257,9 @@ class Spai_SEO {
 	 * @return array SEO data.
 	 */
 	private function get_rankmath_data( $post_id ) {
+		$robots = get_post_meta( $post_id, 'rank_math_robots', true );
+		$robots = is_array( $robots ) ? $robots : array();
+
 		return array(
 			'plugin'          => 'rankmath',
 			'title'           => get_post_meta( $post_id, 'rank_math_title', true ),
@@ -244,7 +272,9 @@ class Spai_SEO {
 			'twitter_title'   => get_post_meta( $post_id, 'rank_math_twitter_title', true ),
 			'twitter_description' => get_post_meta( $post_id, 'rank_math_twitter_description', true ),
 			'twitter_image'   => get_post_meta( $post_id, 'rank_math_twitter_image', true ),
-			'robots'          => get_post_meta( $post_id, 'rank_math_robots', true ),
+			'noindex'         => in_array( 'noindex', $robots, true ),
+			'nofollow'        => in_array( 'nofollow', $robots, true ),
+			'robots'          => $robots,
 			'schema_type'     => get_post_meta( $post_id, 'rank_math_rich_snippet', true ),
 			'pillar_content'  => get_post_meta( $post_id, 'rank_math_pillar_content', true ),
 			'seo_score'       => get_post_meta( $post_id, 'rank_math_seo_score', true ),
@@ -273,6 +303,26 @@ class Spai_SEO {
 			'schema_type'     => 'rank_math_rich_snippet',
 			'pillar_content'  => 'rank_math_pillar_content',
 		);
+
+		// Handle noindex/nofollow booleans by updating the robots array.
+		if ( isset( $data['noindex'] ) || isset( $data['nofollow'] ) || isset( $data['robots_noindex'] ) || isset( $data['robots_nofollow'] ) ) {
+			$robots = get_post_meta( $post_id, 'rank_math_robots', true );
+			$robots = is_array( $robots ) ? $robots : array();
+
+			$noindex  = $data['noindex'] ?? $data['robots_noindex'] ?? null;
+			$nofollow = $data['nofollow'] ?? $data['robots_nofollow'] ?? null;
+
+			if ( null !== $noindex ) {
+				$robots = array_diff( $robots, array( 'noindex', 'index' ) );
+				$robots[] = $noindex ? 'noindex' : 'index';
+			}
+			if ( null !== $nofollow ) {
+				$robots = array_diff( $robots, array( 'nofollow', 'follow' ) );
+				$robots[] = $nofollow ? 'nofollow' : 'follow';
+			}
+
+			update_post_meta( $post_id, 'rank_math_robots', array_values( array_unique( $robots ) ) );
+		}
 
 		// Handle robots separately (array).
 		if ( isset( $data['robots'] ) ) {
@@ -476,9 +526,39 @@ class Spai_SEO {
 	public function bulk_update( $updates ) {
 		$results = array();
 
+		// SEO fields that can appear at the top level of each update item.
+		$seo_fields = array(
+			'title', 'description', 'focus_keyword', 'canonical', 'canonical_url',
+			'noindex', 'nofollow', 'robots_noindex', 'robots_nofollow',
+			'og_title', 'og_description', 'og_image',
+			'twitter_title', 'twitter_description', 'twitter_image',
+		);
+
 		foreach ( $updates as $update ) {
-			$post_id = absint( $update['post_id'] );
-			$data    = $update['data'] ?? array();
+			// Accept 'id' as alias for 'post_id'.
+			if ( ! empty( $update['id'] ) && empty( $update['post_id'] ) ) {
+				$update['post_id'] = $update['id'];
+			}
+
+			// If flat SEO fields exist (no 'data' wrapper), collect them into 'data'.
+			if ( ! isset( $update['data'] ) ) {
+				$data = array();
+				foreach ( $seo_fields as $field ) {
+					if ( array_key_exists( $field, $update ) ) {
+						$data[ $field ] = $update[ $field ];
+					}
+				}
+				$update['data'] = $data;
+			}
+
+			// Normalize field aliases in data.
+			$data = $update['data'];
+			if ( isset( $data['canonical_url'] ) && ! isset( $data['canonical'] ) ) {
+				$data['canonical'] = $data['canonical_url'];
+				unset( $data['canonical_url'] );
+			}
+
+			$post_id = absint( $update['post_id'] ?? 0 );
 
 			$result = $this->update_post_seo( $post_id, $data );
 
@@ -577,5 +657,188 @@ class Spai_SEO {
 		$analysis['score'] = max( 0, $score );
 
 		return $analysis;
+	}
+
+	/**
+	 * Scan all published content for SEO issues.
+	 *
+	 * @param int $threshold Minimum word count for thin content detection.
+	 * @return array Array of posts with their SEO issues.
+	 */
+	public function scan_all( $threshold = 300 ) {
+		$threshold = max( 1, absint( $threshold ) );
+
+		$query = new WP_Query(
+			array(
+				'post_type'      => array( 'post', 'page' ),
+				'post_status'    => 'publish',
+				'posts_per_page' => 500,
+				'no_found_rows'  => true,
+				'fields'         => 'ids',
+			)
+		);
+
+		$results      = array();
+		$descriptions = array();
+
+		foreach ( $query->posts as $post_id ) {
+			$post     = get_post( $post_id );
+			$seo_data = $this->get_post_seo( $post_id );
+			$issues   = array();
+
+			// Get SEO title.
+			$seo_title = '';
+			if ( ! is_wp_error( $seo_data ) ) {
+				$seo_title = $seo_data['title'] ?? '';
+			}
+
+			if ( empty( $seo_title ) ) {
+				$issues[] = array(
+					'type'     => 'missing_title',
+					'severity' => 'high',
+					'message'  => 'Missing SEO title.',
+				);
+			}
+
+			// Check meta description.
+			$description = '';
+			if ( ! is_wp_error( $seo_data ) ) {
+				$description = $seo_data['description'] ?? '';
+			}
+
+			if ( empty( $description ) ) {
+				$issues[] = array(
+					'type'     => 'missing_description',
+					'severity' => 'high',
+					'message'  => 'Missing meta description.',
+				);
+			} else {
+				$descriptions[ $post_id ] = $description;
+			}
+
+			// Check thin content.
+			$word_count = str_word_count( wp_strip_all_tags( $post->post_content ) );
+			if ( $word_count < $threshold ) {
+				$issues[] = array(
+					'type'     => 'thin_content',
+					'severity' => 'medium',
+					'message'  => sprintf( 'Thin content: %d words (threshold: %d).', $word_count, $threshold ),
+				);
+			}
+
+			// Check focus keyword.
+			$focus_keyword = '';
+			if ( ! is_wp_error( $seo_data ) ) {
+				$focus_keyword = $seo_data['focus_keyword'] ?? '';
+			}
+
+			if ( empty( $focus_keyword ) ) {
+				$issues[] = array(
+					'type'     => 'missing_focus_keyword',
+					'severity' => 'low',
+					'message'  => 'No focus keyword set.',
+				);
+			}
+
+			// Check noindex.
+			$noindex = false;
+			if ( ! is_wp_error( $seo_data ) ) {
+				$noindex = ! empty( $seo_data['robots_index'] ) || ! empty( $seo_data['robots_noindex'] );
+			}
+
+			if ( $noindex ) {
+				$issues[] = array(
+					'type'     => 'noindex',
+					'severity' => 'medium',
+					'message'  => 'Page is set to noindex.',
+				);
+			}
+
+			$results[] = array(
+				'post_id'   => $post_id,
+				'url'       => get_permalink( $post_id ),
+				'title'     => $post->post_title,
+				'post_type' => $post->post_type,
+				'issues'    => $issues,
+			);
+		}
+
+		// Second pass: detect duplicate descriptions.
+		$desc_counts = array_count_values( $descriptions );
+		foreach ( $results as &$result ) {
+			$pid = $result['post_id'];
+			if ( isset( $descriptions[ $pid ] ) && $desc_counts[ $descriptions[ $pid ] ] > 1 ) {
+				$result['issues'][] = array(
+					'type'     => 'duplicate_description',
+					'severity' => 'medium',
+					'message'  => 'Duplicate meta description shared with other posts.',
+				);
+			}
+		}
+		unset( $result );
+
+		return $results;
+	}
+
+	/**
+	 * Export complete SEO metadata report for all published content.
+	 *
+	 * @param string|null $post_type Optional. Filter by post type.
+	 * @param int         $limit     Maximum number of posts to return.
+	 * @return array Array of posts with their SEO metadata.
+	 */
+	public function export_report( $post_type = null, $limit = 100 ) {
+		$limit = min( max( 1, absint( $limit ) ), 500 );
+
+		$query_args = array(
+			'post_status'    => 'publish',
+			'posts_per_page' => $limit,
+			'no_found_rows'  => true,
+			'fields'         => 'ids',
+		);
+
+		if ( ! empty( $post_type ) ) {
+			$query_args['post_type'] = sanitize_text_field( $post_type );
+		} else {
+			$query_args['post_type'] = array( 'post', 'page' );
+		}
+
+		$query   = new WP_Query( $query_args );
+		$results = array();
+
+		foreach ( $query->posts as $post_id ) {
+			$post     = get_post( $post_id );
+			$seo_data = $this->get_post_seo( $post_id );
+
+			$seo_title       = '';
+			$description     = '';
+			$focus_keyword   = '';
+			$canonical       = '';
+			$noindex         = false;
+
+			if ( ! is_wp_error( $seo_data ) ) {
+				$seo_title     = $seo_data['title'] ?? '';
+				$description   = $seo_data['description'] ?? '';
+				$focus_keyword = $seo_data['focus_keyword'] ?? '';
+				$canonical     = $seo_data['canonical'] ?? '';
+				$noindex       = ! empty( $seo_data['robots_index'] ) || ! empty( $seo_data['robots_noindex'] );
+			}
+
+			$results[] = array(
+				'post_id'          => $post_id,
+				'url'              => get_permalink( $post_id ),
+				'title'            => $post->post_title,
+				'post_type'        => $post->post_type,
+				'word_count'       => str_word_count( wp_strip_all_tags( $post->post_content ) ),
+				'seo_title'        => $seo_title,
+				'meta_description' => $description,
+				'focus_keyword'    => $focus_keyword,
+				'noindex'          => $noindex,
+				'canonical'        => $canonical,
+				'last_modified'    => $post->post_modified,
+			);
+		}
+
+		return $results;
 	}
 }

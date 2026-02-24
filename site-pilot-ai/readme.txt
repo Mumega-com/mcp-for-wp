@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.21
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,31 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.2.0 =
+* Fix: wp_bulk_seo "Post not found" for valid page IDs — fixed parameter extraction and ID normalization
+* Fix: wp_set_seo noindex now correctly writes to Yoast/RankMath meta with boolean handling
+* Fix: wp_get_seo noindex now reads Yoast/RankMath robots meta correctly
+* Fix: wp_set_seo OG and Twitter card fields now persist to Yoast/RankMath meta
+* Fix: wp_update_menu_item auto-resolves menu_id if omitted (no more misleading 404)
+* Fix: wp_fetch now returns private/draft/pending pages with admin API key
+* Fix: wp_create_post accepts elementor_snippet and elementor_library post types
+* Fix: wp_set_post_meta JSON values stored as PHP arrays (not JSON strings), blocks Elementor internal keys
+* Fix: Elementor child containers auto-get isInner:true with validation warning
+* Fix: Improved Elementor CSS regeneration after API saves (cache flush, fresh document load)
+* Fix: wp_set_custom_css detects themes that strip Additional CSS and warns
+* Fix: SSE content-type errors fixed with explicit headers and output buffer cleanup on MCP responses
+* Fix: Rate limit headers (X-RateLimit-Remaining, X-RateLimit-Reset) now included on all MCP responses
+* New: wp_edit_widget — lightweight widget editing by ID without full elementor_data round-trip
+* New: wp_preview_elementor — get rendered HTML output of Elementor content
+* New: wp_seo_scan — bulk SEO audit across all published content
+* New: wp_seo_report — export complete SEO metadata inventory
+* New: wp_submit_to_google_index / wp_google_index_status — Google Indexing API integration
+* New: wp_get_widget_schema already existed (confirmed)
+* New: wp_update_term already existed (confirmed)
+* Enhancement: Per-key rate limit overrides (burst, per_minute, per_hour) for scoped API keys
+* Enhancement: wp_regenerate_elementor_css now reports skipped pages with reasons and force flag
+* Enhancement: Google Indexing API added as integration provider with service account JSON field
 
 = 1.1.21 =
 * New: Feedback relay — all customer feedback automatically creates GitHub issues for plugin authors

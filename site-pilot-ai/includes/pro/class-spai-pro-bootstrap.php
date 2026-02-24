@@ -52,6 +52,7 @@ class Spai_Pro_Bootstrap {
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-woocommerce.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-multilang.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-page-builder.php';
+		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-google-indexing.php';
 
 		// REST controllers.
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-elementor-pro.php';
@@ -64,6 +65,7 @@ class Spai_Pro_Bootstrap {
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-themes.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-woocommerce.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-multilang.php';
+		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-google-indexing.php';
 
 		$elementor_pro = new Spai_Elementor_Pro();
 		$seo           = new Spai_SEO();
@@ -75,6 +77,7 @@ class Spai_Pro_Bootstrap {
 		$themes        = new Spai_Themes();
 		$woocommerce   = new Spai_WooCommerce();
 		$multilang     = new Spai_Multilang();
+		$google_indexing = new Spai_Google_Indexing();
 
 		( new Spai_REST_Elementor_Pro( $elementor_pro ) )->register_routes();
 		( new Spai_REST_SEO( $seo ) )->register_routes();
@@ -86,6 +89,7 @@ class Spai_Pro_Bootstrap {
 		( new Spai_REST_Themes( $themes ) )->register_routes();
 		( new Spai_REST_WooCommerce( $woocommerce ) )->register_routes();
 		( new Spai_REST_Multilang( $multilang ) )->register_routes();
+		( new Spai_REST_Google_Indexing( $google_indexing ) )->register_routes();
 	}
 
 	/**
