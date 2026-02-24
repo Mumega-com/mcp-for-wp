@@ -210,6 +210,64 @@ After GitHub release:
 4. Mark as stable (not beta)
 5. Trigger update for licensed users
 
+### Freemius Opt-in Requirement (Critical)
+
+**WordPress will NOT show plugin updates unless the site has completed the Freemius opt-in.**
+
+The Freemius SDK (`_fetch_latest_version` in `class-freemius.php`) exits early if `is_registered() === false`:
+```php
+if ( ! $this->is_registered() || ! is_essentials_tracking_allowed() ) {
+    return false; // No update check performed
+}
+```
+
+**If a site skipped the opt-in ("Skip" on first activation), updates are permanently blocked.**
+
+#### Fix for blocked sites
+
+**Option A: WP Admin UI**
+Visit Site Pilot AI in WP admin. If a Freemius consent banner appears, click "Allow & Continue".
+
+**Option B: Reset anonymous flag via WP-CLI**
+```bash
+wp eval '
+$accounts = get_option("fs_accounts", []);
+if (isset($accounts["plugin_data"]["site-pilot-ai"]["is_anonymous"])) {
+    unset($accounts["plugin_data"]["site-pilot-ai"]["is_anonymous"]);
+    update_option("fs_accounts", $accounts);
+    echo "Cleared. Visit WP admin to re-trigger opt-in.\n";
+}
+' --allow-root
+```
+
+**Option C: Reset via PHP (for Docker / no WP-CLI)**
+```bash
+docker exec CONTAINER bash -c 'php -r "
+require_once \"/var/www/html/wp-load.php\";
+\$a = get_option(\"fs_accounts\", []);
+unset(\$a[\"plugin_data\"][\"site-pilot-ai\"][\"is_anonymous\"]);
+update_option(\"fs_accounts\", \$a);
+echo \"Done. Visit WP admin to complete opt-in.\\n\";
+"'
+```
+
+#### Verify update checks work
+```bash
+wp eval '
+require_once ABSPATH . "wp-content/plugins/site-pilot-ai/site-pilot-ai.php";
+$fs = spa_fs();
+echo "Registered: " . ($fs->is_registered() ? "YES" : "NO") . "\n";
+echo "Anonymous: " . ($fs->is_anonymous() ? "YES" : "NO") . "\n";
+$update = $fs->get_update(false, false);
+echo "Update: " . (is_object($update) ? "v" . $update->version : "none/up-to-date") . "\n";
+' --allow-root
+```
+
+#### Post-deploy checklist
+- [ ] Run `release_freemius.sh` with `--release-mode released`
+- [ ] Verify on a registered site that update appears in WP admin > Updates
+- [ ] If update doesn't appear, check `fs_accounts` for `is_anonymous` flag
+
 ## Rollback Procedure
 
 If release has critical issues:

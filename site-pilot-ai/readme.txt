@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.17
+Stable tag: 1.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,15 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.18 =
+* New: Screenshot Worker integration card on Integrations page — configure Cloudflare Browser Rendering for high-quality screenshots
+* New: MCP tools for integration management — `wp_integrations_status`, `wp_configure_integration`, `wp_test_integration`, `wp_remove_integration`
+* New: AI assistants can now set up integrations (screenshot worker, Pexels, OpenAI, etc.) directly via MCP instead of requiring WP admin access
+* New: Multi-field provider support in Integration Manager for providers that need URL + token (not just an API key)
+* Enhancement: Screenshot class reads from Integration Manager first, falls back to legacy spai_settings
+* Enhancement: Integrations admin page now shows provider descriptions and setup guides
+* Moved: Screenshot Worker configuration from Settings > General to Integrations page
 
 = 1.1.17 =
 * New: Role-based API keys — assign Author, Designer, Editor, Admin, or Custom roles to control which MCP tool categories each key can access

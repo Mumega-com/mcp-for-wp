@@ -66,6 +66,67 @@ class Spai_REST_Integrations extends Spai_REST_API {
 			)
 		);
 
+		// Integration management (MCP tools).
+		register_rest_route(
+			$this->namespace,
+			'/integrations/status',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'integrations_status' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/integrations/configure',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'configure_integration' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'provider' => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+					'key'      => array( 'type' => 'string' ),
+					'config'   => array( 'type' => 'object' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/integrations/test',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'test_integration' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'provider' => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/integrations/remove',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'remove_integration' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => array(
+					'provider' => array(
+						'required' => true,
+						'type'     => 'string',
+					),
+				),
+			)
+		);
+
 		// Stock photos (free tier).
 		register_rest_route(
 			$this->namespace,
@@ -332,6 +393,122 @@ class Spai_REST_Integrations extends Spai_REST_API {
 
 		$this->log_activity( 'integrations_test', $request, $result );
 		return $this->success_response( $result );
+	}
+
+	/**
+	 * Get all integrations and their status (for MCP tool).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function integrations_status( $request ) {
+		$manager   = Spai_Integration_Manager::get_instance();
+		$providers = $manager->get_available_providers();
+		$this->log_activity( 'integrations_status', $request );
+		return $this->success_response( $providers );
+	}
+
+	/**
+	 * Configure an integration (for MCP tool).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function configure_integration( $request ) {
+		$provider = sanitize_key( $request->get_param( 'provider' ) );
+		$manager  = Spai_Integration_Manager::get_instance();
+
+		if ( ! isset( Spai_Integration_Manager::PROVIDERS[ $provider ] ) ) {
+			return $this->error_response(
+				'unknown_provider',
+				sprintf( 'Unknown provider: %s. Available: %s', $provider, implode( ', ', array_keys( Spai_Integration_Manager::PROVIDERS ) ) ),
+				400
+			);
+		}
+
+		if ( $manager->is_multi_field_provider( $provider ) ) {
+			$config = $request->get_param( 'config' );
+			if ( empty( $config ) || ! is_array( $config ) ) {
+				$fields = Spai_Integration_Manager::PROVIDERS[ $provider ]['fields'];
+				return $this->error_response(
+					'config_required',
+					sprintf( 'This provider requires a config object with fields: %s', implode( ', ', array_keys( $fields ) ) ),
+					400
+				);
+			}
+			$sanitized = array_map( 'sanitize_text_field', $config );
+			if ( isset( $sanitized['url'] ) ) {
+				$sanitized['url'] = esc_url_raw( $sanitized['url'] );
+			}
+			$result = $manager->set_provider_config( $provider, $sanitized );
+		} else {
+			$key = $request->get_param( 'key' );
+			if ( empty( $key ) ) {
+				return $this->error_response( 'key_required', 'API key is required for this provider.', 400 );
+			}
+			$result = $manager->set_provider_key( $provider, sanitize_text_field( $key ) );
+		}
+
+		if ( ! $result ) {
+			return $this->error_response( 'configure_failed', 'Failed to save configuration.' );
+		}
+
+		$this->log_activity( 'integrations_configure', $request, array( 'provider' => $provider ) );
+		return $this->success_response( array(
+			'success'  => true,
+			'provider' => $provider,
+			'message'  => sprintf( '%s configured successfully.', Spai_Integration_Manager::PROVIDERS[ $provider ]['name'] ),
+		) );
+	}
+
+	/**
+	 * Test an integration connection (for MCP tool).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function test_integration( $request ) {
+		$provider = sanitize_key( $request->get_param( 'provider' ) );
+		$manager  = Spai_Integration_Manager::get_instance();
+
+		if ( ! isset( Spai_Integration_Manager::PROVIDERS[ $provider ] ) ) {
+			return $this->error_response(
+				'unknown_provider',
+				sprintf( 'Unknown provider: %s', $provider ),
+				400
+			);
+		}
+
+		$result = $manager->test_provider( $provider );
+		$this->log_activity( 'integrations_test_mcp', $request, $result );
+		return $this->success_response( $result );
+	}
+
+	/**
+	 * Remove an integration (for MCP tool).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function remove_integration( $request ) {
+		$provider = sanitize_key( $request->get_param( 'provider' ) );
+		$manager  = Spai_Integration_Manager::get_instance();
+
+		if ( ! isset( Spai_Integration_Manager::PROVIDERS[ $provider ] ) ) {
+			return $this->error_response(
+				'unknown_provider',
+				sprintf( 'Unknown provider: %s', $provider ),
+				400
+			);
+		}
+
+		$manager->remove_provider_key( $provider );
+		$this->log_activity( 'integrations_remove_mcp', $request, array( 'provider' => $provider ) );
+		return $this->success_response( array(
+			'success'  => true,
+			'provider' => $provider,
+			'message'  => sprintf( '%s configuration removed.', Spai_Integration_Manager::PROVIDERS[ $provider ]['name'] ),
+		) );
 	}
 
 	/**

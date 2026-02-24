@@ -96,19 +96,35 @@ class Spai_Integrations_Admin {
 		}
 
 		$provider = isset( $_POST['provider'] ) ? sanitize_key( wp_unslash( $_POST['provider'] ) ) : '';
-		$key      = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
-
-		if ( empty( $provider ) || empty( $key ) ) {
-			wp_send_json_error( array( 'message' => __( 'Provider and key are required.', 'site-pilot-ai' ) ) );
+		if ( empty( $provider ) ) {
+			wp_send_json_error( array( 'message' => __( 'Provider is required.', 'site-pilot-ai' ) ) );
 		}
 
 		$manager = Spai_Integration_Manager::get_instance();
-		$result  = $manager->set_provider_key( $provider, $key );
+
+		// Multi-field providers (e.g. screenshot worker: URL + token).
+		if ( $manager->is_multi_field_provider( $provider ) ) {
+			$config = isset( $_POST['config'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['config'] ) ) : array();
+			if ( empty( $config ) ) {
+				wp_send_json_error( array( 'message' => __( 'Configuration fields are required.', 'site-pilot-ai' ) ) );
+			}
+			// Sanitize URL field specifically.
+			if ( isset( $config['url'] ) ) {
+				$config['url'] = esc_url_raw( $config['url'] );
+			}
+			$result = $manager->set_provider_config( $provider, $config );
+		} else {
+			$key = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
+			if ( empty( $key ) ) {
+				wp_send_json_error( array( 'message' => __( 'API key is required.', 'site-pilot-ai' ) ) );
+			}
+			$result = $manager->set_provider_key( $provider, $key );
+		}
 
 		if ( $result ) {
-			wp_send_json_success( array( 'message' => __( 'API key saved.', 'site-pilot-ai' ) ) );
+			wp_send_json_success( array( 'message' => __( 'Configuration saved.', 'site-pilot-ai' ) ) );
 		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to save API key.', 'site-pilot-ai' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Failed to save configuration.', 'site-pilot-ai' ) ) );
 		}
 	}
 

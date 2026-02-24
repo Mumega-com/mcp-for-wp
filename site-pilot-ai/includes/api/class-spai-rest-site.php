@@ -76,6 +76,24 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// Plugin settings (GET and PUT).
+		register_rest_route(
+			$this->namespace,
+			'/plugin-settings',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_plugin_settings' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_plugin_settings' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Options (front page, blog page, reading settings)
 		register_rest_route(
 			$this->namespace,
@@ -1194,6 +1212,133 @@ class Spai_REST_Site extends Spai_REST_API {
 				'settings' => $this->get_settings( $request )->get_data(),
 			)
 		);
+	}
+
+	/**
+	 * Get Site Pilot AI plugin settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_plugin_settings( $request ) {
+		$this->log_activity( 'get_plugin_settings', $request );
+
+		$settings = get_option( 'spai_settings', array() );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		// Redact sensitive values — show presence but not the value.
+		$safe = array();
+		$secret_keys = array( 'oauth_client_secret_hash', 'github_token', 'screenshot_worker_token' );
+		foreach ( $settings as $key => $value ) {
+			if ( in_array( $key, $secret_keys, true ) ) {
+				$safe[ $key ] = ! empty( $value ) ? '***configured***' : '';
+			} else {
+				$safe[ $key ] = $value;
+			}
+		}
+
+		return $this->success_response( $safe );
+	}
+
+	/**
+	 * Update Site Pilot AI plugin settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function update_plugin_settings( $request ) {
+		$this->log_activity( 'update_plugin_settings', $request );
+
+		$params = $request->get_json_params();
+		if ( empty( $params ) ) {
+			// Fallback to body params (for internal MCP dispatch).
+			$params = $request->get_body_params();
+		}
+		if ( empty( $params ) ) {
+			return $this->error_response(
+				'missing_settings',
+				__( 'Settings data is required.', 'site-pilot-ai' ),
+				400
+			);
+		}
+
+		$current = get_option( 'spai_settings', array() );
+		if ( ! is_array( $current ) ) {
+			$current = array();
+		}
+
+		$updated = array();
+
+		// Allowed keys with their sanitization rules.
+		$allowed = array(
+			'enable_logging'          => 'bool',
+			'log_retention_days'      => 'int:1:365',
+			'log_store_response_data' => 'bool',
+			'allowed_origins'         => 'text',
+			'oauth_enabled'           => 'bool',
+			'oauth_client_id'         => 'key',
+			'oauth_client_secret'     => 'secret',
+			'oauth_token_ttl'         => 'int:60:86400',
+			'alerts_enabled'          => 'bool',
+			'alerts_window_minutes'   => 'int:1:60',
+			'alerts_cooldown_minutes' => 'int:1:1440',
+			'alerts_5xx_threshold'    => 'int:1:10000',
+			'alerts_auth_threshold'   => 'int:1:10000',
+			'github_token'            => 'secret',
+			'github_repo'             => 'text',
+		);
+
+		foreach ( $allowed as $key => $rule ) {
+			if ( ! isset( $params[ $key ] ) ) {
+				continue;
+			}
+
+			$value = $params[ $key ];
+
+			if ( 'bool' === $rule ) {
+				$current[ $key ] = (bool) $value;
+			} elseif ( 'text' === $rule ) {
+				$current[ $key ] = sanitize_text_field( (string) $value );
+			} elseif ( 'key' === $rule ) {
+				$current[ $key ] = sanitize_key( (string) $value );
+			} elseif ( 'secret' === $rule ) {
+				$val = trim( (string) $value );
+				if ( '' !== $val ) {
+					if ( 'oauth_client_secret' === $key ) {
+						$current['oauth_client_secret_hash'] = wp_hash_password( $val );
+					} else {
+						$current[ $key ] = sanitize_text_field( $val );
+					}
+				}
+			} elseif ( 0 === strpos( $rule, 'int:' ) ) {
+				$parts = explode( ':', $rule );
+				$min   = (int) $parts[1];
+				$max   = (int) $parts[2];
+				$current[ $key ] = max( $min, min( $max, absint( $value ) ) );
+			}
+
+			$updated[] = $key;
+		}
+
+		if ( empty( $updated ) ) {
+			return $this->error_response(
+				'no_valid_settings',
+				sprintf(
+					'No valid settings provided. Allowed keys: %s',
+					implode( ', ', array_keys( $allowed ) )
+				),
+				400
+			);
+		}
+
+		update_option( 'spai_settings', $current );
+
+		return $this->success_response( array(
+			'updated' => $updated,
+			'message' => sprintf( 'Updated %d setting(s).', count( $updated ) ),
+		) );
 	}
 
 	/**

@@ -34,13 +34,28 @@ class Spai_Screenshot {
 	}
 
 	/**
-	 * Get the Cloudflare screenshot worker URL from settings.
+	 * Get the Cloudflare screenshot worker config.
+	 *
+	 * Checks Integration Manager first, then falls back to legacy spai_settings.
 	 *
 	 * @return array|false Array with 'url' and 'token' keys, or false if not configured.
 	 */
 	private function get_cf_worker_config() {
-		$settings = get_option( 'spai_settings', array() );
-		$worker_url = isset( $settings['screenshot_worker_url'] ) ? $settings['screenshot_worker_url'] : '';
+		// Try Integration Manager first.
+		if ( class_exists( 'Spai_Integration_Manager' ) ) {
+			$manager = Spai_Integration_Manager::get_instance();
+			$config  = $manager->get_provider_config( 'screenshot' );
+			if ( $config && ! empty( $config['url'] ) ) {
+				return array(
+					'url'   => rtrim( $config['url'], '/' ),
+					'token' => isset( $config['token'] ) ? $config['token'] : '',
+				);
+			}
+		}
+
+		// Fallback to legacy spai_settings for backward compatibility.
+		$settings     = get_option( 'spai_settings', array() );
+		$worker_url   = isset( $settings['screenshot_worker_url'] ) ? $settings['screenshot_worker_url'] : '';
 		$worker_token = isset( $settings['screenshot_worker_token'] ) ? $settings['screenshot_worker_token'] : '';
 
 		if ( empty( $worker_url ) ) {

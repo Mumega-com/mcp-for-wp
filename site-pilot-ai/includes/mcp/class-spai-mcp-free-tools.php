@@ -157,6 +157,16 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_rate_limit'       => 'admin',
 			'wp_reset_rate_limit'        => 'admin',
 
+			// Plugin Settings
+			'wp_get_plugin_settings'     => 'admin',
+			'wp_update_plugin_settings'  => 'admin',
+
+			// Integrations
+			'wp_integrations_status'     => 'admin',
+			'wp_configure_integration'   => 'admin',
+			'wp_test_integration'        => 'admin',
+			'wp_remove_integration'      => 'admin',
+
 			// Webhooks
 			'wp_list_webhook_events'     => 'webhooks',
 			'wp_list_webhooks'           => 'webhooks',
@@ -1433,6 +1443,134 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Plugin Settings
+		$tools[] = $this->define_tool(
+			'wp_get_plugin_settings',
+			'Get Site Pilot AI plugin settings. Returns: activity logging config, CORS allowed origins, OAuth settings, alert thresholds, GitHub integration status. Secrets are redacted. Use wp_update_plugin_settings to change values.',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_plugin_settings',
+			'Update Site Pilot AI plugin settings. Pass only the keys you want to change. Allowed keys: enable_logging (bool), log_retention_days (1-365), log_store_response_data (bool), allowed_origins (comma-separated URLs), oauth_enabled (bool), oauth_client_id, oauth_client_secret, oauth_token_ttl (60-86400 seconds), alerts_enabled (bool), alerts_window_minutes (1-60), alerts_cooldown_minutes (1-1440), alerts_5xx_threshold (1-10000), alerts_auth_threshold (1-10000), github_token, github_repo (owner/repo).',
+			array(
+				'enable_logging' => array(
+					'type'        => 'boolean',
+					'description' => 'Enable API activity logging',
+				),
+				'log_retention_days' => array(
+					'type'        => 'number',
+					'description' => 'Days to retain activity logs (1-365)',
+				),
+				'log_store_response_data' => array(
+					'type'        => 'boolean',
+					'description' => 'Store response data in activity logs',
+				),
+				'allowed_origins' => array(
+					'type'        => 'string',
+					'description' => 'CORS allowed origins (comma-separated URLs, or empty for default)',
+				),
+				'oauth_enabled' => array(
+					'type'        => 'boolean',
+					'description' => 'Enable OAuth client credentials flow',
+				),
+				'oauth_client_id' => array(
+					'type'        => 'string',
+					'description' => 'OAuth client ID',
+				),
+				'oauth_client_secret' => array(
+					'type'        => 'string',
+					'description' => 'OAuth client secret (write-only, stored hashed)',
+				),
+				'oauth_token_ttl' => array(
+					'type'        => 'number',
+					'description' => 'OAuth token TTL in seconds (60-86400)',
+				),
+				'alerts_enabled' => array(
+					'type'        => 'boolean',
+					'description' => 'Enable error/auth failure alerts',
+				),
+				'alerts_window_minutes' => array(
+					'type'        => 'number',
+					'description' => 'Alert detection window in minutes (1-60)',
+				),
+				'alerts_cooldown_minutes' => array(
+					'type'        => 'number',
+					'description' => 'Cooldown between repeated alerts (1-1440)',
+				),
+				'alerts_5xx_threshold' => array(
+					'type'        => 'number',
+					'description' => 'Server errors in window before alert fires (1-10000)',
+				),
+				'alerts_auth_threshold' => array(
+					'type'        => 'number',
+					'description' => 'Auth failures in window before alert fires (1-10000)',
+				),
+				'github_token' => array(
+					'type'        => 'string',
+					'description' => 'GitHub personal access token (write-only)',
+				),
+				'github_repo' => array(
+					'type'        => 'string',
+					'description' => 'GitHub repository in owner/repo format',
+				),
+			)
+		);
+
+		// Integration Management
+		$tools[] = $this->define_tool(
+			'wp_integrations_status',
+			'List all available integrations and their configuration status. Shows which providers are configured, when they were set up, and their last test result. Providers include: pexels (stock photos), openai/gemini (AI image gen, vision), elevenlabs (TTS), screenshot (Cloudflare Browser Rendering for screenshots).',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_configure_integration',
+			'Configure a third-party integration. For single-key providers (pexels, openai, gemini, elevenlabs), pass "key". For multi-field providers like "screenshot", pass "config" with {url, token}. Example: provider="screenshot", config={"url":"https://spai-screenshot.example.workers.dev","token":"your-token"}',
+			array(
+				'provider' => array(
+					'type'        => 'string',
+					'description' => 'Provider slug: pexels, openai, gemini, elevenlabs, screenshot',
+					'required'    => true,
+					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot' ),
+				),
+				'key' => array(
+					'type'        => 'string',
+					'description' => 'API key (for single-key providers: pexels, openai, gemini, elevenlabs)',
+				),
+				'config' => array(
+					'type'        => 'object',
+					'description' => 'Configuration object for multi-field providers. For screenshot: {"url": "worker_url", "token": "auth_token"}',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_test_integration',
+			'Test a configured integration connection. For screenshot, sends a test request to the worker. For API providers, validates the API key.',
+			array(
+				'provider' => array(
+					'type'        => 'string',
+					'description' => 'Provider slug to test',
+					'required'    => true,
+					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot' ),
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_remove_integration',
+			'Remove a configured integration. Deletes the stored API key or configuration for the provider.',
+			array(
+				'provider' => array(
+					'type'        => 'string',
+					'description' => 'Provider slug to remove',
+					'required'    => true,
+					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot' ),
+				),
+			)
+		);
+
 		// Webhooks
 		$tools[] = $this->define_tool(
 			'wp_list_webhook_events',
@@ -2176,6 +2314,34 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_reset_rate_limit'     => array(
 				'method' => 'POST',
 				'route'  => '/rate-limit/reset',
+			),
+
+			// Plugin Settings
+			'wp_get_plugin_settings'     => array(
+				'method' => 'GET',
+				'route'  => '/plugin-settings',
+			),
+			'wp_update_plugin_settings'  => array(
+				'method' => 'PUT',
+				'route'  => '/plugin-settings',
+			),
+
+			// Integrations
+			'wp_integrations_status'     => array(
+				'method' => 'GET',
+				'route'  => '/integrations/status',
+			),
+			'wp_configure_integration'   => array(
+				'method' => 'POST',
+				'route'  => '/integrations/configure',
+			),
+			'wp_test_integration'        => array(
+				'method' => 'POST',
+				'route'  => '/integrations/test',
+			),
+			'wp_remove_integration'      => array(
+				'method' => 'POST',
+				'route'  => '/integrations/remove',
 			),
 
 			// Webhooks
