@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.18
+Stable tag: 1.1.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.19 =
+* Fix: All plugin URLs now use correct domain (sitepilotai.mumega.com) with HTTPS
+* Fix: Report a Bug link now points to GitHub issues instead of non-existent page
+* Fix: Screenshot Worker docs link corrected
 
 = 1.1.18 =
 * New: Screenshot Worker integration card on Integrations page — configure Cloudflare Browser Rendering for high-quality screenshots
