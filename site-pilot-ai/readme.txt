@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.4.1 =
+* Fix: MCP create/update endpoints now receive parameters correctly (get_json_params → get_params fallback)
+* Fix: Affects LearnPress, WooCommerce, Events, Themes, and Site Settings create/update operations via MCP
+* Fix: All pro REST controllers now compatible with internal MCP dispatch
 
 = 1.4.0 =
 * New: LearnPress LMS integration — 18 MCP tools for courses, lessons, quizzes, curriculum, categories, and LMS stats

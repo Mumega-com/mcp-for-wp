@@ -151,7 +151,7 @@ class Spai_REST_Events extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_event( $request ) {
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->create_event( $data );
 
@@ -170,7 +170,7 @@ class Spai_REST_Events extends Spai_REST_API {
 	 */
 	public function update_event( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->update_event( $id, $data );
 

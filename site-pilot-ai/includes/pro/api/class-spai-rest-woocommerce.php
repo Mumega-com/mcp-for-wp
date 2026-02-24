@@ -580,7 +580,7 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_product( $request ) {
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->create_product( $data );
 
@@ -599,7 +599,7 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 	 */
 	public function update_product( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->update_product( $id, $data );
 
@@ -648,7 +648,7 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_product_category( $request ) {
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->create_product_category( $data );
 
@@ -667,7 +667,7 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 	 */
 	public function update_product_category( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->update_product_category( $id, $data );
 

@@ -203,7 +203,7 @@ class Spai_REST_Themes extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error Response.
 	 */
 	public function update_settings( $request ) {
-		$settings = $request->get_json_params();
+		$settings = $request->get_params();
 
 		if ( empty( $settings ) ) {
 			return $this->error_response(
@@ -304,7 +304,7 @@ class Spai_REST_Themes extends Spai_REST_API {
 			return $this->error_response( $check->get_error_code(), $check->get_error_message(), 400 );
 		}
 
-		$colors = $request->get_json_params();
+		$colors = $request->get_params();
 
 		if ( empty( $colors ) ) {
 			return $this->error_response(
@@ -371,7 +371,7 @@ class Spai_REST_Themes extends Spai_REST_API {
 			return $this->error_response( $check->get_error_code(), $check->get_error_message(), 400 );
 		}
 
-		$typography = $request->get_json_params();
+		$typography = $request->get_params();
 
 		if ( empty( $typography ) ) {
 			return $this->error_response(

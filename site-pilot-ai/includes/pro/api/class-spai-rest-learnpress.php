@@ -351,7 +351,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_course( $request ) {
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->create_course( $data );
 
@@ -370,7 +370,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 */
 	public function update_course( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->update_course( $id, $data );
 
@@ -405,7 +405,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 */
 	public function set_curriculum( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$sections = isset( $data['sections'] ) ? $data['sections'] : array();
 
@@ -442,7 +442,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_lesson( $request ) {
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->create_lesson( $data );
 
@@ -461,7 +461,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 */
 	public function update_lesson( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->update_lesson( $id, $data );
 
@@ -496,7 +496,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_quiz( $request ) {
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->create_quiz( $data );
 
@@ -515,7 +515,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 */
 	public function update_quiz( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->update_quiz( $id, $data );
 
@@ -558,7 +558,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_category( $request ) {
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->create_course_category( $data );
 
@@ -577,7 +577,7 @@ class Spai_REST_LearnPress extends Spai_REST_API {
 	 */
 	public function update_category( $request ) {
 		$id   = $request->get_param( 'id' );
-		$data = $request->get_json_params();
+		$data = $request->get_params();
 
 		$result = $this->handler->update_course_category( $id, $data );
 

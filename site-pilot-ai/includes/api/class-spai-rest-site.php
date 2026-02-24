@@ -1497,6 +1497,9 @@ class Spai_REST_Site extends Spai_REST_API {
 		$this->log_activity( 'update_settings', $request );
 
 		$params = $request->get_json_params();
+		if ( empty( $params ) ) {
+			$params = $request->get_params();
+		}
 
 		if ( empty( $params ) ) {
 			return $this->error_response(
@@ -1725,6 +1728,9 @@ class Spai_REST_Site extends Spai_REST_API {
 		$this->log_activity( 'update_options', $request );
 
 		$params = $request->get_json_params();
+		if ( empty( $params ) ) {
+			$params = $request->get_params();
+		}
 
 		if ( empty( $params ) ) {
 			return $this->error_response(
@@ -1856,6 +1862,9 @@ class Spai_REST_Site extends Spai_REST_API {
 		$this->log_activity( 'update_favicon', $request );
 
 		$params = $request->get_json_params();
+		if ( empty( $params ) ) {
+			$params = $request->get_params();
+		}
 
 		// Option 1: Set by media ID
 		if ( ! empty( $params['id'] ) ) {
