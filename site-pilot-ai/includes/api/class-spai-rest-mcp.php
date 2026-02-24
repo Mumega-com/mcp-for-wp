@@ -524,15 +524,27 @@ class Spai_REST_MCP extends Spai_REST_API {
 			)
 		);
 
+		// Include role info so AI clients know their access constraints upfront.
+		$key_record         = $this->get_current_api_key_record();
+		$role               = $key_record && isset( $key_record['role'] ) ? $key_record['role'] : 'admin';
+		$allowed_categories = $key_record ? $this->resolve_key_tool_categories( $key_record ) : array();
+
+		$server_info = array(
+			'name'    => $this->server_name,
+			'version' => $this->server_version,
+		);
+
+		if ( 'admin' !== $role ) {
+			$server_info['role']            = $role;
+			$server_info['tool_categories'] = $allowed_categories;
+		}
+
 		return array(
 			'jsonrpc' => '2.0',
 			'id'      => $id,
 			'result'  => array(
 				'protocolVersion' => $this->protocol_version,
-				'serverInfo'      => array(
-					'name'    => $this->server_name,
-					'version' => $this->server_version,
-				),
+				'serverInfo'      => $server_info,
 				'capabilities'    => array(
 					'tools'     => (object) array(), // Empty object indicates tools are supported
 					'resources' => array(
@@ -564,6 +576,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 * Handle tools/list method.
 	 *
 	 * Supports optional category filter via params.category.
+	 * Filters tools based on the API key's role and allowed categories.
 	 *
 	 * @param mixed $id     Request ID.
 	 * @param array $params Optional request parameters.
@@ -578,6 +591,9 @@ class Spai_REST_MCP extends Spai_REST_API {
 		}
 
 		$tools = $this->tools_cache;
+
+		// Filter by API key role (tool category restrictions).
+		$tools = $this->filter_tools_by_key_role( $tools );
 
 		// Filter by category if requested.
 		$category_filter = isset( $params['category'] ) ? sanitize_key( $params['category'] ) : '';
@@ -599,6 +615,39 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'result'  => array(
 				'tools' => $tools,
 			),
+		);
+	}
+
+	/**
+	 * Filter tools list based on the current API key's role and allowed categories.
+	 *
+	 * @param array $tools Full tools list.
+	 * @return array Filtered tools list.
+	 */
+	private function filter_tools_by_key_role( $tools ) {
+		$key_record = $this->get_current_api_key_record();
+		if ( ! $key_record ) {
+			return $tools; // No key context (shouldn't happen), return all.
+		}
+
+		$allowed_categories = $this->resolve_key_tool_categories( $key_record );
+
+		// Empty = unrestricted (admin role).
+		if ( empty( $allowed_categories ) ) {
+			return $tools;
+		}
+
+		$all_categories = $this->get_all_tool_categories();
+
+		return array_values(
+			array_filter(
+				$tools,
+				function ( $tool ) use ( $allowed_categories, $all_categories ) {
+					$name     = isset( $tool['name'] ) ? $tool['name'] : '';
+					$category = isset( $all_categories[ $name ] ) ? $all_categories[ $name ] : 'site';
+					return in_array( $category, $allowed_categories, true );
+				}
+			)
 		);
 	}
 
@@ -666,6 +715,29 @@ class Spai_REST_MCP extends Spai_REST_API {
 
 		if ( ! isset( $tool_map[ $tool_name ] ) ) {
 			return $this->jsonrpc_error( $id, -32602, 'Unknown tool: ' . $tool_name );
+		}
+
+		// Check if the API key's role allows this tool's category.
+		$key_record = $this->get_current_api_key_record();
+		if ( $key_record ) {
+			$allowed_categories = $this->resolve_key_tool_categories( $key_record );
+			if ( ! empty( $allowed_categories ) ) {
+				$all_categories = $this->get_all_tool_categories();
+				$tool_category  = isset( $all_categories[ $tool_name ] ) ? $all_categories[ $tool_name ] : 'site';
+				if ( ! in_array( $tool_category, $allowed_categories, true ) ) {
+					$role = isset( $key_record['role'] ) ? $key_record['role'] : 'unknown';
+					return $this->jsonrpc_error(
+						$id,
+						-32003,
+						sprintf(
+							'This API key (role: %s) does not have access to %s tools. Allowed categories: %s.',
+							$role,
+							$tool_category,
+							implode( ', ', $allowed_categories )
+						)
+					);
+				}
+			}
 		}
 
 		// Check if the tool's required plugin is installed.

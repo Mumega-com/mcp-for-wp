@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.14
+Stable tag: 1.1.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,34 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.1.17 =
+* New: Role-based API keys — assign Author, Designer, Editor, Admin, or Custom roles to control which MCP tool categories each key can access
+* New: Admin UI for role-based key management with role dropdown, category checkboxes, and role badges
+* New: MCP `initialize` response includes role and allowed tool categories for non-admin keys
+* New: MCP `tools/list` automatically filters tools based on the API key's role — AI models only see tools they can use
+* New: MCP `tools/call` enforces role restrictions — blocked tools return a clear error with allowed categories
+* New: `wp_create_api_key` tool now accepts `role` and `tool_categories` parameters
+* Enhancement: Predefined roles (Author: content/media/taxonomy, Designer: elementor/gutenberg/media/site, Editor: content/media/taxonomy/seo) for quick setup
+
+= 1.1.16 =
+* New: `wp_get_rendered_html` endpoint — fetch the rendered HTML of any page for CSS/font/meta verification (SSRF-safe, same-host only)
+* New: `wp_get_elementor_bulk` endpoint — fetch Elementor data for up to 25 pages in a single request
+* New: CSS rendering verification on `wp_set_custom_css` — loopback check confirms `<style>` tag is present in rendered output
+* New: `custom_css` parameter documented on `wp_set_elementor_globals` for kit-level CSS
+* New: Screenshot Worker setup documentation (`docs/SCREENSHOT_SETUP.md`)
+
+= 1.1.15 =
+* Fix: Auto-set `isInner: true` on child containers in nested Elementor layouts — prevents editor crashes and broken rendering from API-built pages
+* Fix: Block Elementor internal meta keys (`_elementor_data`, `_elementor_page_settings`, etc.) from `wp_set_post_meta` with helpful redirect to `/elementor/{id}` endpoint
+* Fix: JSON values in `wp_set_post_meta` are preserved instead of being mangled by `sanitize_text_field()`
+* Fix: CSS regeneration now supports `force` param — deletes existing CSS files before regenerating, with detailed per-page reporting (regenerated, skipped with reason, failed with error)
+* Fix: `elementor_snippet` post type now accepted by `wp_create_post` (whitelisted as safe non-public type)
+* New: Widget schema endpoints — `GET /elementor/widgets` lists all widget types, `GET /elementor/widgets/{type}` returns full controls schema with valid keys, types, defaults, and options
+* New: `wp_get_widget_schema` MCP tool — discover valid widget control keys before building pages (prevents silent rendering failures)
+* New: `wp_get_elementor_widgets` moved from Pro to Free tier (critical DX for all users)
+* New: `preview_url` and `css_regenerated` fields in Elementor save response
+* New: Theme compatibility warning on `wp_set_custom_css` — detects Eduma/ThimPress/Flavor themes that use their own CSS system
 
 = 1.1.14 =
 * New: Elementor dry-run/validate mode — pass `dry_run=true` to POST /elementor/{id} to validate data without saving (returns warnings and fixes)

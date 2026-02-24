@@ -36,6 +36,13 @@ class Spai_Posts {
 	 * @param string $type Requested post type.
 	 * @return string|WP_Error Sanitized type or error.
 	 */
+	/**
+	 * Non-public post types that are safe to allow through the API.
+	 *
+	 * @var array
+	 */
+	private $safe_nonpublic_types = array( 'elementor_snippet' );
+
 	private function validate_post_type( $type ) {
 		$type = sanitize_key( $type );
 
@@ -48,6 +55,10 @@ class Spai_Posts {
 		}
 
 		if ( ! in_array( $type, $this->allowed_post_types, true ) ) {
+			// Allow whitelisted non-public types.
+			if ( in_array( $type, $this->safe_nonpublic_types, true ) && post_type_exists( $type ) ) {
+				return $type;
+			}
 			// Also allow any public custom post type that isn't blocked.
 			if ( ! post_type_exists( $type ) || ! get_post_type_object( $type )->public ) {
 				return new WP_Error(

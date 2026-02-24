@@ -52,6 +52,26 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			)
 		);
 
+		// Bulk get Elementor data (register BEFORE /elementor/{id} to avoid route conflicts).
+		register_rest_route(
+			$this->namespace,
+			'/elementor/bulk',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_elementor_data_bulk' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'ids' => array(
+							'description' => __( 'Comma-separated page IDs (max 25).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
 		// Get/set page Elementor data
 		register_rest_route(
 			$this->namespace,
@@ -189,6 +209,32 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			)
 		);
 
+		// Widget schema — list all widget types.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/widgets',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_widget_schema' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Widget schema — get schema for a specific widget type.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/widgets/(?P<type>[\w-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_widget_schema' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Regenerate CSS
 		register_rest_route(
 			$this->namespace,
@@ -202,6 +248,11 @@ class Spai_REST_Elementor extends Spai_REST_API {
 						'id' => array(
 							'description' => __( 'Page ID. Omit to regenerate all site CSS.', 'site-pilot-ai' ),
 							'type'        => 'integer',
+						),
+						'force' => array(
+							'description' => __( 'Delete existing CSS files before regenerating.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+							'default'     => false,
 						),
 					),
 				),
@@ -265,6 +316,35 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
+
+		return $this->success_response( $result );
+	}
+
+	/**
+	 * Get Elementor data for multiple pages in bulk.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_elementor_data_bulk( $request ) {
+		$this->log_activity( 'get_elementor_bulk', $request );
+
+		$ids_raw = $request->get_param( 'ids' );
+		if ( empty( $ids_raw ) ) {
+			return $this->error_response( 'missing_param', __( 'ids parameter is required.', 'site-pilot-ai' ), 400 );
+		}
+
+		$page_ids = array_filter( array_map( 'absint', explode( ',', $ids_raw ) ) );
+
+		if ( count( $page_ids ) > 25 ) {
+			return $this->error_response( 'too_many_ids', __( 'Maximum 25 page IDs per request.', 'site-pilot-ai' ), 400 );
+		}
+
+		if ( empty( $page_ids ) ) {
+			return $this->error_response( 'invalid_ids', __( 'No valid page IDs provided.', 'site-pilot-ai' ), 400 );
+		}
+
+		$result = $this->elementor->get_elementor_data_bulk( $page_ids );
 
 		return $this->success_response( $result );
 	}
@@ -365,6 +445,25 @@ class Spai_REST_Elementor extends Spai_REST_API {
 	}
 
 	/**
+	 * Get widget schema (list all or schema for a specific type).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_widget_schema( $request ) {
+		$this->log_activity( 'get_widget_schema', $request );
+
+		$widget_type = $request->get_param( 'type' );
+		$result      = $this->elementor->get_widget_schema( $widget_type ? (string) $widget_type : '' );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
+	}
+
+	/**
 	 * Regenerate Elementor CSS.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -374,7 +473,8 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$this->log_activity( 'regenerate_elementor_css', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$result  = $this->elementor->regenerate_css( $page_id ? absint( $page_id ) : null );
+		$force   = (bool) $request->get_param( 'force' );
+		$result  = $this->elementor->regenerate_css( $page_id ? absint( $page_id ) : null, $force );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;

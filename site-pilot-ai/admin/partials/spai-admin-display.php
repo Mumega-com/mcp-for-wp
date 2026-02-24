@@ -268,9 +268,9 @@ if ( isset( $new_key ) && $new_key ) {
 				</span>
 			</form>
 
-			<h3><?php esc_html_e( 'Scoped API Keys', 'site-pilot-ai' ); ?></h3>
+			<h3><?php esc_html_e( 'API Keys', 'site-pilot-ai' ); ?></h3>
 			<p class="description">
-				<?php esc_html_e( 'Create additional keys with limited scopes. New keys are shown once only.', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'Create role-based keys to control which tools AI assistants can access. Each role limits the MCP tools visible to the AI.', 'site-pilot-ai' ); ?>
 			</p>
 
 			<?php if ( ! empty( $new_scoped_key['key'] ) ) : ?>
@@ -288,29 +288,114 @@ if ( isset( $new_key ) && $new_key ) {
 			</div>
 			<?php endif; ?>
 
+			<?php
+			$role_definitions = Spai_Admin::get_role_definitions();
+			$all_cat_labels   = Spai_Admin::get_all_tool_category_labels();
+			?>
+
 			<form method="post" class="spai-regenerate-form">
 				<?php wp_nonce_field( 'spai_manage_scoped_keys', 'spai_scoped_keys_nonce' ); ?>
 				<p>
 					<label for="spai_scoped_key_label"><strong><?php esc_html_e( 'Label', 'site-pilot-ai' ); ?></strong></label><br />
-					<input type="text" id="spai_scoped_key_label" name="spai_scoped_key_label" class="regular-text" placeholder="<?php esc_attr_e( 'Example: Read-only CI bot', 'site-pilot-ai' ); ?>" />
+					<input type="text" id="spai_scoped_key_label" name="spai_scoped_key_label" class="regular-text" placeholder="<?php esc_attr_e( 'Example: Content Writer Bot', 'site-pilot-ai' ); ?>" />
 				</p>
+				<p>
+					<label for="spai_scoped_key_role"><strong><?php esc_html_e( 'Role', 'site-pilot-ai' ); ?></strong></label><br />
+					<select id="spai_scoped_key_role" name="spai_scoped_key_role" style="min-width:200px;">
+						<?php foreach ( $role_definitions as $role_slug => $role_def ) : ?>
+						<option value="<?php echo esc_attr( $role_slug ); ?>"
+							data-categories="<?php echo esc_attr( wp_json_encode( $role_def['categories'] ) ); ?>">
+							<?php echo esc_html( $role_def['label'] ); ?> &mdash; <?php echo esc_html( $role_def['description'] ); ?>
+						</option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+				<div id="spai-custom-categories" style="display:none;margin-bottom:12px;">
+					<strong><?php esc_html_e( 'Tool Categories', 'site-pilot-ai' ); ?></strong><br />
+					<p class="description" style="margin-bottom:6px;">
+						<?php esc_html_e( 'Select which tool categories this key can access.', 'site-pilot-ai' ); ?>
+					</p>
+					<?php foreach ( $all_cat_labels as $cat_slug => $cat_label ) : ?>
+					<label style="display:inline-block;min-width:120px;margin:2px 0;">
+						<input type="checkbox" name="spai_scoped_key_categories[]" value="<?php echo esc_attr( $cat_slug ); ?>" class="spai-category-checkbox" />
+						<?php echo esc_html( $cat_label ); ?>
+					</label>
+					<?php endforeach; ?>
+				</div>
+				<div id="spai-role-preview" style="margin-bottom:12px;padding:8px 12px;background:#f0f0f1;border-radius:4px;display:none;">
+					<strong><?php esc_html_e( 'Access:', 'site-pilot-ai' ); ?></strong>
+					<span id="spai-role-preview-categories"></span>
+				</div>
 				<p>
 					<strong><?php esc_html_e( 'Scopes', 'site-pilot-ai' ); ?></strong><br />
 					<label><input type="checkbox" name="spai_scoped_key_scopes[]" value="read" checked /> <?php esc_html_e( 'Read', 'site-pilot-ai' ); ?></label>
 					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="write" /> <?php esc_html_e( 'Write', 'site-pilot-ai' ); ?></label>
 					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="admin" /> <?php esc_html_e( 'Admin', 'site-pilot-ai' ); ?></label>
 				</p>
-				<button type="submit" name="spai_create_scoped_key" class="button">
-					<?php esc_html_e( 'Create Scoped Key', 'site-pilot-ai' ); ?>
+				<button type="submit" name="spai_create_scoped_key" class="button button-primary">
+					<?php esc_html_e( 'Create API Key', 'site-pilot-ai' ); ?>
 				</button>
 			</form>
+
+			<script>
+			(function() {
+				var roleSelect = document.getElementById('spai_scoped_key_role');
+				var customDiv  = document.getElementById('spai-custom-categories');
+				var previewDiv = document.getElementById('spai-role-preview');
+				var previewCat = document.getElementById('spai-role-preview-categories');
+				var checkboxes = document.querySelectorAll('.spai-category-checkbox');
+				var catLabels  = <?php echo wp_json_encode( $all_cat_labels ); ?>;
+
+				function updateRoleUI() {
+					var sel  = roleSelect.options[roleSelect.selectedIndex];
+					var role = sel.value;
+					var cats = JSON.parse(sel.getAttribute('data-categories') || '[]');
+
+					if (role === 'custom') {
+						customDiv.style.display = 'block';
+						previewDiv.style.display = 'none';
+					} else if (role === 'admin') {
+						customDiv.style.display = 'none';
+						previewDiv.style.display = 'block';
+						previewCat.textContent = '<?php echo esc_js( __( 'All categories (unrestricted)', 'site-pilot-ai' ) ); ?>';
+					} else {
+						customDiv.style.display = 'none';
+						previewDiv.style.display = 'block';
+						var labels = cats.map(function(c) { return catLabels[c] || c; });
+						previewCat.textContent = labels.join(', ');
+					}
+
+					// Auto-check matching categories for preset roles.
+					if (role !== 'custom') {
+						checkboxes.forEach(function(cb) {
+							cb.checked = cats.indexOf(cb.value) !== -1;
+						});
+					}
+				}
+
+				roleSelect.addEventListener('change', updateRoleUI);
+				updateRoleUI();
+			})();
+			</script>
+
+			<?php
+			// Compute role badge colors.
+			$role_colors = array(
+				'admin'    => '#d63638',
+				'author'   => '#2271b1',
+				'designer' => '#8c5fc7',
+				'editor'   => '#00a32a',
+				'custom'   => '#996800',
+			);
+			?>
 
 			<?php if ( ! empty( $scoped_keys ) ) : ?>
 			<table class="widefat striped" style="margin-top:12px;">
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Label', 'site-pilot-ai' ); ?></th>
-						<th><?php esc_html_e( 'Scopes', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Role', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Categories', 'site-pilot-ai' ); ?></th>
 						<th><?php esc_html_e( 'Created', 'site-pilot-ai' ); ?></th>
 						<th><?php esc_html_e( 'Last Used', 'site-pilot-ai' ); ?></th>
 						<th><?php esc_html_e( 'Status', 'site-pilot-ai' ); ?></th>
@@ -318,10 +403,33 @@ if ( isset( $new_key ) && $new_key ) {
 					</tr>
 				</thead>
 				<tbody>
-					<?php foreach ( $scoped_keys as $key ) : ?>
-					<tr>
-						<td><?php echo esc_html( $key['label'] ); ?></td>
-						<td><?php echo esc_html( implode( ', ', array_map( 'strtoupper', (array) $key['scopes'] ) ) ); ?></td>
+					<?php foreach ( $scoped_keys as $key ) :
+						$key_role  = isset( $key['role'] ) ? $key['role'] : 'admin';
+						$role_def  = isset( $role_definitions[ $key_role ] ) ? $role_definitions[ $key_role ] : $role_definitions['admin'];
+						$badge_bg  = isset( $role_colors[ $key_role ] ) ? $role_colors[ $key_role ] : '#50575e';
+
+						// Resolve display categories.
+						$display_cats = array();
+						if ( 'admin' === $key_role ) {
+							$display_cats = array( __( 'All', 'site-pilot-ai' ) );
+						} elseif ( 'custom' === $key_role && ! empty( $key['tool_categories'] ) ) {
+							foreach ( $key['tool_categories'] as $cat ) {
+								$display_cats[] = isset( $all_cat_labels[ $cat ] ) ? $all_cat_labels[ $cat ] : $cat;
+							}
+						} elseif ( ! empty( $role_def['categories'] ) ) {
+							foreach ( $role_def['categories'] as $cat ) {
+								$display_cats[] = isset( $all_cat_labels[ $cat ] ) ? $all_cat_labels[ $cat ] : $cat;
+							}
+						}
+					?>
+					<tr<?php echo ! empty( $key['revoked_at'] ) ? ' style="opacity:0.5;"' : ''; ?>>
+						<td><strong><?php echo esc_html( $key['label'] ); ?></strong></td>
+						<td>
+							<span style="display:inline-block;background:<?php echo esc_attr( $badge_bg ); ?>;color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">
+								<?php echo esc_html( $role_def['label'] ); ?>
+							</span>
+						</td>
+						<td><?php echo esc_html( implode( ', ', $display_cats ) ); ?></td>
 						<td><?php echo ! empty( $key['created_at'] ) ? esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $key['created_at'] ) ) ) : '&mdash;'; ?></td>
 						<td><?php echo ! empty( $key['last_used_at'] ) ? esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $key['last_used_at'] ) ) ) : '&mdash;'; ?></td>
 						<td>

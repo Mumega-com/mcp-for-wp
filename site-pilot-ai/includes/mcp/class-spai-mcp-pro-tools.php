@@ -76,7 +76,6 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_clone_elementor_page'            => 'elementor',
 			'wp_get_elementor_globals'           => 'elementor',
 			'wp_set_elementor_globals'           => 'elementor',
-			'wp_get_elementor_widgets'           => 'elementor',
 			'wp_list_elementor_custom_code'      => 'elementor',
 			'wp_disable_elementor_custom_code'   => 'elementor',
 			'wp_enable_elementor_custom_code'    => 'elementor',
@@ -140,7 +139,6 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_clone_elementor_page'             => 'elementor',
 			'wp_get_elementor_globals'            => 'elementor',
 			'wp_set_elementor_globals'            => 'elementor',
-			'wp_get_elementor_widgets'            => 'elementor',
 			'wp_list_elementor_custom_code'       => 'elementor',
 			'wp_disable_elementor_custom_code'    => 'elementor',
 			'wp_enable_elementor_custom_code'     => 'elementor',
@@ -510,7 +508,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 
 		$pro_tools[] = $this->define_tool(
 			'wp_set_elementor_globals',
-			'Set Elementor global settings (colors, typography, button styles, etc.). Merges with existing kit settings.',
+			'Set Elementor global settings (colors, typography, button styles, kit-level CSS, etc.). Merges with existing kit settings. Use custom_css for site-wide Elementor CSS that persists independently of theme Custom CSS.',
 			array(
 				'system_colors' => array(
 					'type'        => 'array',
@@ -528,16 +526,9 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'array',
 					'description' => 'Array of custom typography definitions',
 				),
-			)
-		);
-
-		$pro_tools[] = $this->define_tool(
-			'wp_get_elementor_widgets',
-			'Get list of available Elementor widgets. Pass a widget name to get its full controls schema.',
-			array(
-				'widget' => array(
+				'custom_css' => array(
 					'type'        => 'string',
-					'description' => 'Widget type name (e.g. "heading", "image", "nav-menu") to get full controls schema. Omit to list all widgets.',
+					'description' => 'Kit-level custom CSS. Applied site-wide via Elementor (separate from WordPress Customizer CSS). Replaces any existing kit CSS.',
 				),
 			)
 		);
@@ -1012,10 +1003,6 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_set_elementor_globals'       => array(
 				'method' => 'POST',
 				'route'  => '/elementor/globals',
-			),
-			'wp_get_elementor_widgets'       => array(
-				'method' => 'GET',
-				'route'  => '/elementor/widgets',
 			),
 			'wp_list_elementor_custom_code'  => array(
 				'method' => 'GET',

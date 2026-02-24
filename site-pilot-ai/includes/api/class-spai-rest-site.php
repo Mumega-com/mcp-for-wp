@@ -692,6 +692,38 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// Rendered HTML (fetch what the browser sees).
+		register_rest_route(
+			$this->namespace,
+			'/rendered-html',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_rendered_html' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'        => array(
+							'description' => __( 'Post or page ID to fetch rendered HTML for.', 'site-pilot-ai' ),
+							'type'        => 'integer',
+						),
+						'url'       => array(
+							'description' => __( 'URL to fetch (same-host only for SSRF safety).', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'selector'  => array(
+							'description' => __( 'CSS selector to extract (tag, .class, or #id).', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'max_bytes' => array(
+							'description' => __( 'Maximum response size in bytes (default 51200, max 204800).', 'site-pilot-ai' ),
+							'type'        => 'integer',
+							'default'     => 51200,
+						),
+					),
+				),
+			)
+		);
+
 		// Single option get/update (whitelisted keys only).
 		register_rest_route(
 			$this->namespace,
@@ -1651,11 +1683,18 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		$label  = (string) $request->get_param( 'label' );
-		$scopes = $request->get_param( 'scopes' );
-		$scopes = is_array( $scopes ) ? $scopes : array();
+		$label           = (string) $request->get_param( 'label' );
+		$scopes          = $request->get_param( 'scopes' );
+		$scopes          = is_array( $scopes ) ? $scopes : array();
+		$role            = (string) $request->get_param( 'role' );
+		$tool_categories = $request->get_param( 'tool_categories' );
+		$tool_categories = is_array( $tool_categories ) ? $tool_categories : array();
 
-		$created = $this->create_scoped_api_key( $label, $scopes );
+		if ( '' === $role ) {
+			$role = 'admin';
+		}
+
+		$created = $this->create_scoped_api_key( $label, $scopes, $role, $tool_categories );
 
 		return $this->success_response(
 			array(
@@ -2019,12 +2058,22 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		if ( $this->is_blocked_meta_key( $key ) ) {
-			return $this->error_response( 'forbidden_meta_key', __( 'This meta key is not accessible via API.', 'site-pilot-ai' ), 403 );
+			$message = __( 'This meta key is not accessible via API.', 'site-pilot-ai' );
+			if ( 0 === strpos( $key, '_elementor' ) ) {
+				$message = __( 'Elementor meta keys are blocked. Use the /elementor/{id} endpoint to modify Elementor data.', 'site-pilot-ai' );
+			}
+			return $this->error_response( 'forbidden_meta_key', $message, 403 );
 		}
 
-		// Sanitize value
+		// Sanitize value — preserve JSON structure if value looks like JSON.
 		if ( is_string( $value ) ) {
-			$value = sanitize_text_field( $value );
+			$trimmed = ltrim( $value );
+			if ( ( '{' === substr( $trimmed, 0, 1 ) || '[' === substr( $trimmed, 0, 1 ) ) && null !== json_decode( $value ) ) {
+				// Re-encode to ensure valid JSON without mangling structure.
+				$value = wp_json_encode( json_decode( $value, true ) );
+			} else {
+				$value = sanitize_text_field( $value );
+			}
 		}
 
 		$result = update_post_meta( $post_id, $key, $value );
@@ -2046,11 +2095,11 @@ class Spai_REST_Site extends Spai_REST_API {
 	 * @return bool True if blocked.
 	 */
 	private function is_blocked_meta_key( $meta_key ) {
-		$blocked_prefixes = array( '_wp_', 'spai_api_key', '_edit_lock', '_edit_last' );
-		$blocked_keys     = array( '_wp_page_template', '_thumbnail_id' );
+		$blocked_prefixes = array( '_wp_', 'spai_api_key', '_edit_lock', '_edit_last', '_elementor_' );
+		$blocked_keys     = array( '_wp_page_template', '_thumbnail_id', '_elementor_data', '_elementor_page_settings', '_elementor_css', '_elementor_edit_mode' );
 
-		// Allow these specific WordPress keys
-		$allowed_keys = array( '_wp_page_template', '_thumbnail_id', '_elementor_data', '_elementor_template_type', '_elementor_version' );
+		// Allow these specific WordPress keys (non-Elementor).
+		$allowed_keys = array( '_wp_page_template', '_thumbnail_id' );
 
 		if ( in_array( $meta_key, $allowed_keys, true ) ) {
 			return false;
@@ -2478,13 +2527,64 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		return $this->success_response(
+		$response = array(
+			'css'    => $css,
+			'length' => strlen( $css ),
+			'mode'   => $mode,
+		);
+
+		// Check for themes with known custom CSS systems that may override Customizer CSS.
+		$theme = wp_get_theme();
+		$theme_name = $theme->get( 'Name' );
+		$theme_warning = null;
+
+		// Eduma / ThimPress themes use their own CSS option.
+		if ( get_option( 'thim_custom_css' ) !== false || false !== stripos( $theme_name, 'eduma' ) || false !== stripos( $theme_name, 'thimpress' ) ) {
+			$theme_warning = sprintf(
+				/* translators: %s: theme name */
+				__( "Theme '%s' may use its own CSS system (thim_custom_css). CSS saved via WordPress Customizer but may not render. Check theme settings.", 'site-pilot-ai' ),
+				$theme_name
+			);
+		} elseif ( false !== stripos( $theme_name, 'flavor' ) ) {
+			$theme_warning = sprintf(
+				/* translators: %s: theme name */
+				__( "Theme '%s' may use its own CSS system. CSS saved via WordPress Customizer but may not render. Check theme settings.", 'site-pilot-ai' ),
+				$theme_name
+			);
+		}
+
+		if ( $theme_warning ) {
+			$response['theme_warning'] = $theme_warning;
+		}
+
+		// CSS rendering verification via loopback.
+		$verification = array( 'checked' => false );
+		$loopback     = wp_remote_get(
+			home_url( '/' ),
 			array(
-				'css'    => $css,
-				'length' => strlen( $css ),
-				'mode'   => $mode,
+				'timeout'   => 5,
+				'sslverify' => false,
 			)
 		);
+
+		if ( is_wp_error( $loopback ) ) {
+			$verification['reason'] = $loopback->get_error_message();
+		} else {
+			$body = wp_remote_retrieve_body( $loopback );
+			$verification['checked']         = true;
+			$verification['style_tag_found'] = false !== strpos( $body, '<style id="wp-custom-css">' );
+			$snippet                         = substr( trim( $css ), 0, 50 );
+			$verification['snippet_found']   = ! empty( $snippet ) && false !== strpos( $body, $snippet );
+			$verification['verified']        = $verification['style_tag_found'] && $verification['snippet_found'];
+
+			if ( ! $verification['verified'] ) {
+				$verification['warning'] = __( 'CSS was saved but could not be confirmed in the rendered page. It may be overridden by theme or caching.', 'site-pilot-ai' );
+			}
+		}
+
+		$response['verification'] = $verification;
+
+		return $this->success_response( $response );
 	}
 
 	/**
@@ -2869,5 +2969,152 @@ class Spai_REST_Site extends Spai_REST_API {
 				'term_id' => $term_id,
 			)
 		);
+	}
+
+	/**
+	 * Get rendered HTML for a page or URL (same-host only).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function get_rendered_html( $request ) {
+		$this->log_activity( 'get_rendered_html', $request );
+
+		$post_id   = $request->get_param( 'id' );
+		$url       = $request->get_param( 'url' );
+		$selector  = $request->get_param( 'selector' );
+		$max_bytes = min( absint( $request->get_param( 'max_bytes' ) ?: 51200 ), 204800 );
+
+		// Resolve URL from post ID.
+		if ( $post_id ) {
+			$post = get_post( absint( $post_id ) );
+			if ( ! $post ) {
+				return $this->error_response( 'not_found', __( 'Post not found.', 'site-pilot-ai' ), 404 );
+			}
+			if ( 'publish' === $post->post_status ) {
+				$url = get_permalink( $post_id );
+			} else {
+				// Draft/pending — use Elementor preview URL or plain preview.
+				$url = add_query_arg( 'elementor-preview', $post_id, get_permalink( $post_id ) );
+			}
+		}
+
+		if ( empty( $url ) ) {
+			return $this->error_response( 'missing_param', __( 'Either id or url is required.', 'site-pilot-ai' ), 400 );
+		}
+
+		// SSRF guard: only allow same-host URLs.
+		$site_host    = wp_parse_url( home_url(), PHP_URL_HOST );
+		$request_host = wp_parse_url( $url, PHP_URL_HOST );
+
+		if ( ! $request_host || strtolower( $request_host ) !== strtolower( $site_host ) ) {
+			return $this->error_response(
+				'ssrf_blocked',
+				sprintf(
+					/* translators: %s: allowed host */
+					__( 'Only same-host URLs are allowed. Expected host: %s', 'site-pilot-ai' ),
+					$site_host
+				),
+				403
+			);
+		}
+
+		// Fetch the page.
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout'   => 15,
+				'sslverify' => false,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $this->error_response(
+				'fetch_failed',
+				$response->get_error_message(),
+				502
+			);
+		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$html        = wp_remote_retrieve_body( $response );
+
+		$selector_used  = null;
+		$selector_found = true;
+
+		// Extract by CSS selector if provided.
+		if ( $selector && $html ) {
+			$extracted = $this->extract_html_by_selector( $html, $selector );
+			if ( null !== $extracted ) {
+				$html           = $extracted;
+				$selector_used  = $selector;
+			} else {
+				$selector_found = false;
+				$selector_used  = $selector;
+			}
+		}
+
+		// Truncate if needed.
+		$truncated = false;
+		if ( strlen( $html ) > $max_bytes ) {
+			$html      = substr( $html, 0, $max_bytes );
+			$truncated = true;
+		}
+
+		return $this->success_response(
+			array(
+				'url'            => $url,
+				'status_code'    => $status_code,
+				'html'           => $html,
+				'length'         => strlen( $html ),
+				'truncated'      => $truncated,
+				'selector_used'  => $selector_used,
+				'selector_found' => $selector_found,
+			)
+		);
+	}
+
+	/**
+	 * Extract HTML content by a simple CSS selector (tag, .class, #id).
+	 *
+	 * @param string $html     Full HTML string.
+	 * @param string $selector CSS selector (tag name, .class, or #id).
+	 * @return string|null Extracted HTML or null if not found.
+	 */
+	private function extract_html_by_selector( $html, $selector ) {
+		$doc = new DOMDocument();
+		// Suppress warnings for malformed HTML.
+		$prev = libxml_use_internal_errors( true );
+		$doc->loadHTML( '<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+		libxml_use_internal_errors( $prev );
+
+		$xpath = new DOMXPath( $doc );
+
+		// Build XPath from simple CSS selector.
+		if ( '#' === $selector[0] ) {
+			// ID selector.
+			$id         = substr( $selector, 1 );
+			$xpath_expr = sprintf( '//*[@id="%s"]', $id );
+		} elseif ( '.' === $selector[0] ) {
+			// Class selector.
+			$class      = substr( $selector, 1 );
+			$xpath_expr = sprintf( '//*[contains(concat(" ", normalize-space(@class), " "), " %s ")]', $class );
+		} else {
+			// Tag selector.
+			$xpath_expr = '//' . $selector;
+		}
+
+		$nodes = $xpath->query( $xpath_expr );
+
+		if ( ! $nodes || 0 === $nodes->length ) {
+			return null;
+		}
+
+		$result = '';
+		foreach ( $nodes as $node ) {
+			$result .= $doc->saveHTML( $node );
+		}
+
+		return $result;
 	}
 }

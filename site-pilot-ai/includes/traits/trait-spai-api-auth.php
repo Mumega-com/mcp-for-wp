@@ -15,6 +15,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait Spai_Api_Auth {
 
 	/**
+	 * The matched API key record for the current request.
+	 *
+	 * Populated by verify_api_key() so downstream code (e.g. MCP controller)
+	 * can check the key's role and tool category restrictions.
+	 *
+	 * @var array|null
+	 */
+	protected $current_api_key_record = null;
+
+	/**
+	 * Get the matched API key record for the current request.
+	 *
+	 * @return array|null Key record or null if not authenticated yet.
+	 */
+	public function get_current_api_key_record() {
+		return $this->current_api_key_record;
+	}
+
+	/**
 	 * Verify API key from request.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -110,6 +129,9 @@ trait Spai_Api_Auth {
 				)
 			);
 		}
+
+		// Store the matched key for downstream use (MCP tool filtering, etc.).
+		$this->current_api_key_record = $matched_key;
 
 		if ( ! empty( $matched_key['id'] ) ) {
 			$this->touch_api_key_last_used( $matched_key['id'] );
@@ -631,24 +653,45 @@ trait Spai_Api_Auth {
 	/**
 	 * Create and store a scoped API key.
 	 *
-	 * @param string $label  Human-readable key label.
-	 * @param array  $scopes Scopes for key.
+	 * @param string $label           Human-readable key label.
+	 * @param array  $scopes          Scopes for key.
+	 * @param string $role            Role slug (admin, author, designer, editor, custom).
+	 * @param array  $tool_categories Tool category slugs (for custom role).
 	 * @return array Key creation result, including plaintext key once.
 	 */
-	public function create_scoped_api_key( $label = '', $scopes = array() ) {
+	public function create_scoped_api_key( $label = '', $scopes = array(), $role = 'admin', $tool_categories = array() ) {
 		$plain_key = $this->generate_api_key();
 		$key_id    = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'spai_', true );
 		$now       = current_time( 'mysql' );
 		$scopes    = $this->sanitize_scopes( $scopes );
+		$role      = sanitize_key( (string) $role );
+
+		// Validate role.
+		$known_roles = array_keys( self::get_role_definitions() );
+		if ( ! in_array( $role, $known_roles, true ) ) {
+			$role = 'admin';
+		}
+
+		// Sanitize tool categories.
+		$all_cats        = array_keys( self::get_all_tool_category_labels() );
+		$tool_categories = array_values( array_intersect( array_map( 'sanitize_key', (array) $tool_categories ), $all_cats ) );
+
+		// Non-admin, non-custom roles: auto-derive scopes from role categories.
+		if ( 'admin' !== $role ) {
+			// All predefined roles need at minimum read + write.
+			$scopes = array( 'read', 'write' );
+		}
 
 		$record = array(
-			'id'           => sanitize_key( (string) $key_id ),
-			'label'        => '' !== $label ? sanitize_text_field( $label ) : __( 'API Key', 'site-pilot-ai' ),
-			'hash'         => wp_hash_password( $plain_key ),
-			'scopes'       => $scopes,
-			'created_at'   => $now,
-			'last_used_at' => null,
-			'revoked_at'   => null,
+			'id'              => sanitize_key( (string) $key_id ),
+			'label'           => '' !== $label ? sanitize_text_field( $label ) : __( 'API Key', 'site-pilot-ai' ),
+			'hash'            => wp_hash_password( $plain_key ),
+			'scopes'          => $scopes,
+			'role'            => $role,
+			'tool_categories' => $tool_categories,
+			'created_at'      => $now,
+			'last_used_at'    => null,
+			'revoked_at'      => null,
 		);
 
 		$keys   = $this->get_scoped_api_keys_raw();
@@ -656,11 +699,13 @@ trait Spai_Api_Auth {
 		update_option( $this->get_scoped_api_keys_option_name(), $keys );
 
 		return array(
-			'id'         => $record['id'],
-			'label'      => $record['label'],
-			'scopes'     => $record['scopes'],
-			'created_at' => $record['created_at'],
-			'key'        => $plain_key,
+			'id'              => $record['id'],
+			'label'           => $record['label'],
+			'scopes'          => $record['scopes'],
+			'role'            => $record['role'],
+			'tool_categories' => $record['tool_categories'],
+			'created_at'      => $record['created_at'],
+			'key'             => $plain_key,
 		);
 	}
 
@@ -681,12 +726,14 @@ trait Spai_Api_Auth {
 			}
 
 			$output[] = array(
-				'id'           => $normalized['id'],
-				'label'        => $normalized['label'],
-				'scopes'       => $normalized['scopes'],
-				'created_at'   => $normalized['created_at'],
-				'last_used_at' => $normalized['last_used_at'],
-				'revoked_at'   => $normalized['revoked_at'],
+				'id'              => $normalized['id'],
+				'label'           => $normalized['label'],
+				'scopes'          => $normalized['scopes'],
+				'role'            => $normalized['role'],
+				'tool_categories' => $normalized['tool_categories'],
+				'created_at'      => $normalized['created_at'],
+				'last_used_at'    => $normalized['last_used_at'],
+				'revoked_at'      => $normalized['revoked_at'],
 			);
 		}
 
@@ -832,14 +879,25 @@ trait Spai_Api_Auth {
 	protected function normalize_api_key_record( $record ) {
 		$record = is_array( $record ) ? $record : array();
 
+		$role            = isset( $record['role'] ) ? sanitize_key( (string) $record['role'] ) : 'admin';
+		$tool_categories = isset( $record['tool_categories'] ) ? array_map( 'sanitize_key', (array) $record['tool_categories'] ) : array();
+
+		// Validate role against known definitions.
+		$known_roles = array_keys( self::get_role_definitions() );
+		if ( ! in_array( $role, $known_roles, true ) ) {
+			$role = 'admin';
+		}
+
 		return array(
-			'id'           => isset( $record['id'] ) ? sanitize_key( (string) $record['id'] ) : '',
-			'label'        => isset( $record['label'] ) ? sanitize_text_field( (string) $record['label'] ) : __( 'API Key', 'site-pilot-ai' ),
-			'hash'         => isset( $record['hash'] ) ? (string) $record['hash'] : '',
-			'scopes'       => $this->sanitize_scopes( isset( $record['scopes'] ) ? (array) $record['scopes'] : array() ),
-			'created_at'   => isset( $record['created_at'] ) ? (string) $record['created_at'] : null,
-			'last_used_at' => isset( $record['last_used_at'] ) ? (string) $record['last_used_at'] : null,
-			'revoked_at'   => isset( $record['revoked_at'] ) ? (string) $record['revoked_at'] : null,
+			'id'              => isset( $record['id'] ) ? sanitize_key( (string) $record['id'] ) : '',
+			'label'           => isset( $record['label'] ) ? sanitize_text_field( (string) $record['label'] ) : __( 'API Key', 'site-pilot-ai' ),
+			'hash'            => isset( $record['hash'] ) ? (string) $record['hash'] : '',
+			'scopes'          => $this->sanitize_scopes( isset( $record['scopes'] ) ? (array) $record['scopes'] : array() ),
+			'role'            => $role,
+			'tool_categories' => $tool_categories,
+			'created_at'      => isset( $record['created_at'] ) ? (string) $record['created_at'] : null,
+			'last_used_at'    => isset( $record['last_used_at'] ) ? (string) $record['last_used_at'] : null,
+			'revoked_at'      => isset( $record['revoked_at'] ) ? (string) $record['revoked_at'] : null,
 		);
 	}
 
@@ -876,6 +934,112 @@ trait Spai_Api_Auth {
 	 */
 	protected function get_default_api_key_scopes() {
 		return array( 'read', 'write', 'admin' );
+	}
+
+	/**
+	 * Get available role definitions.
+	 *
+	 * Each role maps to a set of tool categories the key can access.
+	 *
+	 * @return array Map of role_slug => array with 'label', 'description', 'categories'.
+	 */
+	public static function get_role_definitions() {
+		return array(
+			'admin'    => array(
+				'label'       => __( 'Admin', 'site-pilot-ai' ),
+				'description' => __( 'Full access to all tool categories.', 'site-pilot-ai' ),
+				'categories'  => array(), // Empty = all categories allowed.
+			),
+			'author'   => array(
+				'label'       => __( 'Author', 'site-pilot-ai' ),
+				'description' => __( 'Content writing — pages, posts, media, taxonomy.', 'site-pilot-ai' ),
+				'categories'  => array( 'content', 'media', 'taxonomy' ),
+			),
+			'designer' => array(
+				'label'       => __( 'Designer', 'site-pilot-ai' ),
+				'description' => __( 'Visual building — Elementor, Gutenberg, media, site settings.', 'site-pilot-ai' ),
+				'categories'  => array( 'elementor', 'gutenberg', 'media', 'site' ),
+			),
+			'editor'   => array(
+				'label'       => __( 'Editor', 'site-pilot-ai' ),
+				'description' => __( 'Content + SEO management.', 'site-pilot-ai' ),
+				'categories'  => array( 'content', 'media', 'taxonomy', 'seo' ),
+			),
+			'custom'   => array(
+				'label'       => __( 'Custom', 'site-pilot-ai' ),
+				'description' => __( 'Pick individual tool categories.', 'site-pilot-ai' ),
+				'categories'  => array(), // User-defined.
+			),
+		);
+	}
+
+	/**
+	 * Get all known tool category slugs.
+	 *
+	 * @return array Map of category_slug => label.
+	 */
+	public static function get_all_tool_category_labels() {
+		return array(
+			'content'    => __( 'Content', 'site-pilot-ai' ),
+			'media'      => __( 'Media', 'site-pilot-ai' ),
+			'taxonomy'   => __( 'Taxonomy', 'site-pilot-ai' ),
+			'elementor'  => __( 'Elementor', 'site-pilot-ai' ),
+			'gutenberg'  => __( 'Gutenberg', 'site-pilot-ai' ),
+			'seo'        => __( 'SEO', 'site-pilot-ai' ),
+			'forms'      => __( 'Forms', 'site-pilot-ai' ),
+			'site'       => __( 'Site', 'site-pilot-ai' ),
+			'admin'      => __( 'Admin', 'site-pilot-ai' ),
+			'webhooks'   => __( 'Webhooks', 'site-pilot-ai' ),
+		);
+	}
+
+	/**
+	 * Resolve allowed tool categories for a key record.
+	 *
+	 * Admin role (or keys without a role) get empty array = all allowed.
+	 *
+	 * @param array $key_record Normalized key record.
+	 * @return array Allowed category slugs, or empty for unrestricted.
+	 */
+	public function resolve_key_tool_categories( $key_record ) {
+		$role = isset( $key_record['role'] ) ? (string) $key_record['role'] : 'admin';
+
+		// Admin role or legacy keys: unrestricted.
+		if ( 'admin' === $role || '' === $role ) {
+			return array();
+		}
+
+		// Custom role: use the stored tool_categories.
+		if ( 'custom' === $role ) {
+			return isset( $key_record['tool_categories'] ) ? (array) $key_record['tool_categories'] : array();
+		}
+
+		// Predefined role: look up from definitions.
+		$roles = self::get_role_definitions();
+		if ( isset( $roles[ $role ] ) ) {
+			return $roles[ $role ]['categories'];
+		}
+
+		// Unknown role fallback: unrestricted.
+		return array();
+	}
+
+	/**
+	 * Check whether a key is allowed to access a given tool category.
+	 *
+	 * @param array  $key_record Normalized key record.
+	 * @param string $category   Tool category slug.
+	 * @return bool True if allowed.
+	 */
+	public function key_allows_category( $key_record, $category ) {
+		$allowed = $this->resolve_key_tool_categories( $key_record );
+
+		// Empty = unrestricted (admin role).
+		if ( empty( $allowed ) ) {
+			return true;
+		}
+
+		return in_array( $category, $allowed, true );
 	}
 
 	/**

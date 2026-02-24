@@ -70,6 +70,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_set_custom_css'          => 'site',
 			'wp_delete_custom_css'       => 'site',
 			'wp_get_css_length'          => 'site',
+			'wp_get_rendered_html'       => 'site',
 			'wp_list_menus'              => 'site',
 			'wp_list_menu_locations'     => 'site',
 			'wp_setup_menu'              => 'site',
@@ -132,12 +133,15 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 			// Elementor
 			'wp_get_elementor'           => 'elementor',
+			'wp_get_elementor_bulk'      => 'elementor',
 			'wp_get_elementor_summary'   => 'elementor',
 			'wp_edit_section'            => 'elementor',
 			'wp_set_elementor'           => 'elementor',
 			'wp_elementor_status'        => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
 			'wp_bulk_find_replace'       => 'elementor',
+			'wp_get_elementor_widgets'   => 'elementor',
+			'wp_get_widget_schema'       => 'elementor',
 
 			// Gutenberg
 			'wp_get_blocks'              => 'gutenberg',
@@ -176,12 +180,15 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	public function get_required_capabilities() {
 		return array(
 			'wp_get_elementor'            => 'elementor',
+			'wp_get_elementor_bulk'       => 'elementor',
 			'wp_get_elementor_summary'    => 'elementor',
 			'wp_edit_section'             => 'elementor',
 			'wp_set_elementor'            => 'elementor',
 			'wp_elementor_status'         => 'elementor',
 			'wp_regenerate_elementor_css' => 'elementor',
 			'wp_bulk_find_replace'        => 'elementor',
+			'wp_get_elementor_widgets'    => 'elementor',
+			'wp_get_widget_schema'        => 'elementor',
 			'wp_get_blocks'               => 'gutenberg',
 			'wp_set_blocks'               => 'gutenberg',
 			'wp_list_block_types'         => 'gutenberg',
@@ -311,6 +318,30 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_css_length',
 			'Get the length and line count of the Additional CSS without returning the full CSS body. Lightweight check to see if custom CSS exists.',
 			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_rendered_html',
+			'Fetch the rendered HTML of a page as the browser sees it. Useful for verifying CSS, fonts, meta tags, and actual content rendering. Supports CSS selector extraction (tag, .class, #id). Only same-host URLs allowed (SSRF-safe).',
+			array(
+				'id'        => array(
+					'type'        => 'number',
+					'description' => 'Post or page ID to fetch rendered HTML for',
+				),
+				'url'       => array(
+					'type'        => 'string',
+					'description' => 'URL to fetch (same-host only). Either id or url is required.',
+				),
+				'selector'  => array(
+					'type'        => 'string',
+					'description' => 'CSS selector to extract (e.g. "head", ".my-class", "#main")',
+				),
+				'max_bytes' => array(
+					'type'        => 'number',
+					'description' => 'Maximum response size in bytes (default 51200, max 204800)',
+					'default'     => 51200,
+				),
+			)
 		);
 
 		$tools[] = $this->define_tool(
@@ -1154,6 +1185,18 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_get_elementor_bulk',
+			'Get Elementor data for multiple pages in a single request (max 25). Returns results keyed by page ID with any errors listed separately. Useful for site audits and bulk operations.',
+			array(
+				'ids' => array(
+					'type'        => 'string',
+					'description' => 'Comma-separated page IDs (max 25), e.g. "10,20,30"',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_get_elementor_summary',
 			'Get a lightweight structural summary of Elementor page data (section types, widget types, key settings). Use this instead of wp_get_elementor when you only need to understand the page structure.',
 			array(
@@ -1227,11 +1270,39 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_regenerate_elementor_css',
-			'Regenerate Elementor CSS for a specific page or the entire site. Use after updating Elementor data via API to ensure styles are applied.',
+			'Regenerate Elementor CSS for a specific page or the entire site. Use after updating Elementor data via API to ensure styles are applied. Returns detailed per-page results: regenerated, skipped (with reason), and failed (with error). Use force=true to delete existing CSS files before regenerating.',
 			array(
 				'id' => array(
 					'type'        => 'number',
 					'description' => 'Page ID to regenerate CSS for. Omit to regenerate all site CSS.',
+				),
+				'force' => array(
+					'type'        => 'boolean',
+					'description' => 'Delete existing CSS files before regenerating (default: false)',
+					'default'     => false,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_elementor_widgets',
+			'Get list of available Elementor widgets. Pass a widget name to get its full controls schema with valid control keys, types, defaults, and options.',
+			array(
+				'widget' => array(
+					'type'        => 'string',
+					'description' => 'Widget type name (e.g. "heading", "image", "nav-menu") to get full controls schema. Omit to list all widgets.',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_widget_schema',
+			'Get the detailed controls schema for a specific Elementor widget type. Returns all valid control keys grouped by tab (content, style, advanced) with types, labels, defaults, and options. Use this to discover valid settings keys before building pages.',
+			array(
+				'widget_type' => array(
+					'type'        => 'string',
+					'description' => 'Widget type name (e.g. "heading", "image", "button")',
+					'required'    => true,
 				),
 			)
 		);
@@ -1282,15 +1353,24 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_create_api_key',
-			'Create a scoped API key and return plaintext value once',
+			'Create a role-based API key. Roles limit which MCP tool categories the key can access. Returns plaintext key once.',
 			array(
 				'label' => array(
 					'type'        => 'string',
 					'description' => 'Human-readable key label',
 				),
+				'role' => array(
+					'type'        => 'string',
+					'description' => 'Access role: admin (all tools), author (content/media/taxonomy), designer (elementor/gutenberg/media/site), editor (content/media/taxonomy/seo), custom (pick categories)',
+					'enum'        => array( 'admin', 'author', 'designer', 'editor', 'custom' ),
+				),
+				'tool_categories' => array(
+					'type'        => 'array',
+					'description' => 'Tool categories to allow (only for custom role). Options: content, media, taxonomy, elementor, gutenberg, seo, forms, site, admin, webhooks',
+				),
 				'scopes' => array(
 					'type'        => 'array',
-					'description' => 'Key scopes (read, write, admin)',
+					'description' => 'Key scopes (read, write, admin). Auto-set for non-admin roles.',
 				),
 			)
 		);
@@ -1863,6 +1943,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'GET',
 				'route'  => '/custom-css/length',
 			),
+			'wp_get_rendered_html' => array(
+				'method' => 'GET',
+				'route'  => '/rendered-html',
+			),
 			'wp_list_menus'          => array(
 				'method' => 'GET',
 				'route'  => '/menus',
@@ -2029,6 +2113,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'GET',
 				'route'  => '/elementor/{id}',
 			),
+			'wp_get_elementor_bulk'    => array(
+				'method' => 'GET',
+				'route'  => '/elementor/bulk',
+			),
 			'wp_get_elementor_summary' => array(
 				'method' => 'GET',
 				'route'  => '/elementor/{id}/summary',
@@ -2048,6 +2136,14 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_regenerate_elementor_css'  => array(
 				'method' => 'POST',
 				'route'  => '/elementor/regenerate-css',
+			),
+			'wp_get_elementor_widgets'     => array(
+				'method' => 'GET',
+				'route'  => '/elementor/widgets',
+			),
+			'wp_get_widget_schema'         => array(
+				'method' => 'GET',
+				'route'  => '/elementor/widgets/{widget_type}',
 			),
 			'wp_screenshot_url'            => array(
 				'method' => 'POST',

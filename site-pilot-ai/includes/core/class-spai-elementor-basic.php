@@ -119,6 +119,34 @@ class Spai_Elementor_Basic {
 	}
 
 	/**
+	 * Get Elementor data for multiple pages in bulk.
+	 *
+	 * @param array $page_ids Array of page IDs.
+	 * @return array Results with 'results', 'errors', and 'count' keys.
+	 */
+	public function get_elementor_data_bulk( $page_ids ) {
+		$results = array();
+		$errors  = array();
+
+		foreach ( $page_ids as $page_id ) {
+			$page_id = absint( $page_id );
+			$data    = $this->get_elementor_data( $page_id );
+
+			if ( is_wp_error( $data ) ) {
+				$errors[ $page_id ] = $data->get_error_message();
+			} else {
+				$results[ $page_id ] = $data;
+			}
+		}
+
+		return array(
+			'results' => $results,
+			'errors'  => $errors,
+			'count'   => count( $results ),
+		);
+	}
+
+	/**
 	 * Get a lightweight structural summary of Elementor data for a page.
 	 *
 	 * Returns section/container structure with widget types and key display
@@ -537,12 +565,14 @@ class Spai_Elementor_Basic {
 		}
 
 		$result = array(
-			'success'     => true,
-			'page_id'     => (string) $page_id,
-			'message'     => __( 'Elementor data updated.', 'site-pilot-ai' ),
-			'save_method' => $save_method,
-			'debug'       => $save_debug,
-			'edit_url'    => admin_url( "post.php?post={$page_id}&action=elementor" ),
+			'success'         => true,
+			'page_id'         => (string) $page_id,
+			'message'         => __( 'Elementor data updated.', 'site-pilot-ai' ),
+			'save_method'     => $save_method,
+			'preview_url'     => add_query_arg( 'elementor-preview', $page_id, get_permalink( $page_id ) ),
+			'css_regenerated' => ! empty( $save_debug['css_regenerated'] ),
+			'debug'           => $save_debug,
+			'edit_url'        => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
 
 		if ( ! empty( $all_warnings ) ) {
@@ -837,6 +867,18 @@ class Spai_Elementor_Basic {
 				}
 			}
 
+			// --- 3b. Auto-set isInner on child containers ---
+			if ( 'container' === $el_type && 'container' === $parent_type ) {
+				if ( ! isset( $el['settings'] ) || ! is_array( $el['settings'] ) ) {
+					$el['settings'] = array();
+				}
+				if ( empty( $el['settings']['isInner'] ) ) {
+					$el['settings']['isInner'] = true;
+					$fixes[]  = "{$path}: auto-set isInner for child container";
+					$changed  = true;
+				}
+			}
+
 			// --- 4. Validate widget type ---
 			if ( 'widget' === $el_type && '' !== $widget_type ) {
 				if ( ! isset( $registered_lookup[ $widget_type ] ) ) {
@@ -1036,12 +1078,103 @@ class Spai_Elementor_Basic {
 	}
 
 	/**
+	 * Get the controls schema for a specific widget type.
+	 *
+	 * @param string $widget_type Widget type name (e.g. 'heading', 'image').
+	 * @return array|WP_Error Schema data or error.
+	 */
+	public function get_widget_schema( $widget_type ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error(
+				'elementor_not_active',
+				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! class_exists( '\Elementor\Plugin' ) || empty( \Elementor\Plugin::$instance->widgets_manager ) ) {
+			return new WP_Error(
+				'elementor_not_loaded',
+				__( 'Elementor widget manager not available.', 'site-pilot-ai' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		$manager = \Elementor\Plugin::$instance->widgets_manager;
+		$types   = $manager->get_widget_types();
+
+		if ( empty( $widget_type ) ) {
+			// List all widget types.
+			$list = array();
+			foreach ( $types as $name => $widget ) {
+				$list[] = array(
+					'name'  => $name,
+					'title' => $widget->get_title(),
+					'icon'  => $widget->get_icon(),
+				);
+			}
+			return array( 'widgets' => $list, 'count' => count( $list ) );
+		}
+
+		if ( ! isset( $types[ $widget_type ] ) ) {
+			$suggestion = $this->find_closest_widget( $widget_type, array_keys( $types ) );
+			$msg        = sprintf( __( "Unknown widget type '%s'.", 'site-pilot-ai' ), $widget_type );
+			if ( $suggestion ) {
+				$msg .= sprintf( __( " Did you mean '%s'?", 'site-pilot-ai' ), $suggestion );
+			}
+			return new WP_Error( 'unknown_widget', $msg, array( 'status' => 404 ) );
+		}
+
+		$widget   = $types[ $widget_type ];
+		$controls = $widget->get_controls();
+		$grouped  = array();
+
+		foreach ( $controls as $key => $control ) {
+			// Skip internal/hidden controls.
+			if ( ! empty( $control['is_internal'] ) ) {
+				continue;
+			}
+
+			$tab = isset( $control['tab'] ) ? $control['tab'] : 'content';
+			if ( ! isset( $grouped[ $tab ] ) ) {
+				$grouped[ $tab ] = array();
+			}
+
+			$entry = array(
+				'name'    => $key,
+				'type'    => isset( $control['type'] ) ? $control['type'] : 'unknown',
+				'label'   => isset( $control['label'] ) ? $control['label'] : $key,
+			);
+
+			if ( isset( $control['default'] ) && '' !== $control['default'] ) {
+				$entry['default'] = $control['default'];
+			}
+			if ( ! empty( $control['options'] ) ) {
+				$entry['options'] = $control['options'];
+			}
+			if ( ! empty( $control['selectors'] ) ) {
+				$entry['selectors'] = $control['selectors'];
+			}
+
+			$grouped[ $tab ][] = $entry;
+		}
+
+		return array(
+			'widget' => $widget_type,
+			'title'  => $widget->get_title(),
+			'icon'   => $widget->get_icon(),
+			'tabs'   => $grouped,
+		);
+	}
+
+	/**
 	 * Regenerate Elementor CSS for a specific page or the entire site.
 	 *
 	 * @param int|null $page_id Page ID, or null for full site regeneration.
+	 * @param bool     $force   If true, delete existing CSS files before regenerating.
 	 * @return array|WP_Error Result or error.
 	 */
-	public function regenerate_css( $page_id = null ) {
+	public function regenerate_css( $page_id = null, $force = false ) {
 		if ( ! $this->is_active() ) {
 			return new WP_Error(
 				'elementor_not_active',
@@ -1076,6 +1209,15 @@ class Spai_Elementor_Basic {
 
 			$method = 'cache_clear';
 
+			// Force: delete existing CSS files before regenerating.
+			if ( $force ) {
+				delete_post_meta( $page_id, '_elementor_css' );
+				$old_css_path = $css_dir . 'post-' . $page_id . '.css';
+				if ( file_exists( $old_css_path ) ) {
+					wp_delete_file( $old_css_path );
+				}
+			}
+
 			// Regenerate CSS for specific post.
 			if ( method_exists( $plugin, 'documents' ) ) {
 				$document = $plugin->documents->get( $page_id );
@@ -1099,6 +1241,7 @@ class Spai_Elementor_Basic {
 				'page_id'  => $page_id,
 				'title'    => get_the_title( $page_id ),
 				'method'   => $method,
+				'force'    => $force,
 				'css_file' => 'post-' . $page_id . '.css',
 				'css_size' => $css_size,
 				'message'  => 'css_regenerated' === $method
@@ -1120,11 +1263,34 @@ class Spai_Elementor_Basic {
 
 		$plugin->files_manager->clear_cache();
 
+		// Force: delete all existing CSS files.
+		if ( $force ) {
+			foreach ( $elementor_posts as $pid ) {
+				delete_post_meta( $pid, '_elementor_css' );
+				$old_css_path = $css_dir . 'post-' . $pid . '.css';
+				if ( file_exists( $old_css_path ) ) {
+					wp_delete_file( $old_css_path );
+				}
+			}
+		}
+
 		$regenerated = array();
+		$skipped     = array();
+		$failed      = array();
+
 		foreach ( $elementor_posts as $pid ) {
 			if ( method_exists( $plugin, 'documents' ) ) {
 				$document = $plugin->documents->get( $pid );
-				if ( $document ) {
+				if ( ! $document ) {
+					$skipped[] = array(
+						'id'     => $pid,
+						'title'  => get_the_title( $pid ),
+						'reason' => 'Elementor document not found',
+					);
+					continue;
+				}
+
+				try {
 					$css_file = \Elementor\Core\Files\CSS\Post::create( $pid );
 					$css_file->update();
 
@@ -1137,12 +1303,19 @@ class Spai_Elementor_Basic {
 						'css_file' => 'post-' . $pid . '.css',
 						'css_size' => $css_size,
 					);
+				} catch ( \Exception $e ) {
+					$failed[] = array(
+						'id'    => $pid,
+						'title' => get_the_title( $pid ),
+						'error' => $e->getMessage(),
+					);
 				}
 			}
 		}
 
-		return array(
+		$result = array(
 			'success'           => true,
+			'force'             => $force,
 			'pages_found'       => count( $elementor_posts ),
 			'pages_regenerated' => count( $regenerated ),
 			'pages'             => $regenerated,
@@ -1153,6 +1326,15 @@ class Spai_Elementor_Basic {
 				count( $elementor_posts )
 			),
 		);
+
+		if ( ! empty( $skipped ) ) {
+			$result['pages_skipped'] = $skipped;
+		}
+		if ( ! empty( $failed ) ) {
+			$result['pages_failed'] = $failed;
+		}
+
+		return $result;
 	}
 
 	/**

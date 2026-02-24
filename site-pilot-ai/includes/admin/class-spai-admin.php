@@ -303,11 +303,21 @@ class Spai_Admin {
 				$scopes = array( 'read' );
 			}
 
-			$new_scoped_key = $this->create_scoped_api_key( $label, $scopes );
+			$role            = isset( $_POST['spai_scoped_key_role'] ) ? sanitize_key( wp_unslash( $_POST['spai_scoped_key_role'] ) ) : 'admin';
+			$tool_categories = isset( $_POST['spai_scoped_key_categories'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['spai_scoped_key_categories'] ) ) : array();
+
+			$new_scoped_key = $this->create_scoped_api_key( $label, $scopes, $role, $tool_categories );
+
+			$roles       = self::get_role_definitions();
+			$role_label  = isset( $roles[ $role ] ) ? $roles[ $role ]['label'] : $role;
 			add_settings_error(
 				'spai_messages',
 				'spai_scoped_key_created',
-				__( 'Scoped API key created. Copy it now — it will not be shown again.', 'site-pilot-ai' ),
+				sprintf(
+					/* translators: %s: role label */
+					__( 'API key created (role: %s). Copy it now — it will not be shown again.', 'site-pilot-ai' ),
+					$role_label
+				),
 				'updated'
 			);
 		}
