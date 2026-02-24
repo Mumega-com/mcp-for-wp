@@ -98,9 +98,28 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 			$this->namespace,
 			'/woocommerce/products/categories',
 			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_product_categories' ),
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_product_categories' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_product_category' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_product_category_args(),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/woocommerce/products/categories/(?P<id>\d+)',
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_product_category' ),
 				'permission_callback' => array( $this, 'check_permission' ),
+				'args'                => $this->get_product_category_args(),
 			)
 		);
 
@@ -446,6 +465,36 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 	}
 
 	/**
+	 * Get product category arguments.
+	 *
+	 * @return array
+	 */
+	private function get_product_category_args() {
+		return array(
+			'name'        => array(
+				'type'        => 'string',
+				'description' => __( 'Category name.', 'site-pilot-ai' ),
+			),
+			'slug'        => array(
+				'type'        => 'string',
+				'description' => __( 'Category slug.', 'site-pilot-ai' ),
+			),
+			'description' => array(
+				'type'        => 'string',
+				'description' => __( 'Category description.', 'site-pilot-ai' ),
+			),
+			'parent'      => array(
+				'type'        => 'integer',
+				'description' => __( 'Parent category ID.', 'site-pilot-ai' ),
+			),
+			'image_id'    => array(
+				'type'        => 'integer',
+				'description' => __( 'Category thumbnail image attachment ID.', 'site-pilot-ai' ),
+			),
+		);
+	}
+
+	/**
 	 * Get analytics query arguments.
 	 *
 	 * @return array
@@ -590,6 +639,43 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 	 */
 	public function get_product_categories() {
 		return rest_ensure_response( $this->handler->get_product_categories() );
+	}
+
+	/**
+	 * Create product category.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_product_category( $request ) {
+		$data = $request->get_json_params();
+
+		$result = $this->handler->create_product_category( $data );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Update product category.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function update_product_category( $request ) {
+		$id   = $request->get_param( 'id' );
+		$data = $request->get_json_params();
+
+		$result = $this->handler->update_product_category( $id, $data );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $result );
 	}
 
 	/**

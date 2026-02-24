@@ -53,6 +53,8 @@ class Spai_Pro_Bootstrap {
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-multilang.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-page-builder.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-google-indexing.php';
+		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-learnpress.php';
+		require_once SPAI_PLUGIN_DIR . 'includes/pro/core/class-spai-events.php';
 
 		// REST controllers.
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-elementor-pro.php';
@@ -66,6 +68,8 @@ class Spai_Pro_Bootstrap {
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-woocommerce.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-multilang.php';
 		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-google-indexing.php';
+		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-learnpress.php';
+		require_once SPAI_PLUGIN_DIR . 'includes/pro/api/class-spai-rest-events.php';
 
 		$elementor_pro = new Spai_Elementor_Pro();
 		$seo           = new Spai_SEO();
@@ -78,6 +82,8 @@ class Spai_Pro_Bootstrap {
 		$woocommerce   = new Spai_WooCommerce();
 		$multilang     = new Spai_Multilang();
 		$google_indexing = new Spai_Google_Indexing();
+		$learnpress      = new Spai_LearnPress();
+		$events          = new Spai_Events();
 
 		( new Spai_REST_Elementor_Pro( $elementor_pro ) )->register_routes();
 		( new Spai_REST_SEO( $seo ) )->register_routes();
@@ -90,6 +96,16 @@ class Spai_Pro_Bootstrap {
 		( new Spai_REST_WooCommerce( $woocommerce ) )->register_routes();
 		( new Spai_REST_Multilang( $multilang ) )->register_routes();
 		( new Spai_REST_Google_Indexing( $google_indexing ) )->register_routes();
+
+		// LearnPress LMS — only register if LearnPress is active.
+		if ( class_exists( 'LearnPress' ) || post_type_exists( 'lp_course' ) ) {
+			( new Spai_REST_LearnPress( $learnpress ) )->register_routes();
+		}
+
+		// TP Events — only register if tp_event post type exists.
+		if ( post_type_exists( 'tp_event' ) ) {
+			( new Spai_REST_Events( $events ) )->register_routes();
+		}
 	}
 
 	/**
@@ -99,8 +115,10 @@ class Spai_Pro_Bootstrap {
 	 * @return array
 	 */
 	public static function add_pro_capabilities( $capabilities ) {
-		$capabilities['pro_active'] = true;
-		$capabilities['plan']       = function_exists( 'spai_license' ) ? spai_license()->get_plan() : 'free';
+		$capabilities['pro_active']  = true;
+		$capabilities['plan']        = function_exists( 'spai_license' ) ? spai_license()->get_plan() : 'free';
+		$capabilities['learnpress']  = class_exists( 'LearnPress' ) || post_type_exists( 'lp_course' );
+		$capabilities['tp_events']   = post_type_exists( 'tp_event' );
 		return $capabilities;
 	}
 }

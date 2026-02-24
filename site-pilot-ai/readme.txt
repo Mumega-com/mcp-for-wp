@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,14 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.4.0 =
+* New: LearnPress LMS integration — 18 MCP tools for courses, lessons, quizzes, curriculum, categories, and LMS stats
+* New: ThimPress Events integration — 4 MCP tools for event management (dates, locations, registration)
+* New: 17 WooCommerce MCP tools — products, orders, customers, categories, tags, analytics (previously REST-only, now MCP-accessible)
+* New: WooCommerce product category create/update endpoints
+* New: LearnPress guide topic in wp_get_guide
+* Enhancement: All new tools gated by plugin detection (LearnPress, TP Events, WooCommerce)
 
 = 1.3.0 =
 * New: MCP server instructions — auto-injected guidance for AI models on connect (WordPress concepts, Elementor rules, best practices)

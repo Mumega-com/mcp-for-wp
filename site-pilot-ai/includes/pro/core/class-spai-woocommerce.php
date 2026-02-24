@@ -450,15 +450,130 @@ class Spai_WooCommerce {
 		$categories = array();
 		foreach ( $terms as $term ) {
 			$categories[] = array(
-				'id'     => $term->term_id,
-				'name'   => $term->name,
-				'slug'   => $term->slug,
-				'parent' => $term->parent,
-				'count'  => $term->count,
+				'id'          => $term->term_id,
+				'name'        => $term->name,
+				'slug'        => $term->slug,
+				'parent'      => $term->parent,
+				'description' => $term->description,
+				'count'       => $term->count,
+				'image_id'    => (int) get_term_meta( $term->term_id, 'thumbnail_id', true ),
 			);
 		}
 
 		return $categories;
+	}
+
+	/**
+	 * Create product category.
+	 *
+	 * @param array $data Category data.
+	 * @return array|WP_Error
+	 */
+	public function create_product_category( $data ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error( 'wc_not_active', __( 'WooCommerce is not active.', 'site-pilot-ai' ), array( 'status' => 400 ) );
+		}
+
+		if ( empty( $data['name'] ) ) {
+			return new WP_Error( 'missing_name', __( 'Category name is required.', 'site-pilot-ai' ), array( 'status' => 400 ) );
+		}
+
+		$args = array();
+
+		if ( ! empty( $data['slug'] ) ) {
+			$args['slug'] = sanitize_title( $data['slug'] );
+		}
+
+		if ( ! empty( $data['description'] ) ) {
+			$args['description'] = sanitize_textarea_field( $data['description'] );
+		}
+
+		if ( isset( $data['parent'] ) ) {
+			$args['parent'] = (int) $data['parent'];
+		}
+
+		$result = wp_insert_term( sanitize_text_field( $data['name'] ), 'product_cat', $args );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		// Handle thumbnail image.
+		if ( ! empty( $data['image_id'] ) ) {
+			update_term_meta( $result['term_id'], 'thumbnail_id', (int) $data['image_id'] );
+		}
+
+		$term = get_term( $result['term_id'], 'product_cat' );
+
+		return array(
+			'id'          => $term->term_id,
+			'name'        => $term->name,
+			'slug'        => $term->slug,
+			'parent'      => $term->parent,
+			'description' => $term->description,
+			'count'       => $term->count,
+			'image_id'    => (int) get_term_meta( $term->term_id, 'thumbnail_id', true ),
+		);
+	}
+
+	/**
+	 * Update product category.
+	 *
+	 * @param int   $id   Category (term) ID.
+	 * @param array $data Category data.
+	 * @return array|WP_Error
+	 */
+	public function update_product_category( $id, $data ) {
+		if ( ! $this->is_active() ) {
+			return new WP_Error( 'wc_not_active', __( 'WooCommerce is not active.', 'site-pilot-ai' ), array( 'status' => 400 ) );
+		}
+
+		$term = get_term( $id, 'product_cat' );
+		if ( ! $term || is_wp_error( $term ) ) {
+			return new WP_Error( 'not_found', __( 'Product category not found.', 'site-pilot-ai' ), array( 'status' => 404 ) );
+		}
+
+		$args = array();
+
+		if ( isset( $data['name'] ) ) {
+			$args['name'] = sanitize_text_field( $data['name'] );
+		}
+
+		if ( isset( $data['slug'] ) ) {
+			$args['slug'] = sanitize_title( $data['slug'] );
+		}
+
+		if ( isset( $data['description'] ) ) {
+			$args['description'] = sanitize_textarea_field( $data['description'] );
+		}
+
+		if ( isset( $data['parent'] ) ) {
+			$args['parent'] = (int) $data['parent'];
+		}
+
+		if ( ! empty( $args ) ) {
+			$result = wp_update_term( $id, 'product_cat', $args );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+
+		// Handle thumbnail image.
+		if ( isset( $data['image_id'] ) ) {
+			update_term_meta( $id, 'thumbnail_id', (int) $data['image_id'] );
+		}
+
+		$term = get_term( $id, 'product_cat' );
+
+		return array(
+			'id'          => $term->term_id,
+			'name'        => $term->name,
+			'slug'        => $term->slug,
+			'parent'      => $term->parent,
+			'description' => $term->description,
+			'count'       => $term->count,
+			'image_id'    => (int) get_term_meta( $term->term_id, 'thumbnail_id', true ),
+		);
 	}
 
 	/**

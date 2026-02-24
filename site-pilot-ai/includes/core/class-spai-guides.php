@@ -75,6 +75,12 @@ class Spai_Guides {
 				'requires'    => 'woocommerce',
 			),
 			array(
+				'topic'       => 'learnpress',
+				'title'       => 'LearnPress LMS',
+				'description' => 'Course management, curriculum structure (sections, lessons, quizzes), meta fields, categories, and enrollment stats.',
+				'requires'    => 'learnpress',
+			),
+			array(
 				'topic'       => 'workflows',
 				'title'       => 'Workflow Templates',
 				'description' => 'Step-by-step guides for common tasks: building landing pages, SEO audits, site redesign, menu setup, and more.',
@@ -103,6 +109,7 @@ class Spai_Guides {
 			'seo'         => $has_seo,
 			'forms'       => $has_forms,
 			'woocommerce' => ! empty( $capabilities['woocommerce'] ),
+			'learnpress'  => ! empty( $capabilities['learnpress'] ),
 		);
 
 		$filtered = array();
@@ -657,6 +664,132 @@ class Spai_Guides {
 						. "- `wp_set_post_meta(id, meta_key, meta_value)` — Update product meta\n"
 						. "- `wp_create_term(taxonomy=\"product_cat\", ...)` — Create product category\n"
 						. "- `wp_set_featured_image(id, image_id)` — Set product image",
+				),
+			),
+		);
+	}
+
+	/**
+	 * LearnPress LMS guide.
+	 *
+	 * @return array Guide content.
+	 */
+	public static function guide_learnpress() {
+		return array(
+			'topic'    => 'learnpress',
+			'title'    => 'LearnPress LMS Guide',
+			'sections' => array(
+				array(
+					'heading' => 'Course Structure',
+					'content' => "LearnPress uses a hierarchical structure:\n\n"
+						. "**Course** (`lp_course` CPT) -> **Sections** -> **Items** (Lessons/Quizzes)\n\n"
+						. "- A course has metadata (price, duration, level) and a curriculum\n"
+						. "- The curriculum is stored in custom tables (`learnpress_sections`, `learnpress_section_items`)\n"
+						. "- Sections contain ordered items (lessons or quizzes)\n"
+						. "- Lessons (`lp_lesson` CPT) hold content with optional preview\n"
+						. "- Quizzes (`lp_quiz` CPT) have settings like passing grade and retake count\n"
+						. "- Questions are linked to quizzes via the `learnpress_quiz_questions` table",
+				),
+				array(
+					'heading' => 'Key Meta Fields',
+					'content' => "**Course meta:**\n"
+						. "| Key | Format | Example |\n"
+						. "|-----|--------|--------|\n"
+						. "| `_lp_regular_price` | String | \"99.00\" |\n"
+						. "| `_lp_sale_price` | String | \"49.00\" |\n"
+						. "| `_lp_price` | String | \"49.00\" (active price) |\n"
+						. "| `_lp_duration` | String | \"10 week\", \"3 month\" |\n"
+						. "| `_lp_level` | String | \"all\", \"beginner\", \"intermediate\", \"advanced\" |\n"
+						. "| `_lp_requirements` | Serialized array | [\"Basic HTML\", \"CSS knowledge\"] |\n"
+						. "| `_lp_target_audiences` | Serialized array | [\"Beginners\", \"Designers\"] |\n"
+						. "| `_lp_key_features` | Serialized array | [\"Certificate\", \"24/7 support\"] |\n"
+						. "| `_lp_faqs` | Serialized array | [[\"Q1\", \"A1\"], [\"Q2\", \"A2\"]] |\n"
+						. "| `_lp_featured_review` | String | Review text |\n\n"
+						. "**Lesson meta:**\n"
+						. "| Key | Format | Example |\n"
+						. "|-----|--------|--------|\n"
+						. "| `_lp_duration` | String | \"30 minute\" |\n"
+						. "| `_lp_preview` | String | \"yes\" / \"no\" |\n\n"
+						. "**Quiz meta:**\n"
+						. "| Key | Format | Example |\n"
+						. "|-----|--------|--------|\n"
+						. "| `_lp_duration` | String | \"40 minute\" |\n"
+						. "| `_lp_passing_grade` | String | \"80\" (percentage) |\n"
+						. "| `_lp_retake_count` | String | \"3\" (0=unlimited) |\n"
+						. "| `_lp_instant_check` | String | \"yes\" / \"no\" |\n"
+						. "| `_lp_review` | String | \"yes\" / \"no\" |",
+				),
+				array(
+					'heading' => 'Curriculum Management Workflow',
+					'content' => "To build a course curriculum:\n\n"
+						. "1. **Create lessons** using `wp_create_lesson` (returns lesson IDs)\n"
+						. "2. **Create quizzes** using `wp_create_quiz` (returns quiz IDs)\n"
+						. "3. **Set the curriculum** using `wp_set_curriculum` with the lesson/quiz IDs organized into sections:\n"
+						. "```json\n"
+						. "wp_set_curriculum(id=123, sections=[\n"
+						. "  {\n"
+						. "    \"name\": \"Introduction\",\n"
+						. "    \"description\": \"Getting started\",\n"
+						. "    \"items\": [\n"
+						. "      {\"id\": 456, \"type\": \"lp_lesson\"},\n"
+						. "      {\"id\": 457, \"type\": \"lp_lesson\"},\n"
+						. "      {\"id\": 458, \"type\": \"lp_quiz\"}\n"
+						. "    ]\n"
+						. "  },\n"
+						. "  {\n"
+						. "    \"name\": \"Advanced Topics\",\n"
+						. "    \"items\": [\n"
+						. "      {\"id\": 459, \"type\": \"lp_lesson\"},\n"
+						. "      {\"id\": 460, \"type\": \"lp_quiz\"}\n"
+						. "    ]\n"
+						. "  }\n"
+						. "])\n"
+						. "```\n\n"
+						. "**Important:** `wp_set_curriculum` replaces the entire curriculum. Always retrieve the current curriculum first with `wp_get_curriculum` if you only want to modify it.",
+				),
+				array(
+					'heading' => 'Course Categories',
+					'content' => "LearnPress uses the `course_category` taxonomy:\n"
+						. "- `wp_list_course_categories()` — List all categories\n"
+						. "- `wp_create_course_category(name=\"Web Development\")` — Create a category\n"
+						. "- `wp_update_course_category(id=5, name=\"Programming\")` — Update\n"
+						. "- `wp_delete_course_category(id=5)` — Delete\n\n"
+						. "Assign categories when creating/updating courses:\n"
+						. "```json\n"
+						. "wp_create_course(title=\"PHP Basics\", categories=[\"Web Development\", \"Programming\"])\n"
+						. "```",
+				),
+				array(
+					'heading' => 'Common Mistakes',
+					'content' => "1. **Duration format** — Must be a number followed by a unit: \"10 week\", \"30 minute\", \"2 hour\". Not \"10 weeks\" or \"30min\".\n"
+						. "2. **Serialized arrays** — Requirements, audiences, features, and FAQs are stored as serialized PHP arrays. Always pass them as JSON arrays in the API.\n"
+						. "3. **FAQs format** — FAQs are arrays of 2-element arrays: `[[\"Question?\", \"Answer.\"], [\"Q2?\", \"A2.\"]]`\n"
+						. "4. **Curriculum order** — Items appear in the order you specify in `wp_set_curriculum`. The order field is auto-assigned.\n"
+						. "5. **Lesson/Quiz creation before curriculum** — You must create lessons and quizzes first, then reference their IDs in the curriculum.",
+				),
+				array(
+					'heading' => 'Relevant Tools',
+					'content' => "**Courses:**\n"
+						. "- `wp_list_courses(search, status, category)` — List courses\n"
+						. "- `wp_get_course(id)` — Get full course details\n"
+						. "- `wp_create_course(title, ...)` — Create a course\n"
+						. "- `wp_update_course(id, ...)` — Update a course\n\n"
+						. "**Curriculum:**\n"
+						. "- `wp_get_curriculum(id)` — Get curriculum structure\n"
+						. "- `wp_set_curriculum(id, sections)` — Set/replace curriculum\n\n"
+						. "**Lessons:**\n"
+						. "- `wp_list_lessons(course_id)` — List lessons\n"
+						. "- `wp_create_lesson(title, content, duration)` — Create lesson\n"
+						. "- `wp_update_lesson(id, ...)` — Update lesson\n\n"
+						. "**Quizzes:**\n"
+						. "- `wp_list_quizzes(course_id)` — List quizzes\n"
+						. "- `wp_create_quiz(title, duration, passing_grade)` — Create quiz\n"
+						. "- `wp_update_quiz(id, ...)` — Update quiz\n"
+						. "- `wp_get_quiz_questions(id)` — Get quiz questions\n\n"
+						. "**Categories & Stats:**\n"
+						. "- `wp_list_course_categories()` — List categories\n"
+						. "- `wp_create_course_category(name)` — Create category\n"
+						. "- `wp_lms_stats()` — LMS dashboard statistics",
 				),
 			),
 		);
