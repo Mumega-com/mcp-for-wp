@@ -190,7 +190,7 @@ class Spai_License {
 		if ( 'freemius' === $this->provider && $freemius && method_exists( $freemius, 'get_upgrade_url' ) ) {
 			return $freemius->get_upgrade_url();
 		}
-		return 'http://sitepilotai.mumega.com/pricing/';
+		return 'https://sitepilotai.mumega.com/pricing/';
 	}
 
 	/**
@@ -203,7 +203,7 @@ class Spai_License {
 		if ( 'freemius' === $this->provider && $freemius && method_exists( $freemius, 'get_account_url' ) ) {
 			return $freemius->get_account_url();
 		}
-		return 'http://sitepilotai.mumega.com/account/';
+		return 'https://sitepilotai.mumega.com/account/';
 	}
 
 	/**

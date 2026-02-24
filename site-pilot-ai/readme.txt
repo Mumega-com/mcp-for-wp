@@ -1,6 +1,6 @@
 === Site Pilot AI ===
 Contributors: digidinc
-Donate link: https://sitepilotai.com
+Donate link: https://sitepilotai.mumega.com
 Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
@@ -48,7 +48,7 @@ Upgrade to Site Pilot AI Pro for advanced features:
 * **Landing Page Builder** - One-click AI-generated landing pages
 * **Priority Support** - 48-hour response time
 
-[Learn more about Pro →](https://sitepilotai.com/pricing)
+[Learn more about Pro →](https://sitepilotai.mumega.com/pricing)
 
 == Installation ==
 
@@ -523,6 +523,6 @@ Site Pilot AI uses [Freemius](https://freemius.com/) for license management, ana
 
 == Support ==
 
-* Documentation: [sitepilotai.com/docs](https://sitepilotai.com/docs)
+* Documentation: [sitepilotai.mumega.com/docs](https://sitepilotai.mumega.com/docs)
 * Support Forum: [wordpress.org/support/plugin/site-pilot-ai](https://wordpress.org/support/plugin/site-pilot-ai)
 * GitHub: [github.com/Digidinc/site-pilot-ai](https://github.com/Digidinc/site-pilot-ai)

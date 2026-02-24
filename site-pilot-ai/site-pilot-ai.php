@@ -12,7 +12,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Site Pilot AI
- * Plugin URI:        https://sitepilotai.com/
+ * Plugin URI:        https://sitepilotai.mumega.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
  * Version:           1.1.18
  * Requires at least: 5.0

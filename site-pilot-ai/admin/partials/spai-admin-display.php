@@ -16,7 +16,7 @@ $license         = function_exists( 'spai_license' ) ? spai_license() : null;
 $is_paying       = $license ? $license->is_paying() : false;
 $plan            = $license ? $license->get_plan() : 'free';
 $is_pro          = $license ? $license->is_pro() : false;
-$upgrade_url     = $license ? $license->get_upgrade_url() : 'http://sitepilotai.mumega.com/pricing/';
+$upgrade_url     = $license ? $license->get_upgrade_url() : 'https://sitepilotai.mumega.com/pricing/';
 $is_first        = get_option( 'spai_first_activation', false );
 $rest_base       = rest_url( 'site-pilot-ai/v1/' );
 $mcp_url         = rest_url( 'site-pilot-ai/v1/mcp' );
@@ -1064,11 +1064,11 @@ if ( isset( $new_key ) && $new_key ) {
 			<ul class="spai-resources-list">
 				<li>
 					<span class="dashicons dashicons-book"></span>
-					<a href="http://sitepilotai.mumega.com/docs" target="_blank"><?php esc_html_e( 'Documentation & Source Code', 'site-pilot-ai' ); ?></a>
+					<a href="https://sitepilotai.mumega.com/docs" target="_blank"><?php esc_html_e( 'Documentation & Source Code', 'site-pilot-ai' ); ?></a>
 				</li>
 				<li>
 					<span class="dashicons dashicons-sos"></span>
-					<a href="http://sitepilotai.mumega.com/docs/issues" target="_blank"><?php esc_html_e( 'Report a Bug', 'site-pilot-ai' ); ?></a>
+					<a href="https://github.com/Digidinc/wp-ai-operator/issues" target="_blank"><?php esc_html_e( 'Report a Bug', 'site-pilot-ai' ); ?></a>
 				</li>
 				<li>
 					<span class="dashicons dashicons-info"></span>
