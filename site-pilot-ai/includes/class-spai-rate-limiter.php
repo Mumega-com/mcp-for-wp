@@ -161,6 +161,12 @@ class Spai_Rate_Limiter {
 					'limit'            => $burst_limit,
 					'remaining'        => 0,
 					'reset'            => $burst_data['reset'],
+					'hint'             => sprintf(
+						'Burst rate limit exceeded (%d/%ds). Wait %d seconds before retrying. To increase limits, the site admin can adjust settings in WP Admin > Site Pilot AI > Settings, or create a key with custom rate_limits.',
+						$burst_limit,
+						$burst_window,
+						$retry_after
+					),
 				)
 			);
 		}
@@ -191,6 +197,11 @@ class Spai_Rate_Limiter {
 					'limit'            => $minute_limit,
 					'remaining'        => 0,
 					'reset'            => $minute_data['reset'],
+					'hint'             => sprintf(
+						'Per-minute rate limit exceeded (%d/min). Wait %d seconds before retrying. To increase limits, the site admin can adjust rate limit settings or create a key with custom rate_limits.',
+						$minute_limit,
+						$retry_after
+					),
 				)
 			);
 		}
@@ -221,6 +232,11 @@ class Spai_Rate_Limiter {
 					'limit'            => $hour_limit,
 					'remaining'        => 0,
 					'reset'            => $hour_data['reset'],
+					'hint'             => sprintf(
+						'Hourly rate limit exceeded (%d/hr). Wait %d seconds before retrying. To increase limits, the site admin can adjust rate limit settings or create a key with custom rate_limits.',
+						$hour_limit,
+						$retry_after
+					),
 				)
 			);
 		}

@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://sitepilotai.mumega.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -86,7 +86,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.2.0' );
+define( 'SPAI_VERSION', '1.3.0' );
 
 /**
  * Plugin directory path.
@@ -223,6 +223,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-activator.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-deactivator.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-rate-limiter.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-error-hints.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-security.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-webhooks.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-alerts.php';
@@ -235,7 +236,10 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-media.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-drafts.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-elementor-basic.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-elementor-widgets.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-screenshot.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-guides.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-workflows.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-feedback.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-encryption.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-integration-manager.php';

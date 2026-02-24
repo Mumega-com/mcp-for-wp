@@ -436,7 +436,12 @@ class Spai_REST_Posts extends Spai_REST_API {
 
 		$post = get_post( $post_id );
 		if ( ! $post || ! in_array( $post->post_type, array( 'post', 'page' ), true ) ) {
-			return $this->error_response( 'not_found', __( 'Post not found.', 'site-pilot-ai' ), 404 );
+			return $this->error_response(
+				'not_found',
+				__( 'Post not found.', 'site-pilot-ai' ),
+				404,
+				array( 'id' => $post_id )
+			);
 		}
 
 		if ( 0 === $media_id ) {
@@ -452,7 +457,11 @@ class Spai_REST_Posts extends Spai_REST_API {
 
 		$attachment = get_post( $media_id );
 		if ( ! $attachment || 'attachment' !== $attachment->post_type ) {
-			return $this->error_response( 'invalid_media', __( 'Invalid media ID.', 'site-pilot-ai' ), 400 );
+			return $this->error_response(
+				'invalid_media',
+				__( 'Invalid media ID.', 'site-pilot-ai' ),
+				400
+			);
 		}
 
 		set_post_thumbnail( $post_id, $media_id );

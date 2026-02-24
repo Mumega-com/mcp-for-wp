@@ -77,13 +77,22 @@ abstract class Spai_REST_API {
 	/**
 	 * Prepare error response.
 	 *
+	 * Automatically enhances the error with actionable hints when available.
+	 *
 	 * @param string $code    Error code.
 	 * @param string $message Error message.
 	 * @param int    $status  HTTP status code.
-	 * @return WP_Error Error object.
+	 * @param array  $context Optional context for dynamic hint generation.
+	 * @return WP_Error Error object with hints.
 	 */
-	protected function error_response( $code, $message, $status = 400 ) {
-		return new WP_Error( $code, $message, array( 'status' => $status ) );
+	protected function error_response( $code, $message, $status = 400, $context = array() ) {
+		$error = new WP_Error( $code, $message, array( 'status' => $status ) );
+
+		if ( class_exists( 'Spai_Error_Hints' ) ) {
+			$error = Spai_Error_Hints::enhance_error( $error, $context );
+		}
+
+		return $error;
 	}
 
 	/**

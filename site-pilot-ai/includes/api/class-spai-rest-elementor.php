@@ -277,6 +277,19 @@ class Spai_REST_Elementor extends Spai_REST_API {
 			)
 		);
 
+		// Widget help — get offline reference data for a widget type.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/widget-help/(?P<widget_type>[\w-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_widget_help' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Regenerate CSS
 		register_rest_route(
 			$this->namespace,
@@ -531,6 +544,21 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result, 201 );
+	}
+
+	/**
+	 * Get widget help (offline reference data).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_widget_help( $request ) {
+		$this->log_activity( 'get_widget_help', $request );
+
+		$widget_type = (string) $request->get_param( 'widget_type' );
+		$result      = Spai_Elementor_Widgets::get_widget_help( $widget_type );
+
+		return $this->success_response( $result );
 	}
 
 	/**

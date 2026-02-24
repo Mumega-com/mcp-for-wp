@@ -1,0 +1,682 @@
+<?php
+/**
+ * Workflow Templates
+ *
+ * Provides step-by-step workflow guides for common WordPress tasks.
+ *
+ * @package SitePilotAI
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Workflows class.
+ *
+ * Returns structured workflow templates that guide AI assistants
+ * through multi-step tasks.
+ */
+class Spai_Workflows {
+
+	/**
+	 * Get all available workflow summaries.
+	 *
+	 * Filters based on active plugins.
+	 *
+	 * @return array List of workflow summaries.
+	 */
+	public static function get_all() {
+		$core         = new Spai_Core();
+		$capabilities = $core->get_capabilities();
+
+		$has_elementor = ! empty( $capabilities['elementor'] );
+		$has_seo       = ! empty( $capabilities['yoast'] )
+			|| ! empty( $capabilities['rankmath'] )
+			|| ! empty( $capabilities['aioseo'] )
+			|| ! empty( $capabilities['seopress'] );
+		$has_forms     = ! empty( $capabilities['cf7'] )
+			|| ! empty( $capabilities['wpforms'] )
+			|| ! empty( $capabilities['gravityforms'] )
+			|| ! empty( $capabilities['ninjaforms'] );
+
+		$workflows = array(
+			array(
+				'name'         => 'build_landing_page',
+				'title'        => 'Build a Landing Page',
+				'description'  => 'Create a new page with Elementor layout, SEO meta, and visual verification.',
+				'requires'     => 'elementor',
+				'steps_count'  => 7,
+			),
+			array(
+				'name'         => 'seo_audit',
+				'title'        => 'SEO Audit & Fix',
+				'description'  => 'Scan all pages for SEO issues, generate a report, and fix problems.',
+				'requires'     => 'seo',
+				'steps_count'  => 5,
+			),
+			array(
+				'name'         => 'content_migration',
+				'title'        => 'Content Migration',
+				'description'  => 'Export, transform, and re-import page content across posts or pages.',
+				'requires'     => null,
+				'steps_count'  => 5,
+			),
+			array(
+				'name'         => 'site_redesign',
+				'title'        => 'Site Redesign',
+				'description'  => 'Update site-wide design tokens, Elementor globals, and rebuild pages.',
+				'requires'     => 'elementor',
+				'steps_count'  => 6,
+			),
+			array(
+				'name'         => 'menu_setup',
+				'title'        => 'Menu Setup',
+				'description'  => 'Create navigation menus and assign them to theme locations.',
+				'requires'     => null,
+				'steps_count'  => 5,
+			),
+			array(
+				'name'         => 'media_management',
+				'title'        => 'Media Management',
+				'description'  => 'Audit media library, upload new assets, and set featured images.',
+				'requires'     => null,
+				'steps_count'  => 5,
+			),
+			array(
+				'name'         => 'form_setup',
+				'title'        => 'Form Setup & Embedding',
+				'description'  => 'Detect forms, inspect fields, and embed into Elementor pages.',
+				'requires'     => 'forms',
+				'steps_count'  => 5,
+			),
+		);
+
+		$capability_map = array(
+			'elementor' => $has_elementor,
+			'seo'       => $has_seo,
+			'forms'     => $has_forms,
+		);
+
+		$filtered = array();
+		foreach ( $workflows as $wf ) {
+			$req = $wf['requires'];
+			if ( null === $req || ( isset( $capability_map[ $req ] ) && $capability_map[ $req ] ) ) {
+				unset( $wf['requires'] );
+				$filtered[] = $wf;
+			}
+		}
+
+		return $filtered;
+	}
+
+	/**
+	 * Get a specific workflow by name.
+	 *
+	 * @param string $name Workflow name.
+	 * @return array|WP_Error Workflow data or error.
+	 */
+	public static function get_workflow( $name ) {
+		$method = 'workflow_' . $name;
+
+		if ( ! method_exists( __CLASS__, $method ) ) {
+			$available = wp_list_pluck( self::get_all(), 'name' );
+			return new WP_Error(
+				'invalid_workflow',
+				sprintf(
+					'Unknown workflow: %s. Available workflows: %s',
+					$name,
+					implode( ', ', $available )
+				),
+				array( 'status' => 404 )
+			);
+		}
+
+		return call_user_func( array( __CLASS__, $method ) );
+	}
+
+	/**
+	 * Build landing page workflow.
+	 *
+	 * @return array Workflow data.
+	 */
+	public static function workflow_build_landing_page() {
+		return array(
+			'name'          => 'build_landing_page',
+			'title'         => 'Build a Landing Page',
+			'description'   => 'Create a complete landing page with Elementor, from site context to final verification.',
+			'prerequisites' => array( 'Elementor must be active' ),
+			'steps'         => array(
+				array(
+					'step'        => 1,
+					'title'       => 'Introspect the site',
+					'tool'        => 'wp_introspect',
+					'params'      => array(),
+					'description' => 'Get site capabilities, layout mode, and available tools. Note the elementor_layout_mode (section vs container) — this determines your page structure.',
+					'use_result'  => 'Save the layout_mode and capabilities for later steps.',
+				),
+				array(
+					'step'        => 2,
+					'title'       => 'Get site context',
+					'tool'        => 'wp_get_site_context',
+					'params'      => array(),
+					'description' => 'Read the site style guide / design brief. This tells you the color palette, typography, header/footer rules, and predefined sections to use.',
+					'use_result'  => 'Follow these design rules when building the page. If empty, ask the user for design preferences.',
+				),
+				array(
+					'step'        => 3,
+					'title'       => 'Create the page',
+					'tool'        => 'wp_create_page',
+					'params'      => array(
+						'title'  => '(page title)',
+						'status' => 'draft',
+					),
+					'description' => 'Create a draft page. Save the returned page ID for subsequent steps.',
+					'use_result'  => 'Note the page ID.',
+				),
+				array(
+					'step'        => 4,
+					'title'       => 'Set page template',
+					'tool'        => 'wp_update_page_template',
+					'params'      => array(
+						'id'       => '(page_id from step 3)',
+						'template' => 'elementor_header_footer',
+					),
+					'description' => 'Set the Elementor template. Use elementor_header_footer for pages with theme header/footer, or elementor_canvas for full-width standalone pages.',
+					'use_result'  => 'Confirm template was set.',
+				),
+				array(
+					'step'        => 5,
+					'title'       => 'Push Elementor data',
+					'tool'        => 'wp_set_elementor',
+					'params'      => array(
+						'id'             => '(page_id from step 3)',
+						'elementor_data' => '(JSON array of sections/containers with widgets)',
+					),
+					'description' => 'Push the full page layout. Use the correct layout mode from step 1. Check the response for warnings about invalid widgets or missing IDs.',
+					'use_result'  => 'Review warnings array. Fix any issues and re-push if needed.',
+				),
+				array(
+					'step'        => 6,
+					'title'       => 'Set SEO meta',
+					'tool'        => 'wp_set_seo',
+					'params'      => array(
+						'id'          => '(page_id from step 3)',
+						'title'       => '(SEO title)',
+						'description' => '(meta description)',
+					),
+					'description' => 'Set SEO title and description. Only if an SEO plugin is active (check capabilities from step 1).',
+					'use_result'  => 'Confirm SEO was saved.',
+				),
+				array(
+					'step'        => 7,
+					'title'       => 'Verify with screenshot',
+					'tool'        => 'wp_screenshot_url',
+					'params'      => array(
+						'url' => '(page preview URL)',
+					),
+					'description' => 'Take a screenshot to verify the page renders correctly. The page URL can be constructed from the site URL + page slug.',
+					'use_result'  => 'Review the screenshot. If issues are found, use wp_edit_section or wp_edit_widget to fix specific parts.',
+				),
+			),
+			'tips' => array(
+				'Always check layout_mode before building — using sections in container mode (or vice versa) breaks the page.',
+				'Use wp_get_elementor_widgets() to verify a widget type exists before using it.',
+				'Use wp_get_widget_schema(widget_type) to get the correct settings keys for a widget.',
+				'If the site has a site_context, follow its design rules strictly.',
+				'Publish the page only after verification: wp_update_page(id, status="publish").',
+			),
+		);
+	}
+
+	/**
+	 * SEO audit workflow.
+	 *
+	 * @return array Workflow data.
+	 */
+	public static function workflow_seo_audit() {
+		return array(
+			'name'          => 'seo_audit',
+			'title'         => 'SEO Audit & Fix',
+			'description'   => 'Comprehensive SEO audit: detect plugin, scan all pages, generate report, and fix issues.',
+			'prerequisites' => array( 'An SEO plugin must be active (Yoast, RankMath, AIOSEO, or SEOPress)' ),
+			'steps'         => array(
+				array(
+					'step'        => 1,
+					'title'       => 'Detect SEO plugin',
+					'tool'        => 'wp_detect_plugins',
+					'params'      => array(),
+					'description' => 'Confirm which SEO plugin is active and its version.',
+					'use_result'  => 'Note the active SEO plugin name for context.',
+				),
+				array(
+					'step'        => 2,
+					'title'       => 'Check SEO status',
+					'tool'        => 'wp_seo_status',
+					'params'      => array(),
+					'description' => 'Get SEO plugin configuration and overall status.',
+					'use_result'  => 'Review plugin settings and identify configuration issues.',
+				),
+				array(
+					'step'        => 3,
+					'title'       => 'Scan pages for SEO data',
+					'tool'        => 'wp_list_pages',
+					'params'      => array(
+						'per_page' => 100,
+						'status'   => 'publish',
+					),
+					'description' => 'Get all published pages. Then for each page, call wp_get_seo(id) and wp_analyze_seo(id) to check SEO health.',
+					'use_result'  => 'Build a report of pages missing titles, descriptions, or with low scores.',
+				),
+				array(
+					'step'        => 4,
+					'title'       => 'Fix SEO issues',
+					'tool'        => 'wp_bulk_seo',
+					'params'      => array(
+						'items' => '(array of {id, title, description} for pages needing fixes)',
+					),
+					'description' => 'Batch update SEO meta for all pages with issues. Include title, description, and focus_keyword for each.',
+					'use_result'  => 'Confirm all items were updated successfully.',
+				),
+				array(
+					'step'        => 5,
+					'title'       => 'Verify fixes',
+					'tool'        => 'wp_analyze_seo',
+					'params'      => array(
+						'id' => '(spot-check a few pages)',
+					),
+					'description' => 'Re-analyze a sample of fixed pages to confirm scores improved.',
+					'use_result'  => 'Present final report to user with before/after comparison.',
+				),
+			),
+			'tips' => array(
+				'Focus on published pages first — drafts do not affect SEO.',
+				'Title should be 50-60 characters, description 150-160 characters.',
+				'Every page should have a unique title and description.',
+				'Use focus_keyword to align content with target search terms.',
+				'Check for duplicate titles/descriptions across pages.',
+			),
+		);
+	}
+
+	/**
+	 * Content migration workflow.
+	 *
+	 * @return array Workflow data.
+	 */
+	public static function workflow_content_migration() {
+		return array(
+			'name'          => 'content_migration',
+			'title'         => 'Content Migration',
+			'description'   => 'Migrate content between pages, or restructure existing content.',
+			'prerequisites' => array(),
+			'steps'         => array(
+				array(
+					'step'        => 1,
+					'title'       => 'List all content',
+					'tool'        => 'wp_list_pages',
+					'params'      => array(
+						'per_page' => 100,
+						'status'   => 'any',
+					),
+					'description' => 'Get a full inventory of pages. Also use wp_list_posts() for blog posts.',
+					'use_result'  => 'Create a map of existing content and identify what needs to be migrated.',
+				),
+				array(
+					'step'        => 2,
+					'title'       => 'Export layouts',
+					'tool'        => 'wp_get_elementor',
+					'params'      => array(
+						'id' => '(source page ID)',
+					),
+					'description' => 'For Elementor pages, export the layout data. For non-Elementor pages, use wp_fetch(id) to get the content.',
+					'use_result'  => 'Save the layout/content data for transformation.',
+				),
+				array(
+					'step'        => 3,
+					'title'       => 'Transform content',
+					'tool'        => null,
+					'params'      => array(),
+					'description' => 'Modify the exported content as needed: update text, change images, restructure sections. This is an AI reasoning step — no tool call needed.',
+					'use_result'  => 'Prepare the modified content for import.',
+				),
+				array(
+					'step'        => 4,
+					'title'       => 'Import to targets',
+					'tool'        => 'wp_set_elementor',
+					'params'      => array(
+						'id'             => '(target page ID)',
+						'elementor_data' => '(transformed layout data)',
+					),
+					'description' => 'Push transformed content to target pages. For non-Elementor content, use wp_update_page(id, content=...).',
+					'use_result'  => 'Check for warnings in the response.',
+				),
+				array(
+					'step'        => 5,
+					'title'       => 'Verify migration',
+					'tool'        => 'wp_get_elementor_summary',
+					'params'      => array(
+						'id' => '(target page ID)',
+					),
+					'description' => 'Verify the migrated content is correct. Use wp_screenshot_url for visual verification.',
+					'use_result'  => 'Confirm content matches expectations. Fix any issues.',
+				),
+			),
+			'tips' => array(
+				'Use wp_clone_page(id) for simple page duplication.',
+				'Use wp_bulk_find_replace to update URLs or text across Elementor data.',
+				'Back up important pages before overwriting: read the content first and save it.',
+				'For large migrations, work in batches and verify after each batch.',
+			),
+		);
+	}
+
+	/**
+	 * Site redesign workflow.
+	 *
+	 * @return array Workflow data.
+	 */
+	public static function workflow_site_redesign() {
+		return array(
+			'name'          => 'site_redesign',
+			'title'         => 'Site Redesign',
+			'description'   => 'Update site-wide design: colors, typography, globals, and rebuild pages to match.',
+			'prerequisites' => array( 'Elementor must be active' ),
+			'steps'         => array(
+				array(
+					'step'        => 1,
+					'title'       => 'Set site context',
+					'tool'        => 'wp_set_site_context',
+					'params'      => array(
+						'context' => '(markdown design brief: colors, fonts, spacing, layout rules)',
+					),
+					'description' => 'Define the new design system. This context will guide all page building. Include color palette, typography scale, spacing rules, and component patterns.',
+					'use_result'  => 'Confirm context was saved.',
+				),
+				array(
+					'step'        => 2,
+					'title'       => 'Get current Elementor globals',
+					'tool'        => 'wp_get_elementor_globals',
+					'params'      => array(),
+					'description' => 'Read the current global colors and typography settings.',
+					'use_result'  => 'Understand current state before making changes.',
+				),
+				array(
+					'step'        => 3,
+					'title'       => 'Update Elementor globals',
+					'tool'        => 'wp_set_elementor_globals',
+					'params'      => array(
+						'colors'     => '(array of global color definitions)',
+						'typography' => '(array of global typography definitions)',
+					),
+					'description' => 'Set new global colors and typography. These affect all elements using global styles.',
+					'use_result'  => 'Confirm globals were updated.',
+				),
+				array(
+					'step'        => 4,
+					'title'       => 'Update custom CSS',
+					'tool'        => 'wp_set_custom_css',
+					'params'      => array(
+						'css'  => '(updated CSS rules)',
+						'mode' => 'replace',
+					),
+					'description' => 'Replace site-wide custom CSS with new design rules if needed.',
+					'use_result'  => 'Confirm CSS was updated.',
+				),
+				array(
+					'step'        => 5,
+					'title'       => 'Rebuild pages',
+					'tool'        => 'wp_set_elementor',
+					'params'      => array(
+						'id'             => '(page ID)',
+						'elementor_data' => '(new page layout following new design)',
+					),
+					'description' => 'Rebuild each page using the new design system. Start with the homepage, then other key pages. Use wp_get_site_context() to reference the design rules.',
+					'use_result'  => 'Check warnings and verify each page.',
+				),
+				array(
+					'step'        => 6,
+					'title'       => 'Regenerate CSS and verify',
+					'tool'        => 'wp_regenerate_elementor_css',
+					'params'      => array(),
+					'description' => 'Force Elementor to regenerate all CSS files, then screenshot key pages for verification.',
+					'use_result'  => 'Review screenshots to confirm the redesign looks correct.',
+				),
+			),
+			'tips' => array(
+				'Start with the site_context — it acts as a living style guide for AI.',
+				'Update globals before rebuilding pages — global color/font changes propagate automatically.',
+				'Work on one page at a time and verify before moving to the next.',
+				'Keep the old design data backed up (read before overwriting).',
+				'Use wp_get_elementor(id) to reference existing page structures for consistency.',
+			),
+		);
+	}
+
+	/**
+	 * Menu setup workflow.
+	 *
+	 * @return array Workflow data.
+	 */
+	public static function workflow_menu_setup() {
+		return array(
+			'name'          => 'menu_setup',
+			'title'         => 'Menu Setup',
+			'description'   => 'Create, populate, and assign navigation menus to theme locations.',
+			'prerequisites' => array(),
+			'steps'         => array(
+				array(
+					'step'        => 1,
+					'title'       => 'List existing menus and locations',
+					'tool'        => 'wp_list_menus',
+					'params'      => array(),
+					'description' => 'See what menus already exist. Also call wp_list_menu_locations() to see available theme locations.',
+					'use_result'  => 'Identify which locations need menus and if any existing menus can be reused.',
+				),
+				array(
+					'step'        => 2,
+					'title'       => 'List pages for menu items',
+					'tool'        => 'wp_list_pages',
+					'params'      => array(
+						'status'   => 'publish',
+						'per_page' => 100,
+					),
+					'description' => 'Get all published pages to determine which should be in the menu.',
+					'use_result'  => 'Select page IDs for the menu.',
+				),
+				array(
+					'step'        => 3,
+					'title'       => 'Create menu with pages',
+					'tool'        => 'wp_setup_menu',
+					'params'      => array(
+						'name'     => '(menu name)',
+						'location' => '(theme location slug)',
+						'page_ids' => '(array of page IDs)',
+					),
+					'description' => 'Create a new menu, add pages, and assign to a theme location in one call. For simple menus, this is all you need.',
+					'use_result'  => 'Note the menu_id for additional items.',
+				),
+				array(
+					'step'        => 4,
+					'title'       => 'Add custom items and sub-menus',
+					'tool'        => 'wp_add_menu_item',
+					'params'      => array(
+						'menu_id'   => '(menu_id from step 3)',
+						'title'     => '(item title)',
+						'type'      => 'custom',
+						'url'       => '(URL)',
+						'parent_id' => '(parent item ID for sub-menus, 0 for top level)',
+					),
+					'description' => 'Add custom links, external URLs, or sub-menu items as needed.',
+					'use_result'  => 'Build out the full menu structure.',
+				),
+				array(
+					'step'        => 5,
+					'title'       => 'Reorder and verify',
+					'tool'        => 'wp_reorder_menu_items',
+					'params'      => array(
+						'menu_id' => '(menu_id)',
+						'items'   => '(array of {id, position, parent_id})',
+					),
+					'description' => 'Reorder items if needed. Then call wp_list_menu_items(menu_id) to verify the final structure.',
+					'use_result'  => 'Confirm menu structure matches expectations.',
+				),
+			),
+			'tips' => array(
+				'Use wp_list_menu_locations() to find the correct location slug (e.g., "primary", "footer").',
+				'wp_setup_menu is the quickest way to create a basic menu.',
+				'For sub-menus, add parent items first, then children with parent_id set.',
+				'Most themes support 2-3 levels of menu nesting.',
+				'Test the menu by visiting the site after setup.',
+			),
+		);
+	}
+
+	/**
+	 * Media management workflow.
+	 *
+	 * @return array Workflow data.
+	 */
+	public static function workflow_media_management() {
+		return array(
+			'name'          => 'media_management',
+			'title'         => 'Media Management',
+			'description'   => 'Audit, upload, and organize media assets.',
+			'prerequisites' => array(),
+			'steps'         => array(
+				array(
+					'step'        => 1,
+					'title'       => 'Audit current media',
+					'tool'        => 'wp_list_media',
+					'params'      => array(
+						'per_page' => 100,
+					),
+					'description' => 'List all media library items. Filter by mime_type if needed (e.g., "image" for images only).',
+					'use_result'  => 'Identify existing assets, missing images, and items to replace.',
+				),
+				array(
+					'step'        => 2,
+					'title'       => 'Upload new assets',
+					'tool'        => 'wp_upload_media_from_url',
+					'params'      => array(
+						'url' => '(image URL)',
+					),
+					'description' => 'Upload images from URLs. For AI-generated images, use wp_generate_image(prompt) if configured. For stock photos, use wp_search_stock_photos(query).',
+					'use_result'  => 'Save the returned media IDs for use as featured images or in Elementor.',
+				),
+				array(
+					'step'        => 3,
+					'title'       => 'Set featured images',
+					'tool'        => 'wp_set_featured_image',
+					'params'      => array(
+						'id'       => '(post/page ID)',
+						'image_id' => '(media ID from step 2)',
+					),
+					'description' => 'Assign uploaded images as featured images for posts and pages.',
+					'use_result'  => 'Confirm featured image was set.',
+				),
+				array(
+					'step'        => 4,
+					'title'       => 'Generate alt text',
+					'tool'        => 'wp_generate_alt_text',
+					'params'      => array(
+						'id' => '(media ID)',
+					),
+					'description' => 'Auto-generate alt text for images using AI (requires OpenAI integration). Good for accessibility and SEO.',
+					'use_result'  => 'Review generated alt text for accuracy.',
+				),
+				array(
+					'step'        => 5,
+					'title'       => 'Clean up unused media',
+					'tool'        => 'wp_delete_media',
+					'params'      => array(
+						'id' => '(media ID to delete)',
+					),
+					'description' => 'Remove unused or duplicate media items to keep the library clean.',
+					'use_result'  => 'Confirm deletion.',
+				),
+			),
+			'tips' => array(
+				'URL upload is the easiest method for AI assistants.',
+				'Always set alt text on images for accessibility and SEO.',
+				'Use wp_integrations_status() to check if AI image generation is configured.',
+				'WordPress auto-generates multiple sizes for uploaded images.',
+				'Use mime_type filter in wp_list_media to find specific file types.',
+			),
+		);
+	}
+
+	/**
+	 * Form setup workflow.
+	 *
+	 * @return array Workflow data.
+	 */
+	public static function workflow_form_setup() {
+		return array(
+			'name'          => 'form_setup',
+			'title'         => 'Form Setup & Embedding',
+			'description'   => 'Detect forms, inspect their fields, and embed them into Elementor pages.',
+			'prerequisites' => array( 'A forms plugin must be active (CF7, WPForms, Gravity Forms, or Ninja Forms)' ),
+			'steps'         => array(
+				array(
+					'step'        => 1,
+					'title'       => 'Detect form plugins',
+					'tool'        => 'wp_forms_status',
+					'params'      => array(),
+					'description' => 'Check which form plugins are active and how many forms exist.',
+					'use_result'  => 'Note the active plugin to determine the correct embedding method.',
+				),
+				array(
+					'step'        => 2,
+					'title'       => 'List available forms',
+					'tool'        => 'wp_list_forms',
+					'params'      => array(),
+					'description' => 'Get all forms with their IDs, titles, and plugins.',
+					'use_result'  => 'Choose the form to embed. Note the form ID.',
+				),
+				array(
+					'step'        => 3,
+					'title'       => 'Inspect form',
+					'tool'        => 'wp_get_form',
+					'params'      => array(
+						'form_id' => '(form ID from step 2)',
+					),
+					'description' => 'Get form fields and settings to understand what the form collects.',
+					'use_result'  => 'Use this info to decide placement and context on the page.',
+				),
+				array(
+					'step'        => 4,
+					'title'       => 'Embed in Elementor page',
+					'tool'        => 'wp_set_elementor',
+					'params'      => array(
+						'id'             => '(page ID)',
+						'elementor_data' => '(layout with form widget embedded)',
+					),
+					'description' => "Add the form widget to your Elementor layout.\n"
+						. "- CF7: Use shortcode widget with [contact-form-7 id=\"X\"]\n"
+						. "- WPForms: Use wpforms widget with form_id setting\n"
+						. "- Gravity Forms: Use shortcode widget with [gravityform id=\"X\"]\n"
+						. "See wp_get_guide(topic=\"forms\") for exact Elementor JSON syntax.",
+					'use_result'  => 'Check response warnings for any issues.',
+				),
+				array(
+					'step'        => 5,
+					'title'       => 'Verify form renders',
+					'tool'        => 'wp_screenshot_url',
+					'params'      => array(
+						'url' => '(page URL with form)',
+					),
+					'description' => 'Take a screenshot to verify the form renders correctly on the page.',
+					'use_result'  => 'Confirm form appears and is properly styled.',
+				),
+			),
+			'tips' => array(
+				'CF7 and Gravity Forms use shortcode widgets in Elementor.',
+				'WPForms has a native Elementor widget.',
+				'If Elementor Pro is active, it has its own built-in form widget.',
+				'Always check wp_forms_status() first — it tells you which embed method to use.',
+				'Test form submission manually after embedding.',
+			),
+		);
+	}
+}

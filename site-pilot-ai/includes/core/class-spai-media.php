@@ -112,7 +112,10 @@ class Spai_Media {
 			return new WP_Error(
 				'invalid_url',
 				__( 'Invalid URL provided.', 'site-pilot-ai' ),
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'hint'   => 'Provide a fully qualified URL starting with http:// or https://. The URL must point to a publicly accessible file.',
+				)
 			);
 		}
 
@@ -131,7 +134,10 @@ class Spai_Media {
 			return new WP_Error(
 				'download_error',
 				$tmp->get_error_message(),
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'hint'   => 'Failed to download the file from the URL. Check that the URL is publicly accessible and returns a valid file. Supported formats: jpg, png, gif, webp, svg, pdf.',
+				)
 			);
 		}
 
@@ -211,7 +217,10 @@ class Spai_Media {
 			return new WP_Error(
 				'invalid_base64',
 				__( 'Invalid Base64 data.', 'site-pilot-ai' ),
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'hint'   => 'The Base64 data could not be decoded. Ensure the data is properly encoded. If using a data URI prefix (data:image/png;base64,...), it will be stripped automatically.',
+				)
 			);
 		}
 
@@ -221,7 +230,10 @@ class Spai_Media {
 			return new WP_Error(
 				'file_too_large',
 				__( 'File exceeds maximum size of 10MB.', 'site-pilot-ai' ),
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'hint'   => 'The decoded file exceeds the 10MB limit. Use a smaller file, or upload via URL with wp_upload_media_from_url if the server supports larger files.',
+				)
 			);
 		}
 
@@ -431,7 +443,13 @@ class Spai_Media {
 			return new WP_Error(
 				'not_found',
 				__( 'Attachment not found.', 'site-pilot-ai' ),
-				array( 'status' => 404 )
+				array(
+					'status' => 404,
+					'hint'   => sprintf(
+						'Media attachment ID %d not found. Use wp_list_media to see available media items and their IDs.',
+						absint( $attachment_id )
+					),
+				)
 			);
 		}
 

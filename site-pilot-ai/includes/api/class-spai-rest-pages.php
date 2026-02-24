@@ -356,7 +356,8 @@ class Spai_REST_Pages extends Spai_REST_API {
 			return $this->error_response(
 				'not_found',
 				__( 'Page not found.', 'site-pilot-ai' ),
-				404
+				404,
+				array( 'id' => $page_id )
 			);
 		}
 
@@ -392,7 +393,12 @@ class Spai_REST_Pages extends Spai_REST_API {
 		$page    = get_post( $page_id );
 
 		if ( ! $page || 'page' !== $page->post_type ) {
-			return $this->error_response( 'not_found', __( 'Page not found.', 'site-pilot-ai' ), 404 );
+			return $this->error_response(
+				'not_found',
+				__( 'Page not found.', 'site-pilot-ai' ),
+				404,
+				array( 'id' => $page_id )
+			);
 		}
 
 		$title  = $request->get_param( 'title' );
@@ -467,7 +473,12 @@ class Spai_REST_Pages extends Spai_REST_API {
 		$page = get_page_by_path( $slug, OBJECT, 'page' );
 
 		if ( ! $page ) {
-			return $this->error_response( 'not_found', __( 'Page not found.', 'site-pilot-ai' ), 404 );
+			return $this->error_response(
+				'not_found',
+				__( 'Page not found.', 'site-pilot-ai' ),
+				404,
+				array( 'id' => $slug )
+			);
 		}
 
 		$result = $this->pages->get_page( $page->ID );

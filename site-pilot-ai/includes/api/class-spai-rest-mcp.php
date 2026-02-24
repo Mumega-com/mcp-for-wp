@@ -411,7 +411,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			return $this->jsonrpc_error_response(
 				null,
 				-32700,
-				'Parse error: Invalid JSON'
+				'Parse error: Invalid JSON. Ensure the request body is valid JSON-RPC 2.0 with Content-Type: application/json.'
 			);
 		}
 
@@ -422,7 +422,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 				return $this->jsonrpc_error_response(
 					null,
 					-32600,
-					sprintf( 'Batch too large: maximum %d requests per batch.', $max_batch )
+					sprintf( 'Batch too large: maximum %d requests per batch. Split into smaller batches.', $max_batch )
 				);
 			}
 
@@ -497,7 +497,8 @@ class Spai_REST_MCP extends Spai_REST_API {
 				return $this->jsonrpc_error(
 					$id,
 					-32601,
-					'Method not found: ' . $method
+					'Method not found: ' . $method,
+					array( 'hint' => 'Supported MCP methods: initialize, tools/list, tools/call, resources/list, resources/read, ping. Check the method name for typos.' )
 				);
 		}
 	}
@@ -534,20 +535,23 @@ class Spai_REST_MCP extends Spai_REST_API {
 			$server_info['tool_categories'] = $allowed_categories;
 		}
 
+		$result = array(
+			'protocolVersion' => $this->protocol_version,
+			'serverInfo'      => $server_info,
+			'capabilities'    => array(
+				'tools'     => (object) array(), // Empty object indicates tools are supported
+				'resources' => array(
+					'subscribe'   => false,
+					'listChanged' => false,
+				),
+			),
+			'instructions'    => $this->build_server_instructions(),
+		);
+
 		return array(
 			'jsonrpc' => '2.0',
 			'id'      => $id,
-			'result'  => array(
-				'protocolVersion' => $this->protocol_version,
-				'serverInfo'      => $server_info,
-				'capabilities'    => array(
-					'tools'     => (object) array(), // Empty object indicates tools are supported
-					'resources' => array(
-						'subscribe'   => false,
-						'listChanged' => false,
-					),
-				),
-			),
+			'result'  => $result,
 		);
 	}
 
@@ -694,7 +698,12 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$arguments = isset( $params['arguments'] ) ? $params['arguments'] : array();
 
 		if ( empty( $tool_name ) ) {
-			return $this->jsonrpc_error( $id, -32602, 'Missing tool name' );
+			return $this->jsonrpc_error(
+				$id,
+				-32602,
+				'Missing tool name',
+				array( 'hint' => 'The "name" field is required in tools/call params. Call tools/list to see available tool names.' )
+			);
 		}
 
 		$this->log_mcp_activity(
@@ -709,7 +718,25 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$tool_map = $this->get_all_tool_map();
 
 		if ( ! isset( $tool_map[ $tool_name ] ) ) {
-			return $this->jsonrpc_error( $id, -32602, 'Unknown tool: ' . $tool_name );
+			// Fuzzy-match for "did you mean?" suggestion.
+			$available = array_keys( $tool_map );
+			$best      = null;
+			$best_pct  = 0;
+			foreach ( $available as $candidate ) {
+				$pct = 0;
+				similar_text( $tool_name, $candidate, $pct );
+				if ( $pct > $best_pct ) {
+					$best_pct = $pct;
+					$best     = $candidate;
+				}
+			}
+			$suggestion = ( $best && $best_pct >= 50 ) ? sprintf( ' Did you mean "%s"?', $best ) : '';
+			return $this->jsonrpc_error(
+				$id,
+				-32602,
+				'Unknown tool: ' . $tool_name,
+				array( 'hint' => 'Tool "' . $tool_name . '" does not exist.' . $suggestion . ' Call tools/list to see all available tools.' )
+			);
 		}
 
 		// Check if the API key's role allows this tool's category.
@@ -729,6 +756,15 @@ class Spai_REST_MCP extends Spai_REST_API {
 							$role,
 							$tool_category,
 							implode( ', ', $allowed_categories )
+						),
+						array(
+							'hint' => sprintf(
+								'Tool "%s" is in the "%s" category, but this key only has access to: %s. Request an admin key or a key with the "%s" category enabled.',
+								$tool_name,
+								$tool_category,
+								implode( ', ', $allowed_categories ),
+								$tool_category
+							),
 						)
 					);
 				}
@@ -749,7 +785,13 @@ class Spai_REST_MCP extends Spai_REST_API {
 			return $this->jsonrpc_error(
 				$id,
 				-32003,
-				sprintf( 'Tool "%s" requires %s to be installed and active on this WordPress site.', $tool_name, $human )
+				sprintf( 'Tool "%s" requires %s to be installed and active on this WordPress site.', $tool_name, $human ),
+				array(
+					'hint' => sprintf(
+						'The required plugin (%s) is not active. Use wp_detect_plugins to check what\'s installed. The site admin needs to install and activate it from WP Admin > Plugins.',
+						$human
+					),
+				)
 			);
 		}
 
@@ -821,14 +863,37 @@ class Spai_REST_MCP extends Spai_REST_API {
 
 			$error_code = isset( $data['code'] ) ? $data['code'] : 'tool_error';
 
+			// Build error data, preserving hint/guide from REST response.
+			$error_data = array(
+				'code'   => $error_code,
+				'status' => $status,
+			);
+
+			// Carry forward hint and guide from the REST error response.
+			if ( isset( $data['data']['hint'] ) ) {
+				$error_data['hint'] = $data['data']['hint'];
+			} elseif ( class_exists( 'Spai_Error_Hints' ) ) {
+				// Try to generate a hint from the error code.
+				$hint_info = Spai_Error_Hints::get_hint_for_code( $error_code );
+				if ( ! empty( $hint_info['hint'] ) ) {
+					$error_data['hint'] = $hint_info['hint'];
+				}
+			}
+
+			if ( isset( $data['data']['guide'] ) ) {
+				$error_data['guide'] = $data['data']['guide'];
+			} elseif ( class_exists( 'Spai_Error_Hints' ) ) {
+				$hint_info = isset( $hint_info ) ? $hint_info : Spai_Error_Hints::get_hint_for_code( $error_code );
+				if ( ! empty( $hint_info['guide'] ) ) {
+					$error_data['guide'] = $hint_info['guide'];
+				}
+			}
+
 			return $this->jsonrpc_error(
 				$id,
 				-32000,
 				$error_message . ' (route: ' . $method . ' /site-pilot-ai/v1' . $route . ')',
-				array(
-					'code'   => $error_code,
-					'status' => $status,
-				)
+				$error_data
 			);
 		}
 
@@ -950,6 +1015,129 @@ class Spai_REST_MCP extends Spai_REST_API {
 		}
 
 		return $integrations;
+	}
+
+	/**
+	 * Build dynamic server instructions for the MCP initialize response.
+	 *
+	 * Returns a concise system prompt that helps AI models understand this
+	 * WordPress site and use the available tools correctly. Content is
+	 * dynamic based on detected plugins and capabilities.
+	 *
+	 * @return string Markdown-formatted instructions.
+	 */
+	private function build_server_instructions() {
+		$core         = class_exists( 'Spai_Core' ) ? new Spai_Core() : null;
+		$capabilities = $core ? $core->get_capabilities() : array();
+		$site_name    = function_exists( 'get_bloginfo' ) ? get_bloginfo( 'name' ) : 'this site';
+		$site_url     = function_exists( 'home_url' ) ? home_url() : '';
+
+		$lines = array();
+
+		// --- Plugin overview ---
+		$lines[] = '# Site Pilot AI — MCP Server Instructions';
+		$lines[] = '';
+		$lines[] = 'You are connected to **' . $site_name . '**' . ( $site_url ? ' (' . $site_url . ')' : '' ) . ' via Site Pilot AI, a WordPress management plugin that exposes content, design, SEO, and admin tools through MCP.';
+		$lines[] = '';
+
+		// --- Best practices ---
+		$lines[] = '## Getting Started';
+		$lines[] = '';
+		$lines[] = '1. **Always call `wp_onboard` first** — it returns a complete site briefing with content inventory, active integrations, available tools, and recommended first actions.';
+		$lines[] = '2. Call `wp_get_site_context` to read the site style guide and design rules (if configured).';
+		$lines[] = '3. Use `wp_detect_plugins` to confirm which integrations are available before using plugin-specific tools.';
+		$lines[] = '';
+
+		// --- WordPress primer ---
+		$lines[] = '## WordPress Concepts';
+		$lines[] = '';
+		$lines[] = '- **Posts** — blog entries with categories, tags, and dates. Use `wp_list_posts`, `wp_create_post`, `wp_update_post`.';
+		$lines[] = '- **Pages** — static content (About, Contact, etc.). Use `wp_list_pages`, `wp_create_page`, `wp_update_page`.';
+		$lines[] = '- **Custom Post Types (CPTs)** — extended content types (products, events). Use `wp_list_content` with a `post_type` filter.';
+		$lines[] = '- **Taxonomies** — categories and tags organize content. Use `wp_list_categories`, `wp_list_tags`, `wp_create_term`.';
+		$lines[] = '- **Menus** — navigation menus assigned to theme locations. Use `wp_list_menus`, `wp_setup_menu`, `wp_add_menu_item`.';
+		$lines[] = '- **Options** — site-wide settings (site title, front page, permalinks). Use `wp_get_options`, `wp_get_option`.';
+		$lines[] = '- **Media** — images, files in the media library. Use `wp_upload_media_from_url`, `wp_list_media`.';
+		$lines[] = '';
+
+		// --- Elementor section (conditional) ---
+		if ( ! empty( $capabilities['elementor'] ) ) {
+			$layout_mode = ! empty( $capabilities['elementor_layout_mode'] ) ? $capabilities['elementor_layout_mode'] : 'section';
+
+			$lines[] = '## Elementor Page Builder';
+			$lines[] = '';
+			$lines[] = 'This site uses Elementor (**' . $layout_mode . ' mode**) for visual page building.';
+			$lines[] = '';
+
+			if ( 'container' === $layout_mode ) {
+				$lines[] = '- **Hierarchy:** `container > container(s) > widget(s)`. Containers can be nested.';
+				$lines[] = '- Top-level elements use `"elType": "container"` with `"settings": {"content_width": "full"}` or boxed.';
+			} else {
+				$lines[] = '- **Hierarchy:** `section > column(s) > widget(s)`.';
+				$lines[] = '- Columns need `"_column_size"` that sums to 100. Multi-column sections need a `"structure"` value (20=2col, 30=3col).';
+			}
+
+			$lines[] = '- Every element **must** have a unique `"id"` (8 alphanumeric chars). The plugin auto-generates missing IDs.';
+			$lines[] = '- Use `wp_get_elementor` to read current data, `wp_set_elementor` to save. The response includes validation warnings.';
+			$lines[] = '- Use `wp_get_widget_schema` to check correct widget settings keys before building.';
+			$lines[] = '- After changing templates or global styles, call `wp_regenerate_elementor_css`.';
+			$lines[] = '';
+		}
+
+		// --- Gutenberg section (conditional) ---
+		if ( ! empty( $capabilities['gutenberg'] ) ) {
+			$lines[] = '## Gutenberg Block Editor';
+			$lines[] = '';
+			$lines[] = '- Use `wp_get_blocks` to read parsed block data and `wp_set_blocks` to update blocks.';
+			$lines[] = '- Use `wp_list_block_types` to discover available block types before building content.';
+			$lines[] = '- Use `wp_list_block_patterns` to find pre-built layouts.';
+			$lines[] = '';
+		}
+
+		// --- SEO section (conditional) ---
+		$has_yoast    = ! empty( $capabilities['yoast'] );
+		$has_rankmath = ! empty( $capabilities['rankmath'] );
+		$has_aioseo   = ! empty( $capabilities['aioseo'] );
+		$has_seopress = ! empty( $capabilities['seopress'] );
+		$has_seo      = $has_yoast || $has_rankmath || $has_aioseo || $has_seopress;
+
+		if ( $has_seo ) {
+			$seo_plugin = $has_yoast ? 'Yoast SEO' : ( $has_rankmath ? 'RankMath' : ( $has_aioseo ? 'AIOSEO' : 'SEOPress' ) );
+
+			$lines[] = '## SEO (' . $seo_plugin . ')';
+			$lines[] = '';
+			$lines[] = '- Use `wp_get_seo` and `wp_set_seo` to manage meta titles, descriptions, focus keywords, and social data.';
+
+			if ( $has_yoast ) {
+				$lines[] = '- Yoast keys: `_yoast_wpseo_title`, `_yoast_wpseo_metadesc`, `_yoast_wpseo_focuskw`.';
+			} elseif ( $has_rankmath ) {
+				$lines[] = '- RankMath keys: `rank_math_title`, `rank_math_description`, `rank_math_focus_keyword`.';
+			}
+
+			$lines[] = '- Use `wp_analyze_seo` to audit a page and `wp_bulk_seo` to update SEO data across multiple pages.';
+			$lines[] = '';
+		}
+
+		// --- WooCommerce section (conditional) ---
+		if ( ! empty( $capabilities['woocommerce'] ) ) {
+			$lines[] = '## WooCommerce';
+			$lines[] = '';
+			$lines[] = '- Products are a custom post type. Use WooCommerce-specific tools when available.';
+			$lines[] = '- Product pages may use Elementor templates or Gutenberg blocks depending on the theme.';
+			$lines[] = '';
+		}
+
+		// --- Common mistakes ---
+		$lines[] = '## Common Mistakes to Avoid';
+		$lines[] = '';
+		$lines[] = '- **Do not guess widget settings keys** — use `wp_get_widget_schema` to look up the correct keys for any Elementor widget.';
+		$lines[] = '- **Do not create pages without checking existing content** — always call `wp_list_pages` or `wp_search` first.';
+		$lines[] = '- **Do not skip reading site context** — the site may have specific design rules, color palettes, and layout guidelines.';
+		$lines[] = '- **Do not hardcode URLs** — use `wp_site_info` to get the correct site URL and admin URL.';
+		$lines[] = '- **Do not forget to set featured images** — use `wp_set_featured_image` after creating posts/pages with images.';
+		$lines[] = '';
+
+		return implode( "\n", $lines );
 	}
 
 	/**

@@ -412,10 +412,12 @@ class Spai_REST_Menus extends Spai_REST_API {
 
 		$registered = get_registered_nav_menus();
 		if ( ! isset( $registered[ $location ] ) ) {
+			$available = array_keys( $registered );
 			return $this->error_response(
 				'invalid_location',
 				__( 'Unknown theme menu location.', 'site-pilot-ai' ),
-				400
+				400,
+				array( 'available_locations' => $available )
 			);
 		}
 

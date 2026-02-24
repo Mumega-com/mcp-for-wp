@@ -50,7 +50,13 @@ class Spai_Posts {
 			return new WP_Error(
 				'invalid_post_type',
 				__( 'Invalid or unsupported post type.', 'site-pilot-ai' ),
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'hint'   => sprintf(
+						'Post type "%s" is blocked for security reasons. Use wp_site_info to check available post types, or wp_list_content(post_type=\'...\') for custom post types.',
+						$type
+					),
+				)
 			);
 		}
 
@@ -64,7 +70,13 @@ class Spai_Posts {
 				return new WP_Error(
 					'invalid_post_type',
 					__( 'Invalid or unsupported post type.', 'site-pilot-ai' ),
-					array( 'status' => 400 )
+					array(
+						'status' => 400,
+						'hint'   => sprintf(
+							'Post type "%s" does not exist or is not public. Use wp_site_info to check available post types. Common types: post, page.',
+							$type
+						),
+					)
 				);
 			}
 		}
@@ -141,7 +153,13 @@ class Spai_Posts {
 			return new WP_Error(
 				'not_found',
 				__( 'Post not found.', 'site-pilot-ai' ),
-				array( 'status' => 404 )
+				array(
+					'status' => 404,
+					'hint'   => sprintf(
+						'Post ID %d not found. Use wp_list_posts to see available posts, or wp_search to find content by keyword. If this is a page, use wp_list_pages instead.',
+						absint( $post_id )
+					),
+				)
 			);
 		}
 
@@ -222,7 +240,13 @@ class Spai_Posts {
 			return new WP_Error(
 				'not_found',
 				__( 'Post not found.', 'site-pilot-ai' ),
-				array( 'status' => 404 )
+				array(
+					'status' => 404,
+					'hint'   => sprintf(
+						'Post ID %d not found. Use wp_list_posts to see available posts. If this is a page, use wp_update_page instead.',
+						absint( $post_id )
+					),
+				)
 			);
 		}
 
@@ -296,7 +320,13 @@ class Spai_Posts {
 			return new WP_Error(
 				'not_found',
 				__( 'Post not found.', 'site-pilot-ai' ),
-				array( 'status' => 404 )
+				array(
+					'status' => 404,
+					'hint'   => sprintf(
+						'Post ID %d not found. Use wp_list_posts to verify the post exists. If this is a page, use wp_delete_page instead.',
+						absint( $post_id )
+					),
+				)
 			);
 		}
 

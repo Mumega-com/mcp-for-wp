@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,17 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.3.0 =
+* New: MCP server instructions — auto-injected guidance for AI models on connect (WordPress concepts, Elementor rules, best practices)
+* New: wp_onboard tool — complete first-connection briefing with site inventory, integrations, tools, and recommendations
+* New: wp_get_guide tool — on-demand guides for elementor, seo, menus, media, content, forms, workflows, troubleshooting
+* New: wp_get_workflow tool — step-by-step workflow templates (build landing page, SEO audit, content migration, site redesign, etc.)
+* New: wp_elementor_widget_help tool — offline widget reference with valid keys, examples, and common mistakes for 35+ widgets
+* New: Actionable error hints — all error responses include contextual hints and guide references to help AI models self-correct
+* Enhancement: wp_get_elementor_widgets now includes descriptions, categories, and reference availability per widget
+* Enhancement: Elementor validation warnings now list valid settings keys when unknown keys are detected
+* Enhancement: MCP instructions are dynamic — only include sections for active plugins (Elementor, SEO, WooCommerce, Gutenberg)
 
 = 1.2.0 =
 * Fix: wp_bulk_seo "Post not found" for valid page IDs — fixed parameter extraction and ID normalization

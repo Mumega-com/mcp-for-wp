@@ -60,6 +60,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			// Site & Analytics
 			'wp_site_info'               => 'site',
 			'wp_introspect'              => 'site',
+			'wp_onboard'                 => 'site',
 			'wp_analytics'               => 'site',
 			'wp_detect_plugins'          => 'site',
 			'wp_get_options'             => 'site',
@@ -143,6 +144,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_bulk_find_replace'       => 'elementor',
 			'wp_get_elementor_widgets'   => 'elementor',
 			'wp_get_widget_schema'       => 'elementor',
+			'wp_elementor_widget_help'   => 'elementor',
 			'wp_preview_elementor'       => 'elementor',
 
 			// Gutenberg
@@ -181,6 +183,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			// Feedback
 			'wp_submit_feedback'         => 'admin',
 			'wp_list_feedback'           => 'admin',
+
+			// Guides & Workflows
+			'wp_get_guide'               => 'site',
+			'wp_get_workflow'            => 'site',
 		);
 	}
 
@@ -228,6 +234,12 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		$tools[] = $this->define_tool(
 			'wp_introspect',
 			'Get a machine-readable description of this plugin (auth, endpoints, tools, capabilities) so AI clients can self-configure instead of guessing',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_onboard',
+			'Get a complete first-connection briefing for this WordPress site. Returns site identity, content inventory, active integrations, available tools grouped by category, site context, recommended first actions, and a quick reference card. Call this first when connecting to a new site.',
 			array()
 		);
 
@@ -1347,6 +1359,18 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		);
 
 		$tools[] = $this->define_tool(
+			'wp_elementor_widget_help',
+			'Get complete help for an Elementor widget type: all valid settings keys with types and defaults, example JSON element, and common mistakes to avoid. Works offline (no Elementor installation required). Use this BEFORE building Elementor pages to ensure correct settings keys. If widget_type is not found, returns closest matches.',
+			array(
+				'widget_type' => array(
+					'type'        => 'string',
+					'description' => 'Widget type name (e.g. "heading", "image", "button", "icon-box", "price-table"). Use exact Elementor widget type names.',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
 			'wp_preview_elementor',
 			'Get rendered HTML output of Elementor content for a page. Returns the HTML that Elementor generates, without the full page template. Useful for verifying what the page looks like after setting Elementor data.',
 			array(
@@ -2063,6 +2087,30 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			array()
 		);
 
+		// Guides & Workflows
+		$tools[] = $this->define_tool(
+			'wp_get_guide',
+			'Get a detailed guide on a specific topic. Call with no topic to list all available topics. Topics include: elementor, seo, menus, media, content, forms, woocommerce, workflows, troubleshooting. Only shows topics relevant to active plugins.',
+			array(
+				'topic' => array(
+					'type'        => 'string',
+					'description' => 'Guide topic slug (e.g., "elementor", "seo", "menus", "workflows"). Omit to list all available topics.',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_workflow',
+			'Get a step-by-step workflow template for a common task. Each workflow includes tool names, parameters, and tips. Available workflows: build_landing_page, seo_audit, content_migration, site_redesign, menu_setup, media_management, form_setup.',
+			array(
+				'name' => array(
+					'type'        => 'string',
+					'description' => 'Workflow name (e.g., "build_landing_page", "seo_audit")',
+					'required'    => true,
+				),
+			)
+		);
+
 		return $tools;
 	}
 
@@ -2081,6 +2129,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_introspect'     => array(
 				'method' => 'GET',
 				'route'  => '/introspect',
+			),
+			'wp_onboard'        => array(
+				'method' => 'GET',
+				'route'  => '/onboard',
 			),
 			'wp_analytics'      => array(
 				'method' => 'GET',
@@ -2336,6 +2388,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'GET',
 				'route'  => '/elementor/widgets/{widget_type}',
 			),
+			'wp_elementor_widget_help'     => array(
+				'method' => 'GET',
+				'route'  => '/elementor/widget-help/{widget_type}',
+			),
 			'wp_preview_elementor'         => array(
 				'method' => 'GET',
 				'route'  => '/elementor/{id}/preview',
@@ -2525,6 +2581,16 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_site_health'     => array(
 				'method' => 'GET',
 				'route'  => '/site-health',
+			),
+
+			// Guides & Workflows
+			'wp_get_guide'           => array(
+				'method' => 'GET',
+				'route'  => '/guides',
+			),
+			'wp_get_workflow'        => array(
+				'method' => 'GET',
+				'route'  => '/workflows/{name}',
 			),
 		);
 	}

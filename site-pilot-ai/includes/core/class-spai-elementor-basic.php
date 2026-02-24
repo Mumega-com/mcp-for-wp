@@ -69,10 +69,17 @@ class Spai_Elementor_Basic {
 		$allowed = array( 'page', 'post', 'elementor_library' );
 
 		if ( ! $post || ! in_array( $post->post_type, $allowed, true ) ) {
+			$hint = sprintf(
+				'Post ID %d not found or is not a supported type (page, post, elementor_library). Use wp_list_pages or wp_list_posts to find valid IDs.',
+				absint( $post_id )
+			);
 			return new WP_Error(
 				'not_found',
 				__( 'Post not found or unsupported type.', 'site-pilot-ai' ),
-				array( 'status' => 404 )
+				array(
+					'status' => 404,
+					'hint'   => $hint,
+				)
 			);
 		}
 
@@ -90,7 +97,10 @@ class Spai_Elementor_Basic {
 			return new WP_Error(
 				'elementor_not_active',
 				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'hint'   => 'Elementor is not installed or active on this site. Use wp_introspect to check available page builders. For content editing without Elementor, use wp_update_page with HTML content, or wp_set_blocks for Gutenberg.',
+				)
 			);
 		}
 
@@ -324,7 +334,10 @@ class Spai_Elementor_Basic {
 			return new WP_Error(
 				'elementor_not_active',
 				__( 'Elementor is not installed or active.', 'site-pilot-ai' ),
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'hint'   => 'Elementor is not installed or active on this site. Use wp_introspect to check available page builders. For content editing without Elementor, use wp_update_page with HTML content, or wp_set_blocks for Gutenberg.',
+				)
 			);
 		}
 
@@ -332,6 +345,18 @@ class Spai_Elementor_Basic {
 		if ( is_wp_error( $page ) ) {
 			return $page;
 		}
+
+		// Determine layout mode for hints.
+		$layout_hint = '';
+		if ( class_exists( 'Spai_Error_Hints' ) ) {
+			$experiment   = get_option( 'elementor_experiment-container', '' );
+			$is_flexbox   = in_array( $experiment, array( 'active', 'default' ), true );
+			$layout_hint  = $is_flexbox
+				? 'This site uses flexbox layout mode. Use "container" as the top-level elType.'
+				: 'This site uses classic layout mode. Use "section" > "column" > widget structure.';
+		}
+
+		$structure_hint = 'Elementor data must be a JSON array of element objects. Each element needs: id (8-char alphanumeric), elType ("section"/"column"/"widget" or "container"), settings (object), elements (array). ' . $layout_hint . ' Use wp_get_elementor on an existing page to see the expected format.';
 
 		// Validate and encode data
 		$elementor_json = null;
@@ -343,7 +368,11 @@ class Spai_Elementor_Basic {
 					return new WP_Error(
 						'invalid_structure',
 						__( 'Elementor data must be an array of element objects.', 'site-pilot-ai' ),
-						array( 'status' => 400 )
+						array(
+							'status' => 400,
+							'hint'   => $structure_hint,
+							'guide'  => 'wp_get_guide(topic=\'elementor\')',
+						)
 					);
 				}
 				$elementor_json = wp_json_encode( $data['elementor_data'] );
@@ -354,14 +383,22 @@ class Spai_Elementor_Basic {
 					return new WP_Error(
 						'invalid_json',
 						__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
-						array( 'status' => 400 )
+						array(
+							'status' => 400,
+							'hint'   => 'The provided string is not valid JSON. Check for syntax errors (unescaped quotes, trailing commas, etc.). Use wp_get_elementor on an existing page to see the expected JSON format.',
+							'guide'  => 'wp_get_guide(topic=\'elementor\')',
+						)
 					);
 				}
 				if ( ! is_array( $decoded ) ) {
 					return new WP_Error(
 						'invalid_structure',
 						__( 'Elementor data must decode to an array.', 'site-pilot-ai' ),
-						array( 'status' => 400 )
+						array(
+							'status' => 400,
+							'hint'   => $structure_hint,
+							'guide'  => 'wp_get_guide(topic=\'elementor\')',
+						)
 					);
 				}
 				$elementor_json = $data['elementor_data'];
@@ -373,14 +410,22 @@ class Spai_Elementor_Basic {
 				return new WP_Error(
 					'invalid_json',
 					__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
-					array( 'status' => 400 )
+					array(
+						'status' => 400,
+						'hint'   => 'The provided string is not valid JSON. Check for syntax errors (unescaped quotes, trailing commas, etc.). Use wp_get_elementor on an existing page to see the expected JSON format.',
+						'guide'  => 'wp_get_guide(topic=\'elementor\')',
+					)
 				);
 			}
 			if ( ! is_array( $decoded ) ) {
 				return new WP_Error(
 					'invalid_structure',
 					__( 'Elementor data must decode to an array.', 'site-pilot-ai' ),
-					array( 'status' => 400 )
+					array(
+						'status' => 400,
+						'hint'   => $structure_hint,
+						'guide'  => 'wp_get_guide(topic=\'elementor\')',
+					)
 				);
 			}
 			$elementor_json = $data['elementor_json'];
@@ -932,7 +977,37 @@ class Spai_Elementor_Basic {
 				}
 			}
 
-			// --- 6. Validate elements array ---
+			// --- 6. Flag unknown settings keys using widget reference ---
+			if ( 'widget' === $el_type && '' !== $widget_type && ! empty( $el['settings'] ) && is_array( $el['settings'] ) ) {
+				$valid_keys = Spai_Elementor_Widgets::get_valid_keys( $widget_type );
+				if ( ! empty( $valid_keys ) ) {
+					// Common Elementor internal prefixes that should not trigger warnings.
+					$internal_prefixes = array( '_', 'motion_fx_', '__', 'hide_', 'responsive_', 'custom_css' );
+					foreach ( array_keys( $el['settings'] ) as $key ) {
+						// Skip known valid keys.
+						if ( in_array( $key, $valid_keys, true ) ) {
+							continue;
+						}
+						// Skip internal/advanced keys.
+						$skip = false;
+						foreach ( $internal_prefixes as $prefix ) {
+							if ( 0 === strpos( $key, $prefix ) ) {
+								$skip = true;
+								break;
+							}
+						}
+						if ( $skip ) {
+							continue;
+						}
+						// Flag unknown key with valid alternatives.
+						$valid_list = implode( ', ', array_slice( $valid_keys, 0, 15 ) );
+						$suffix     = count( $valid_keys ) > 15 ? ', ...' : '';
+						$warnings[] = "{$path}: unknown key '{$key}' on {$widget_type} widget — valid keys: {$valid_list}{$suffix}";
+					}
+				}
+			}
+
+			// --- 7. Validate elements array ---
 			if ( isset( $el['elements'] ) && ! is_array( $el['elements'] ) ) {
 				$warnings[]    = "{$path}: 'elements' must be an array";
 				$el['elements'] = array();
@@ -1130,16 +1205,29 @@ class Spai_Elementor_Basic {
 		$types   = $manager->get_widget_types();
 
 		if ( empty( $widget_type ) ) {
-			// List all widget types.
+			// List all widget types, enriched with reference data.
 			$list = array();
 			foreach ( $types as $name => $widget ) {
-				$list[] = array(
+				$entry = array(
 					'name'  => $name,
 					'title' => $widget->get_title(),
 					'icon'  => $widget->get_icon(),
 				);
+				$ref = Spai_Elementor_Widgets::get( $name );
+				if ( $ref ) {
+					$entry['description']   = $ref['description'];
+					$entry['category']      = $ref['category'];
+					$entry['has_reference'] = true;
+				} else {
+					$entry['has_reference'] = false;
+				}
+				$list[] = $entry;
 			}
-			return array( 'widgets' => $list, 'count' => count( $list ) );
+			return array(
+				'widgets' => $list,
+				'count'   => count( $list ),
+				'tip'     => 'Use wp_elementor_widget_help(widget_type) for full offline reference with example JSON and common mistakes.',
+			);
 		}
 
 		if ( ! isset( $types[ $widget_type ] ) ) {
@@ -1148,7 +1236,19 @@ class Spai_Elementor_Basic {
 			if ( $suggestion ) {
 				$msg .= sprintf( __( " Did you mean '%s'?", 'site-pilot-ai' ), $suggestion );
 			}
-			return new WP_Error( 'unknown_widget', $msg, array( 'status' => 404 ) );
+			return new WP_Error(
+				'unknown_widget',
+				$msg,
+				array(
+					'status' => 404,
+					'hint'   => sprintf(
+						'Widget type "%s" does not exist.%s Use wp_get_elementor_widgets to list all available widget types on this site.',
+						$widget_type,
+						$suggestion ? sprintf( ' Did you mean "%s"?', $suggestion ) : ''
+					),
+					'guide'  => 'wp_get_guide(topic=\'elementor_widgets\')',
+				)
+			);
 		}
 
 		$widget   = $types[ $widget_type ];
@@ -1185,12 +1285,23 @@ class Spai_Elementor_Basic {
 			$grouped[ $tab ][] = $entry;
 		}
 
-		return array(
+		$result = array(
 			'widget' => $widget_type,
 			'title'  => $widget->get_title(),
 			'icon'   => $widget->get_icon(),
 			'tabs'   => $grouped,
 		);
+
+		// Enrich with offline reference data if available.
+		$ref = Spai_Elementor_Widgets::get( $widget_type );
+		if ( $ref ) {
+			$result['description']     = $ref['description'];
+			$result['category']        = $ref['category'];
+			$result['example']         = $ref['example'];
+			$result['common_mistakes'] = $ref['common_mistakes'];
+		}
+
+		return $result;
 	}
 
 	/**

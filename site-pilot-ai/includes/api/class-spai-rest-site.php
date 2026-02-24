@@ -58,6 +58,19 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
+		// AI onboarding briefing.
+		register_rest_route(
+			$this->namespace,
+			'/onboard',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_onboard' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
 		// Settings (GET and PUT)
 		register_rest_route(
 			$this->namespace,
@@ -243,6 +256,65 @@ class Spai_REST_Site extends Spai_REST_API {
 							'description' => __( 'Include full content body in response.', 'site-pilot-ai' ),
 							'type'        => 'boolean',
 							'default'     => true,
+						),
+					),
+				),
+			)
+		);
+
+		// Guides (list topics or get specific topic via ?topic=...)
+		register_rest_route(
+			$this->namespace,
+			'/guides',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_guides' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'topic' => array(
+							'description' => __( 'Guide topic slug. Omit to list all available topics.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
+				),
+			)
+		);
+
+		// Guides (get specific topic via path)
+		register_rest_route(
+			$this->namespace,
+			'/guides/(?P<topic>[a-z_]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_guide_topic' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'topic' => array(
+							'description' => __( 'Guide topic slug.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
+		// Workflows (get specific workflow)
+		register_rest_route(
+			$this->namespace,
+			'/workflows/(?P<name>[a-z_]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_workflow' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'name' => array(
+							'description' => __( 'Workflow name.', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'required'    => true,
 						),
 					),
 				),
@@ -834,6 +906,276 @@ class Spai_REST_Site extends Spai_REST_API {
 		if ( '' !== $site_context ) {
 			$data['site_context'] = $site_context;
 		}
+
+		return $this->success_response( $data );
+	}
+
+	/**
+	 * Get AI onboarding briefing.
+	 *
+	 * Returns a comprehensive first-connection package including site identity,
+	 * content inventory, active integrations, available tools, site context,
+	 * recommended first actions, and a quick reference card.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_onboard( $request ) {
+		$this->log_activity( 'onboard', $request );
+
+		$site_info    = $this->core->get_site_info();
+		$capabilities = $site_info['capabilities'] ?? array();
+
+		// 1. Site identity.
+		$identity = array(
+			'name'        => $site_info['name'] ?? get_bloginfo( 'name' ),
+			'description' => $site_info['description'] ?? get_bloginfo( 'description' ),
+			'url'         => $site_info['url'] ?? home_url(),
+			'admin_url'   => $site_info['admin_url'] ?? admin_url(),
+			'language'    => $site_info['language'] ?? get_locale(),
+			'timezone'    => $site_info['timezone'] ?? wp_timezone_string(),
+			'is_rtl'      => $site_info['is_rtl'] ?? false,
+			'wp_version'  => $site_info['wp_version'] ?? $GLOBALS['wp_version'],
+			'theme'       => $site_info['theme'] ?? array(),
+			'plugin'      => $site_info['plugin'] ?? array(
+				'name'    => 'Site Pilot AI',
+				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+			),
+		);
+
+		// 2. Content inventory.
+		$counts     = wp_count_posts( 'post' );
+		$page_counts = wp_count_posts( 'page' );
+
+		$inventory = array(
+			'posts'   => array(
+				'published' => (int) ( $counts->publish ?? 0 ),
+				'drafts'    => (int) ( $counts->draft ?? 0 ),
+				'total'     => (int) ( ( $counts->publish ?? 0 ) + ( $counts->draft ?? 0 ) + ( $counts->private ?? 0 ) ),
+			),
+			'pages'   => array(
+				'published' => (int) ( $page_counts->publish ?? 0 ),
+				'drafts'    => (int) ( $page_counts->draft ?? 0 ),
+				'total'     => (int) ( ( $page_counts->publish ?? 0 ) + ( $page_counts->draft ?? 0 ) + ( $page_counts->private ?? 0 ) ),
+			),
+			'media'   => array_sum( array_map( 'intval', (array) wp_count_attachments() ) ),
+			'categories' => (int) wp_count_terms( 'category' ),
+			'tags'       => (int) wp_count_terms( 'post_tag' ),
+		);
+
+		// Add product count if WooCommerce is active.
+		if ( ! empty( $capabilities['woocommerce'] ) && post_type_exists( 'product' ) ) {
+			$product_counts          = wp_count_posts( 'product' );
+			$inventory['products'] = array(
+				'published' => (int) ( $product_counts->publish ?? 0 ),
+				'drafts'    => (int) ( $product_counts->draft ?? 0 ),
+			);
+		}
+
+		// Recent updates (last 5 modified posts/pages).
+		$recent_posts = get_posts(
+			array(
+				'post_type'      => array( 'post', 'page' ),
+				'post_status'    => array( 'publish', 'draft', 'private' ),
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+				'posts_per_page' => 5,
+			)
+		);
+
+		$recent_updates = array();
+		foreach ( $recent_posts as $p ) {
+			$recent_updates[] = array(
+				'id'       => $p->ID,
+				'title'    => $p->post_title,
+				'type'     => $p->post_type,
+				'status'   => $p->post_status,
+				'modified' => $p->post_modified,
+			);
+		}
+		$inventory['recent_updates'] = $recent_updates;
+
+		// 3. Active integrations.
+		$integrations = array();
+
+		if ( ! empty( $capabilities['elementor'] ) ) {
+			$integrations['elementor'] = array(
+				'active'      => true,
+				'version'     => defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : 'unknown',
+				'pro'         => ! empty( $capabilities['elementor_pro'] ),
+				'layout_mode' => $capabilities['elementor_layout_mode'] ?? 'section',
+			);
+		}
+
+		if ( ! empty( $capabilities['gutenberg'] ) ) {
+			$integrations['gutenberg'] = array(
+				'active' => true,
+			);
+		}
+
+		// SEO plugin detection.
+		$seo_plugins = array(
+			'yoast'    => 'Yoast SEO',
+			'rankmath' => 'RankMath',
+			'aioseo'   => 'AIOSEO',
+			'seopress' => 'SEOPress',
+		);
+		foreach ( $seo_plugins as $key => $label ) {
+			if ( ! empty( $capabilities[ $key ] ) ) {
+				$integrations['seo'] = array(
+					'active' => true,
+					'plugin' => $label,
+				);
+				break;
+			}
+		}
+
+		// Forms plugin detection.
+		$form_plugins = array(
+			'cf7'          => 'Contact Form 7',
+			'wpforms'      => 'WPForms',
+			'gravityforms' => 'Gravity Forms',
+			'ninjaforms'   => 'Ninja Forms',
+		);
+		foreach ( $form_plugins as $key => $label ) {
+			if ( ! empty( $capabilities[ $key ] ) ) {
+				$integrations['forms'] = array(
+					'active' => true,
+					'plugin' => $label,
+				);
+				break;
+			}
+		}
+
+		if ( ! empty( $capabilities['woocommerce'] ) ) {
+			$integrations['woocommerce'] = array(
+				'active' => true,
+			);
+		}
+
+		// Pro status.
+		$is_pro = false;
+		if ( function_exists( 'spai_license' ) ) {
+			try {
+				$license = spai_license();
+				$is_pro  = $license && method_exists( $license, 'is_pro' ) && $license->is_pro();
+			} catch ( \Exception $e ) {
+				$is_pro = false;
+			}
+		}
+		if ( ! $is_pro ) {
+			$is_pro = function_exists( 'spai_pro' ) || defined( 'SPAI_PRO_VERSION' );
+		}
+
+		// 4. Available tools grouped by category.
+		$tools_by_category = array();
+		if ( class_exists( 'Spai_REST_MCP' ) ) {
+			$mcp       = new Spai_REST_MCP();
+			$all_tools = method_exists( $mcp, 'get_introspection_data' )
+				? ( $mcp->get_introspection_data()['tools'] ?? array() )
+				: array();
+
+			foreach ( $all_tools as $tool ) {
+				$cat  = $tool['annotations']['category'] ?? 'site';
+				$name = $tool['name'] ?? '';
+				if ( '' === $name ) {
+					continue;
+				}
+				if ( ! isset( $tools_by_category[ $cat ] ) ) {
+					$tools_by_category[ $cat ] = array();
+				}
+				$tools_by_category[ $cat ][] = array(
+					'name'        => $name,
+					'description' => $tool['description'] ?? '',
+					'tier'        => $is_pro ? 'pro' : 'free',
+				);
+			}
+		}
+
+		// 5. Site context.
+		$site_context    = get_option( 'spai_site_context', '' );
+		$context_section = array(
+			'configured' => '' !== $site_context,
+		);
+		if ( '' !== $site_context ) {
+			$context_section['context'] = $site_context;
+		} else {
+			$context_section['hint'] = 'No site context configured. Use wp_set_site_context to define design rules, color palette, typography, and layout guidelines.';
+		}
+
+		// 6. Recommended first actions.
+		$actions = array();
+
+		if ( '' === $site_context ) {
+			$actions[] = array(
+				'action'      => 'Set up site context',
+				'tool'        => 'wp_set_site_context',
+				'description' => 'Define your site design rules, color palette, typography, and layout guidelines so AI assistants follow your brand.',
+			);
+		}
+
+		if ( $inventory['pages']['published'] === 0 ) {
+			$actions[] = array(
+				'action'      => 'Create your first page',
+				'tool'        => 'wp_create_page',
+				'description' => 'No published pages found. Create a homepage or landing page to get started.',
+			);
+		}
+
+		if ( ! empty( $capabilities['elementor'] ) ) {
+			$actions[] = array(
+				'action'      => 'Review Elementor status',
+				'tool'        => 'wp_elementor_status',
+				'description' => 'Check which pages use Elementor and the current layout mode.',
+			);
+		}
+
+		if ( isset( $integrations['seo'] ) ) {
+			$actions[] = array(
+				'action'      => 'Audit SEO metadata',
+				'tool'        => 'wp_seo_status',
+				'description' => 'Check SEO coverage across your pages and identify missing meta descriptions.',
+			);
+		}
+
+		if ( $inventory['posts']['published'] > 0 ) {
+			$actions[] = array(
+				'action'      => 'Review recent content',
+				'tool'        => 'wp_list_posts',
+				'description' => 'Browse existing blog posts to understand current content.',
+			);
+		}
+
+		// 7. Quick reference card — top 10 most-used tools.
+		$quick_reference = array(
+			array( 'tool' => 'wp_onboard', 'use' => 'First-connection site briefing (you are here)' ),
+			array( 'tool' => 'wp_get_site_context', 'use' => 'Read site design rules and style guide' ),
+			array( 'tool' => 'wp_list_pages', 'use' => 'List all pages with status and IDs' ),
+			array( 'tool' => 'wp_list_posts', 'use' => 'List blog posts with filters' ),
+			array( 'tool' => 'wp_create_page', 'use' => 'Create a new page' ),
+			array( 'tool' => 'wp_search', 'use' => 'Search posts and pages by keyword' ),
+			array( 'tool' => 'wp_fetch', 'use' => 'Get full content for a post or page by ID' ),
+			array( 'tool' => 'wp_upload_media_from_url', 'use' => 'Upload an image from a URL' ),
+			array( 'tool' => 'wp_detect_plugins', 'use' => 'Discover active plugins and capabilities' ),
+			array( 'tool' => 'wp_site_info', 'use' => 'Get site name, URL, theme, and version info' ),
+		);
+
+		// Add Elementor tools to quick reference if active.
+		if ( ! empty( $capabilities['elementor'] ) ) {
+			$quick_reference[] = array( 'tool' => 'wp_get_elementor', 'use' => 'Read Elementor page builder data' );
+			$quick_reference[] = array( 'tool' => 'wp_set_elementor', 'use' => 'Update Elementor page builder data' );
+		}
+
+		$data = array(
+			'site_identity'       => $identity,
+			'content_inventory'   => $inventory,
+			'active_integrations' => $integrations,
+			'available_tools'     => $tools_by_category,
+			'site_context'        => $context_section,
+			'recommended_actions' => $actions,
+			'quick_reference'     => $quick_reference,
+			'pro_active'          => $is_pro,
+		);
 
 		return $this->success_response( $data );
 	}
@@ -3319,5 +3661,66 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Get available guide topics or a specific guide.
+	 *
+	 * When called with a topic parameter, returns the full guide.
+	 * When called without, returns the list of available topics.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response object.
+	 */
+	public function get_guides( $request ) {
+		$topic = $request->get_param( 'topic' );
+
+		if ( ! empty( $topic ) ) {
+			$guide = Spai_Guides::get_guide( $topic );
+			if ( is_wp_error( $guide ) ) {
+				return $guide;
+			}
+			return $this->success_response( $guide );
+		}
+
+		$topics = Spai_Guides::get_topics();
+		return $this->success_response( array(
+			'description' => 'Available guide topics. Use wp_get_guide(topic="...") to get the full guide for a topic.',
+			'topics'      => $topics,
+		) );
+	}
+
+	/**
+	 * Get a specific guide by topic.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response object.
+	 */
+	public function get_guide_topic( $request ) {
+		$topic = $request->get_param( 'topic' );
+		$guide = Spai_Guides::get_guide( $topic );
+
+		if ( is_wp_error( $guide ) ) {
+			return $guide;
+		}
+
+		return $this->success_response( $guide );
+	}
+
+	/**
+	 * Get a specific workflow by name.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response object.
+	 */
+	public function get_workflow( $request ) {
+		$name     = $request->get_param( 'name' );
+		$workflow = Spai_Workflows::get_workflow( $name );
+
+		if ( is_wp_error( $workflow ) ) {
+			return $workflow;
+		}
+
+		return $this->success_response( $workflow );
 	}
 }
