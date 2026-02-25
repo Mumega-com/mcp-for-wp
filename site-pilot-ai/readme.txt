@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.3
+Stable tag: 1.4.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.4.4 =
+* Fix: Force JSON content-type on MCP responses, prevents SSE content-type errors during rapid calls (#164)
+* Fix: Support elementor_snippet post type in wp_create_post with auto-set _elementor_location meta (#172)
+* Enhancement: wp_regenerate_elementor_css now explains skipped pages with reasons and supports force=true (#173)
+* Enhancement: elementor_snippet included in Elementor data GET/SET allowed types
 
 = 1.4.3 =
 * Fix: Page-specific CSS now verified after generation; auto-primes via loopback if empty (#169)

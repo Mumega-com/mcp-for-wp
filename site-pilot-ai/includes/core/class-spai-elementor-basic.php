@@ -66,11 +66,11 @@ class Spai_Elementor_Basic {
 	 */
 	public function validate_post( $post_id ) {
 		$post    = get_post( absint( $post_id ) );
-		$allowed = array( 'page', 'post', 'elementor_library' );
+		$allowed = array( 'page', 'post', 'elementor_library', 'elementor_snippet' );
 
 		if ( ! $post || ! in_array( $post->post_type, $allowed, true ) ) {
 			$hint = sprintf(
-				'Post ID %d not found or is not a supported type (page, post, elementor_library). Use wp_list_pages or wp_list_posts to find valid IDs.',
+				'Post ID %d not found or is not a supported type (page, post, elementor_library, elementor_snippet). Use wp_list_pages or wp_list_posts to find valid IDs.',
 				absint( $post_id )
 			);
 			return new WP_Error(
@@ -1460,7 +1460,7 @@ class Spai_Elementor_Basic {
 		// Full site CSS regeneration — find all Elementor posts first.
 		$elementor_posts = get_posts(
 			array(
-				'post_type'      => array( 'post', 'page', 'elementor_library' ),
+				'post_type'      => array( 'post', 'page', 'elementor_library', 'elementor_snippet' ),
 				'post_status'    => array( 'publish', 'draft', 'private' ),
 				'meta_key'       => '_elementor_data',
 				'posts_per_page' => 200,
@@ -1492,9 +1492,31 @@ class Spai_Elementor_Basic {
 					$skipped[] = array(
 						'id'     => $pid,
 						'title'  => get_the_title( $pid ),
-						'reason' => 'Elementor document not found',
+						'reason' => 'Elementor document not found — page has _elementor_data meta but Elementor cannot load it as a document',
 					);
 					continue;
+				}
+
+				// When not forcing, check if CSS file already exists and is fresh.
+				if ( ! $force ) {
+					$existing_css_path = $css_dir . 'post-' . $pid . '.css';
+					$css_meta          = get_post_meta( $pid, '_elementor_css', true );
+					$post_modified     = get_post_modified_time( 'U', true, $pid );
+
+					if ( file_exists( $existing_css_path ) && filesize( $existing_css_path ) > 10 && ! empty( $css_meta ) ) {
+						// CSS meta stores the timestamp when CSS was last generated.
+						$css_time = is_array( $css_meta ) && isset( $css_meta['time'] ) ? (int) $css_meta['time'] : 0;
+						if ( $css_time > 0 && $css_time >= $post_modified ) {
+							$skipped[] = array(
+								'id'       => $pid,
+								'title'    => get_the_title( $pid ),
+								'reason'   => 'CSS already up-to-date (generated after last post modification). Use force=true to regenerate anyway.',
+								'css_file' => 'post-' . $pid . '.css',
+								'css_size' => filesize( $existing_css_path ),
+							);
+							continue;
+						}
+					}
 				}
 
 				try {
@@ -1560,17 +1582,21 @@ class Spai_Elementor_Basic {
 			'success'                => true,
 			'force'                  => $force,
 			'global_kit_regenerated' => $global_kit_regenerated,
-			'pages_found'            => count( $elementor_posts ),
-			'pages_regenerated'      => count( $regenerated ),
-			'pages_skipped'          => $skipped,
-			'pages_failed'           => $failed,
-			'pages'                  => $regenerated,
+			'total_pages'            => count( $elementor_posts ),
+			'regenerated_count'      => count( $regenerated ),
+			'skipped_count'          => count( $skipped ),
+			'failed_count'           => count( $failed ),
+			'regenerated'            => $regenerated,
+			'skipped'                => $skipped,
+			'failed'                 => $failed,
 			'message'                => sprintf(
-				/* translators: 1: regenerated count 2: total found 3: skipped count */
-				__( 'CSS regenerated for %1$d of %2$d Elementor pages (%3$d skipped). Global cache cleared.', 'site-pilot-ai' ),
+				/* translators: 1: regenerated count 2: total found 3: skipped count 4: failed count 5: global kit status */
+				__( 'CSS regenerated for %1$d of %2$d Elementor pages (%3$d skipped, %4$d failed). Global kit CSS: %5$s. Cache cleared.', 'site-pilot-ai' ),
 				count( $regenerated ),
 				count( $elementor_posts ),
-				count( $skipped )
+				count( $skipped ),
+				count( $failed ),
+				$global_kit_regenerated ? 'regenerated' : 'not regenerated'
 			),
 		);
 

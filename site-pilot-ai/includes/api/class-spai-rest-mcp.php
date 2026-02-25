@@ -323,6 +323,42 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$this->server_name    = 'site-pilot-ai' . ( '' !== $site_name ? ':' . $site_name : '' );
 		$this->free_registry  = new Spai_MCP_Free_Tools();
 		$this->pro_registry   = new Spai_MCP_Pro_Tools();
+
+		// Force JSON content type for MCP responses. During rapid sequential calls,
+		// WordPress or PHP output buffering can send wrong Content-Type headers
+		// (e.g. text/event-stream or text/html). This filter fires just before
+		// WordPress serves the REST response, ensuring we override at the HTTP level.
+		add_filter( 'rest_pre_serve_request', array( $this, 'force_json_content_type' ), 10, 4 );
+	}
+
+	/**
+	 * Force application/json Content-Type for MCP endpoint responses.
+	 *
+	 * WordPress REST API may send incorrect Content-Type headers during rapid
+	 * sequential requests due to output buffering or cached headers from previous
+	 * responses. This filter ensures the MCP endpoint always returns JSON.
+	 *
+	 * @param bool             $served  Whether the request has been served.
+	 * @param WP_HTTP_Response $result  Response object.
+	 * @param WP_REST_Request  $request Request object.
+	 * @param WP_REST_Server   $server  REST server instance.
+	 * @return bool Whether the request has been served.
+	 */
+	public function force_json_content_type( $served, $result, $request, $server ) {
+		$route = $request->get_route();
+		if ( false !== strpos( $route, '/site-pilot-ai/v1/mcp' ) ) {
+			// Clean any stale output buffers that might contain wrong headers.
+			while ( ob_get_level() > 0 ) {
+				ob_end_clean();
+			}
+
+			// Remove any previously sent content-type headers.
+			if ( ! headers_sent() ) {
+				header_remove( 'Content-Type' );
+				header( 'Content-Type: application/json; charset=UTF-8' );
+			}
+		}
+		return $served;
 	}
 
 	/**

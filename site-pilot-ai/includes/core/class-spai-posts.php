@@ -206,6 +206,18 @@ class Spai_Posts {
 			return $post_id;
 		}
 
+		// Set Elementor snippet location meta (head, body_start, body_end).
+		if ( 'elementor_snippet' === $post_type ) {
+			$allowed_locations = array( 'head', 'body_start', 'body_end' );
+			$location          = isset( $data['elementor_location'] ) ? sanitize_key( $data['elementor_location'] ) : 'head';
+			if ( ! in_array( $location, $allowed_locations, true ) ) {
+				$location = 'head';
+			}
+			update_post_meta( $post_id, '_elementor_location', $location );
+			// Elementor Custom Code requires these meta keys to function.
+			update_post_meta( $post_id, '_elementor_edit_mode', 'builder' );
+		}
+
 		// Set categories
 		if ( ! empty( $data['categories'] ) ) {
 			$categories = array_map( 'absint', (array) $data['categories'] );

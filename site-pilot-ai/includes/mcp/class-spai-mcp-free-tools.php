@@ -808,36 +808,41 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_create_post',
-			'Create a new post. Supports custom post types: use post_type=wp_block to create a reusable block (synced pattern).',
+			'Create a new post. Supports custom post types: use post_type=wp_block for reusable blocks, post_type=elementor_snippet for Elementor Custom Code (requires Elementor Pro).',
 			array(
-				'title'     => array(
+				'title'              => array(
 					'type'        => 'string',
 					'description' => 'Post title',
 					'required'    => true,
 				),
-				'content'   => array(
+				'content'            => array(
 					'type'        => 'string',
 					'description' => 'Post content (HTML or Gutenberg block markup)',
 					'default'     => '',
 				),
-				'status'    => array(
+				'status'             => array(
 					'type'        => 'string',
 					'description' => 'Post status (publish, draft, pending, private)',
 					'default'     => 'draft',
 				),
-				'post_type' => array(
+				'post_type'          => array(
 					'type'        => 'string',
-					'description' => 'Post type (default: post). Use wp_block for reusable blocks/synced patterns.',
+					'description' => 'Post type (default: post). Use wp_block for reusable blocks, elementor_snippet for Elementor Custom Code.',
 					'default'     => 'post',
 				),
-				'excerpt'   => array(
+				'excerpt'            => array(
 					'type'        => 'string',
 					'description' => 'Post excerpt',
 					'default'     => '',
 				),
-				'slug'      => array(
+				'slug'               => array(
 					'type'        => 'string',
 					'description' => 'Post URL slug (e.g. "my-post")',
+				),
+				'elementor_location' => array(
+					'type'        => 'string',
+					'description' => 'For elementor_snippet only: injection location (head, body_start, body_end). Default: head.',
+					'default'     => 'head',
 				),
 			)
 		);
