@@ -1,7 +1,7 @@
 {
   "name": "site-pilot-ai",
-  "version": "2.1.2",
-  "description": "MCP Server for WordPress - Manage posts, pages, SEO, forms & Elementor from Claude Desktop, Cursor, Windsurf and any MCP client",
+  "version": "3.0.0",
+  "description": "MCP Server for WordPress - 200+ tools for posts, pages, Elementor, WooCommerce, LearnPress, SEO, forms & more. Works with Claude Desktop, Cursor, Windsurf and any MCP client.",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
@@ -32,9 +32,14 @@
     "ai",
     "claude",
     "elementor",
+    "woocommerce",
+    "learnpress",
     "seo",
     "chatgpt",
-    "site-pilot"
+    "cursor",
+    "windsurf",
+    "site-pilot",
+    "model-context-protocol"
   ],
   "dependencies": {},
   "devDependencies": {

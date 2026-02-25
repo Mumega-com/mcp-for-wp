@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/site-pilot-ai.svg)](https://www.npmjs.com/package/site-pilot-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**MCP Server for WordPress** — Manage posts, pages, SEO, forms & Elementor from Claude Desktop, Cursor, Windsurf and any MCP client.
+**MCP Server for WordPress** — 200+ tools for posts, pages, Elementor, WooCommerce, LearnPress, SEO, forms & more. Works with Claude Desktop, Cursor, Windsurf and any MCP client.
 
 A thin stdio-to-HTTP proxy that forwards all MCP requests to your WordPress site's built-in MCP endpoint. Tools are always in sync with the plugin — zero local definitions, zero maintenance.
 
@@ -15,9 +15,10 @@ MCP Client (stdio) → site-pilot-ai (proxy) → WordPress Plugin (JSON-RPC over
 
 The WordPress plugin exposes a complete MCP endpoint at `/wp-json/site-pilot-ai/v1/mcp`. This npm package connects to it and proxies `tools/list`, `tools/call`, `resources/list`, and `resources/read` — so every tool the plugin provides is automatically available to your AI client.
 
-- **65+ tools** — content, Elementor, SEO, forms, media, settings, and more
+- **200+ tools** — content, Elementor, WooCommerce, LearnPress, SEO, forms, media, theme builder, and more
 - **Zero dependencies** — single-file bundle, runs on Node 18+
 - **Always in sync** — update the plugin, tools appear instantly
+- **AI-native** — built-in onboarding, guides, error hints, and widget help teach AI models how to use your site
 
 ## Quick Start
 
@@ -52,15 +53,46 @@ This will:
       "args": ["-y", "site-pilot-ai"],
       "env": {
         "WP_URL": "https://your-site.com",
-        "WP_API_KEY": "your-api-key",
-        "WP_SITE_NAME": "mysite"
+        "WP_API_KEY": "spai_your_key"
       }
     }
   }
 }
 ```
 
-The server registers as `sitepilotai-<sitename>` so each site has a unique identity. For multiple sites, add separate entries:
+**Claude Code** — add to `.mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "command": "npx",
+      "args": ["-y", "site-pilot-ai"],
+      "env": {
+        "WP_URL": "https://your-site.com",
+        "WP_API_KEY": "spai_your_key"
+      }
+    }
+  }
+}
+```
+
+**Streamable HTTP** — connect directly without the npm proxy:
+
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "url": "https://your-site.com/wp-json/site-pilot-ai/v1/mcp",
+      "headers": {
+        "X-API-Key": "spai_your_key"
+      }
+    }
+  }
+}
+```
+
+For multiple sites, add separate entries with unique names:
 
 ```json
 {
@@ -83,25 +115,47 @@ The server registers as `sitepilotai-<sitename>` so each site has a unique ident
 
 ### 4. Restart Your Client
 
-Tools appear automatically. Try: *"Show me my site info"*
+Tools appear automatically. Try: *"Show me my site info"* or *"Onboard me to this site"*
 
-## Available Tools
+## Available Tools (200+)
 
 All tools come from the WordPress plugin. Update the plugin to get new tools — no npm update needed.
 
-**Content Management** — `wp_list_posts`, `wp_create_post`, `wp_update_post`, `wp_delete_post`, `wp_list_pages`, `wp_create_page`, `wp_update_page`, `wp_delete_page`, `wp_search`, `wp_list_drafts`, `wp_delete_all_drafts`
+### Core (Free)
 
-**Site & Settings** — `wp_site_info`, `wp_introspect`, `wp_analytics`, `wp_detect_plugins`, `wp_get_options`, `wp_update_options`, `wp_get_settings`, `wp_update_settings`
+**Content** — `wp_list_posts`, `wp_create_post`, `wp_update_post`, `wp_delete_post`, `wp_list_pages`, `wp_create_page`, `wp_update_page`, `wp_delete_page`, `wp_search`, `wp_list_drafts`, `wp_delete_all_drafts`
 
-**Media** — `wp_upload_media`, `wp_upload_media_from_url`, `wp_list_media`, `wp_delete_media`
+**Media** — `wp_upload_media`, `wp_upload_media_from_url`, `wp_upload_media_b64`, `wp_list_media`, `wp_delete_media`
 
-**Elementor** — `wp_get_elementor`, `wp_set_elementor`, `wp_list_elementor_templates`, `wp_apply_elementor_template`, `wp_create_landing_page`, `wp_add_elementor_section`, `wp_update_elementor_widget`, `wp_get_elementor_globals`, `wp_clone_elementor_page`
+**Elementor** — `wp_get_elementor`, `wp_set_elementor`, `wp_preview_elementor`, `wp_elementor_widget_help`, `wp_regenerate_elementor_css`
 
-**SEO** (requires Yoast / RankMath / AIOSEO / SEOPress) — `wp_get_seo`, `wp_set_seo`, `wp_analyze_seo`, `wp_bulk_seo`, `wp_get_seo_plugin`
+**Site & Settings** — `wp_site_info`, `wp_onboard`, `wp_introspect`, `wp_analytics`, `wp_detect_plugins`, `wp_get_options`, `wp_update_options`
 
-**Forms** (requires CF7 / WPForms / Gravity Forms / Elementor Pro) — `wp_list_forms`, `wp_get_form`, `wp_create_form`, `wp_update_form`, `wp_delete_form`, `wp_get_form_submissions`, `wp_submit_form`, `wp_get_form_plugin`
+**AI Education** — `wp_onboard` (full site overview), `wp_get_guide` (9 topics), `wp_get_workflow` (7 templates), `wp_elementor_widget_help` (44 widgets)
 
-**...and more.** Run `npx site-pilot-ai --test` to connect and see the full list.
+**Taxonomies** — `wp_list_categories`, `wp_list_tags`, `wp_create_term`, `wp_update_term`, `wp_delete_term`
+
+**Menus** — `wp_list_menus`, `wp_list_menu_items`, `wp_add_menu_item`, `wp_update_menu_item`, `wp_delete_menu_item`
+
+### Pro
+
+**SEO** (Yoast / RankMath / AIOSEO / SEOPress) — `wp_get_seo`, `wp_set_seo`, `wp_analyze_seo`, `wp_bulk_seo`, `wp_seo_status`
+
+**Forms** (CF7 / WPForms / Gravity Forms) — `wp_list_forms`, `wp_get_form`, `wp_get_form_entries`, `wp_forms_status`
+
+**WooCommerce** — `wc_status`, `wc_list_products`, `wc_create_product`, `wc_update_product`, `wc_delete_product`, `wc_list_orders`, `wc_get_order`, `wc_update_order`, `wc_list_customers`, `wc_analytics`, `wc_list_product_categories`, `wc_create_product_category`
+
+**LearnPress LMS** — `wp_list_courses`, `wp_create_course`, `wp_update_course`, `wp_get_curriculum`, `wp_set_curriculum`, `wp_list_lessons`, `wp_create_lesson`, `wp_list_quizzes`, `wp_create_quiz`, `wp_list_course_categories`, `wp_lms_stats`
+
+**Elementor Pro** — `wp_list_elementor_templates`, `wp_create_elementor_template`, `wp_apply_elementor_template`, `wp_create_landing_page`, `wp_clone_elementor_page`, `wp_get_elementor_globals`, `wp_set_elementor_globals`, `wp_build_page`
+
+**Theme Builder** — `wp_theme_builder_status`, `wp_list_theme_templates`, `wp_create_theme_template`, `wp_set_template_conditions`, `wp_assign_template`
+
+**Events** (ThimPress) — `wp_list_events`, `wp_create_event`, `wp_update_event`
+
+**AI Tools** — `wp_search_stock_photos`, `wp_download_stock_photo`, `wp_generate_image`, `wp_generate_featured_image`, `wp_generate_alt_text`, `wp_describe_image`, `wp_generate_excerpt`, `wp_text_to_speech`
+
+**...and more.** Run `npx site-pilot-ai --test` to see the full count for your site.
 
 ## Configuration
 
@@ -125,11 +179,6 @@ Location: `~/.wp-ai-operator/config.json`
       "url": "https://your-site.com",
       "apiKey": "spai_...",
       "name": "My Site"
-    },
-    "staging": {
-      "url": "https://staging.your-site.com",
-      "apiKey": "spai_...",
-      "name": "Staging"
     }
   },
   "defaultSite": "default"
@@ -173,12 +222,15 @@ Verify:
 
 **Required:**
 - WordPress 5.9+
-- Site Pilot AI plugin
+- Site Pilot AI plugin (v1.5.0+)
 
 **Optional (enables more tools):**
-- **Elementor** / Elementor Pro — page builder tools
+- **Elementor** / Elementor Pro — page builder & theme builder tools
+- **WooCommerce** — product, order, customer tools
+- **LearnPress** — course, lesson, quiz tools
 - **Yoast SEO** / RankMath / AIOSEO / SEOPress — SEO tools
 - **Contact Form 7** / WPForms / Gravity Forms — form tools
+- **ThimPress Events** — event management tools
 
 ## Development
 
@@ -196,6 +248,6 @@ MIT © DigID
 
 ---
 
-**Documentation:** https://github.com/Digidinc/wp-ai-operator
+**Documentation:** https://sitepilotai.mumega.com
 **Issues:** https://github.com/Digidinc/wp-ai-operator/issues
 **WordPress Plugin:** https://github.com/Digidinc/wp-ai-operator/releases

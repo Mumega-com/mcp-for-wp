@@ -20,7 +20,7 @@ import { loadConfig, getActiveSite } from "./config.js";
 import { McpProxy } from "./proxy.js";
 import { runSetup } from "./setup.js";
 
-const VERSION = "2.1.2";
+const VERSION = "3.0.0";
 
 function log(level: string, message: string, data?: any): void {
   const ts = new Date().toISOString();
@@ -80,24 +80,51 @@ if (args.includes("--test")) {
     process.exit(1);
   }
 
-  console.log(`🔍 Testing connection to ${site.url}...`);
+  const baseUrl = site.url.replace(/\/+$/, "");
+  console.log(`🔍 Testing connection to ${baseUrl}...`);
   try {
     const response = await fetch(
-      `${site.url.replace(/\/+$/, "")}/wp-json/site-pilot-ai/v1/site-info`,
+      `${baseUrl}/wp-json/site-pilot-ai/v1/site-info`,
       { headers: { "X-API-Key": site.apiKey } }
     );
     if (response.ok) {
       const data = (await response.json()) as any;
-      console.log(
-        `✅ Connected! ${data.name} (WordPress ${data.wp_version})`
-      );
-      console.log(`   Plugin: Site Pilot AI v${data.plugin?.version}`);
-      console.log(`   Elementor: ${data.capabilities?.elementor ? "yes" : "no"}, Pro: ${data.capabilities?.elementor_pro ? "yes" : "no"}`);
+      const cap = data.capabilities || {};
+      console.log(`✅ Connected! ${data.name} (WordPress ${data.wp_version})`);
+      console.log(`   Plugin:      Site Pilot AI v${data.plugin?.version}`);
+      console.log(`   Theme:       ${data.theme?.name || "unknown"} ${data.theme?.version || ""}`);
+      console.log(`   Plan:        ${cap.plan || "free"}${cap.pro_active ? " (Pro active)" : ""}`);
+      console.log(`   Elementor:   ${cap.elementor ? "yes" : "no"}${cap.elementor_pro ? " + Pro" : ""}${cap.elementor_layout_mode ? ` (${cap.elementor_layout_mode})` : ""}`);
+      const extras: string[] = [];
+      if (cap.woocommerce) extras.push("WooCommerce");
+      if (cap.learnpress) extras.push("LearnPress");
+      if (cap.rankmath) extras.push("RankMath");
+      if (cap.yoast) extras.push("Yoast");
+      if (cap.aioseo) extras.push("AIOSEO");
+      if (cap.cf7) extras.push("CF7");
+      if (cap.wpforms) extras.push("WPForms");
+      if (extras.length) console.log(`   Integrations: ${extras.join(", ")}`);
+      // Count tools
+      try {
+        const toolsRes = await fetch(`${baseUrl}/wp-json/site-pilot-ai/v1/mcp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-API-Key": site.apiKey },
+          body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }),
+        });
+        if (toolsRes.ok) {
+          const toolsData = (await toolsRes.json()) as any;
+          const tools = toolsData?.result?.tools ?? [];
+          console.log(`   MCP Tools:   ${tools.length} available`);
+        }
+      } catch {}
     } else {
       console.log(`❌ HTTP ${response.status}: Check your API key`);
+      if (response.status === 401) console.log("   Regenerate your API key in WP Admin > Site Pilot AI");
+      if (response.status === 404) console.log("   Make sure the Site Pilot AI plugin is activated");
     }
   } catch (e: any) {
     console.log(`❌ Connection failed: ${e.message}`);
+    console.log("   Check that your WordPress site is accessible");
   }
   process.exit(0);
 }
