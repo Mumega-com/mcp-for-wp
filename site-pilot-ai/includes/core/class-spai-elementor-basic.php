@@ -361,58 +361,28 @@ class Spai_Elementor_Basic {
 		// Validate and encode data
 		$elementor_json = null;
 
-		if ( isset( $data['elementor_data'] ) ) {
-			// If array, validate structure and encode to JSON
-			if ( is_array( $data['elementor_data'] ) ) {
-				if ( ! $this->is_valid_elementor_structure( $data['elementor_data'] ) ) {
-					return new WP_Error(
-						'invalid_structure',
-						__( 'Elementor data must be an array of element objects.', 'site-pilot-ai' ),
-						array(
-							'status' => 400,
-							'hint'   => $structure_hint,
-							'guide'  => 'wp_get_guide(topic=\'elementor\')',
-						)
-					);
-				}
-				$elementor_json = wp_json_encode( $data['elementor_data'] );
-			} else {
-				// Validate JSON string
-				$decoded = json_decode( $data['elementor_data'], true );
-				if ( null === $decoded && json_last_error() !== JSON_ERROR_NONE ) {
-					return new WP_Error(
-						'invalid_json',
-						__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
-						array(
-							'status' => 400,
-							'hint'   => 'The provided string is not valid JSON. Check for syntax errors (unescaped quotes, trailing commas, etc.). Use wp_get_elementor on an existing page to see the expected JSON format.',
-							'guide'  => 'wp_get_guide(topic=\'elementor\')',
-						)
-					);
-				}
-				if ( ! is_array( $decoded ) ) {
-					return new WP_Error(
-						'invalid_structure',
-						__( 'Elementor data must decode to an array.', 'site-pilot-ai' ),
-						array(
-							'status' => 400,
-							'hint'   => $structure_hint,
-							'guide'  => 'wp_get_guide(topic=\'elementor\')',
-						)
-					);
-				}
-				$elementor_json = $data['elementor_data'];
+		// --- Base64-encoded payload (bypass all quoting/escaping issues) ---
+		if ( ! empty( $data['elementor_data_base64'] ) ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+			$raw_decoded = base64_decode( $data['elementor_data_base64'], true );
+			if ( false === $raw_decoded ) {
+				return new WP_Error(
+					'invalid_base64',
+					__( 'Invalid base64 encoding in elementor_data_base64.', 'site-pilot-ai' ),
+					array(
+						'status' => 400,
+						'hint'   => 'The elementor_data_base64 value is not valid base64. Encode your JSON string with base64_encode() or btoa() before sending.',
+					)
+				);
 			}
-		} elseif ( isset( $data['elementor_json'] ) ) {
-			// Direct JSON string
-			$decoded = json_decode( $data['elementor_json'], true );
+			$decoded = json_decode( $raw_decoded, true );
 			if ( null === $decoded && json_last_error() !== JSON_ERROR_NONE ) {
 				return new WP_Error(
 					'invalid_json',
-					__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
+					__( 'Base64-decoded data is not valid JSON.', 'site-pilot-ai' ),
 					array(
 						'status' => 400,
-						'hint'   => 'The provided string is not valid JSON. Check for syntax errors (unescaped quotes, trailing commas, etc.). Use wp_get_elementor on an existing page to see the expected JSON format.',
+						'hint'   => 'The base64 payload decoded successfully but the resulting string is not valid JSON. Error: ' . json_last_error_msg(),
 						'guide'  => 'wp_get_guide(topic=\'elementor\')',
 					)
 				);
@@ -428,7 +398,77 @@ class Spai_Elementor_Basic {
 					)
 				);
 			}
-			$elementor_json = $data['elementor_json'];
+			$elementor_json = $raw_decoded;
+		} elseif ( isset( $data['elementor_data'] ) ) {
+			// If array, validate structure and encode to JSON
+			if ( is_array( $data['elementor_data'] ) ) {
+				if ( ! $this->is_valid_elementor_structure( $data['elementor_data'] ) ) {
+					return new WP_Error(
+						'invalid_structure',
+						__( 'Elementor data must be an array of element objects.', 'site-pilot-ai' ),
+						array(
+							'status' => 400,
+							'hint'   => $structure_hint,
+							'guide'  => 'wp_get_guide(topic=\'elementor\')',
+						)
+					);
+				}
+				$elementor_json = wp_json_encode( $data['elementor_data'] );
+			} else {
+				// Validate JSON string — with recovery for common MCP corruption.
+				$decoded = $this->try_json_decode( $data['elementor_data'] );
+				if ( null === $decoded ) {
+					return new WP_Error(
+						'invalid_json',
+						__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
+						array(
+							'status' => 400,
+							'hint'   => 'The provided string is not valid JSON even after recovery attempts (stripslashes, double-encoding unwrap). Error: ' . json_last_error_msg() . '. Consider using elementor_data_base64 to avoid quoting issues — base64-encode your JSON before sending.',
+							'guide'  => 'wp_get_guide(topic=\'elementor\')',
+						)
+					);
+				}
+				if ( ! is_array( $decoded ) ) {
+					return new WP_Error(
+						'invalid_structure',
+						__( 'Elementor data must decode to an array.', 'site-pilot-ai' ),
+						array(
+							'status' => 400,
+							'hint'   => $structure_hint,
+							'guide'  => 'wp_get_guide(topic=\'elementor\')',
+						)
+					);
+				}
+				// Re-encode from decoded data to ensure clean JSON.
+				$elementor_json = wp_json_encode( $decoded );
+			}
+		} elseif ( isset( $data['elementor_json'] ) ) {
+			// Direct JSON string — with recovery.
+			$decoded = $this->try_json_decode( $data['elementor_json'] );
+			if ( null === $decoded ) {
+				return new WP_Error(
+					'invalid_json',
+					__( 'Invalid Elementor JSON data.', 'site-pilot-ai' ),
+					array(
+						'status' => 400,
+						'hint'   => 'The provided string is not valid JSON even after recovery attempts. Error: ' . json_last_error_msg() . '. Consider using elementor_data_base64 to avoid quoting issues.',
+						'guide'  => 'wp_get_guide(topic=\'elementor\')',
+					)
+				);
+			}
+			if ( ! is_array( $decoded ) ) {
+				return new WP_Error(
+					'invalid_structure',
+					__( 'Elementor data must decode to an array.', 'site-pilot-ai' ),
+					array(
+						'status' => 400,
+						'hint'   => $structure_hint,
+						'guide'  => 'wp_get_guide(topic=\'elementor\')',
+					)
+				);
+			}
+			// Re-encode from decoded data to ensure clean JSON.
+			$elementor_json = wp_json_encode( $decoded );
 		}
 
 		// Validate JSON size and nesting depth (prevent DoS).
@@ -742,6 +782,61 @@ class Spai_Elementor_Basic {
 	 * @param mixed $data Data to validate.
 	 * @return bool True if valid structure.
 	 */
+	/**
+	 * Attempt to decode a JSON string with recovery for common MCP corruption.
+	 *
+	 * Tries, in order:
+	 * 1. Direct json_decode
+	 * 2. Strip outer quotes (double-encoded JSON string containing JSON)
+	 * 3. stripslashes then decode (WordPress magic quotes / MCP escaping)
+	 * 4. utf8_encode then decode (encoding issues)
+	 *
+	 * @param string $raw_string The raw JSON string to decode.
+	 * @return mixed|null The decoded value, or null if all attempts fail.
+	 */
+	private function try_json_decode( $raw_string ) {
+		// 1. Direct decode.
+		$decoded = json_decode( $raw_string, true );
+		if ( null !== $decoded || json_last_error() === JSON_ERROR_NONE ) {
+			return $decoded;
+		}
+
+		// 2. Strip outer quotes — double-encoded JSON string (e.g. '"[{...}]"').
+		$trimmed = trim( $raw_string );
+		if ( strlen( $trimmed ) >= 2 && '"' === $trimmed[0] && '"' === $trimmed[ strlen( $trimmed ) - 1 ] ) {
+			$inner   = json_decode( $trimmed, true ); // decode outer string wrapper
+			if ( is_string( $inner ) ) {
+				$decoded = json_decode( $inner, true );
+				if ( null !== $decoded || json_last_error() === JSON_ERROR_NONE ) {
+					return $decoded;
+				}
+			}
+		}
+
+		// 3. stripslashes then decode (WordPress magic quotes or MCP escaping).
+		$unslashed = stripslashes( $raw_string );
+		if ( $unslashed !== $raw_string ) {
+			$decoded = json_decode( $unslashed, true );
+			if ( null !== $decoded || json_last_error() === JSON_ERROR_NONE ) {
+				return $decoded;
+			}
+		}
+
+		// 4. utf8_encode for encoding issues (only if mbstring detects non-UTF-8).
+		if ( function_exists( 'mb_detect_encoding' ) && ! mb_detect_encoding( $raw_string, 'UTF-8', true ) ) {
+			// phpcs:ignore PHPCompatibility.FunctionUse.RemovedFunctions.utf8_encodeDeprecated
+			$utf8    = function_exists( 'mb_convert_encoding' )
+				? mb_convert_encoding( $raw_string, 'UTF-8', 'ISO-8859-1' )
+				: utf8_encode( $raw_string );
+			$decoded = json_decode( $utf8, true );
+			if ( null !== $decoded || json_last_error() === JSON_ERROR_NONE ) {
+				return $decoded;
+			}
+		}
+
+		return null;
+	}
+
 	private function is_valid_elementor_structure( $data ) {
 		// Must be an array (can be empty for blank pages).
 		if ( ! is_array( $data ) ) {
@@ -2139,7 +2234,14 @@ class Spai_Elementor_Basic {
 	 * @param int $post_id Post ID.
 	 * @return array|WP_Error Rendered content data or error.
 	 */
-	public function get_rendered_content( $post_id ) {
+	/**
+	 * Get rendered HTML preview of Elementor content.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $format  Output format: "summary" (text + stats, no HTML), "text" (full text), "html" (full HTML).
+	 * @return array|WP_Error Rendered content or error.
+	 */
+	public function get_rendered_content( $post_id, $format = 'summary' ) {
 		if ( ! $this->is_active() ) {
 			return new WP_Error(
 				'elementor_not_active',
@@ -2162,8 +2264,8 @@ class Spai_Elementor_Basic {
 		}
 
 		// Check if the post has Elementor data.
-		$elementor_data = get_post_meta( $post_id, '_elementor_data', true );
-		if ( empty( $elementor_data ) ) {
+		$elementor_data_raw = get_post_meta( $post_id, '_elementor_data', true );
+		if ( empty( $elementor_data_raw ) ) {
 			return new WP_Error(
 				'no_elementor_data',
 				__( 'This page has no Elementor data.', 'site-pilot-ai' ),
@@ -2171,34 +2273,214 @@ class Spai_Elementor_Basic {
 			);
 		}
 
+		// Normalise format.
+		$format = in_array( $format, array( 'html', 'text', 'summary' ), true ) ? $format : 'summary';
+
+		// Build element statistics from the raw JSON structure.
+		$stats = $this->compute_element_stats( $elementor_data_raw );
+
+		// Preview URL.
+		$preview_url = get_preview_post_link( $post_id );
+
 		// Use Elementor's frontend to render the content.
 		$frontend = \Elementor\Plugin::$instance->frontend;
-		if ( ! $frontend ) {
-			return new WP_Error(
-				'frontend_not_available',
-				__( 'Elementor frontend renderer not available.', 'site-pilot-ai' ),
-				array( 'status' => 500 )
-			);
+		$html     = '';
+
+		if ( $frontend ) {
+			$html = $frontend->get_builder_content( $post_id, true );
 		}
 
-		// Render the builder content (with CSS inline).
-		$html = $frontend->get_builder_content( $post_id, true );
-
+		// If rendering failed, build a fallback text from the raw JSON.
 		if ( empty( $html ) ) {
-			return array(
-				'post_id' => $post_id,
-				'title'   => get_the_title( $post_id ),
-				'html'    => '',
-				'message' => __( 'Elementor returned empty HTML. The page may need to be saved in the Elementor editor first.', 'site-pilot-ai' ),
+			$fallback_text = $this->extract_text_from_elementor_json( $elementor_data_raw );
+
+			$response = array(
+				'id'          => $post_id,
+				'title'       => get_the_title( $post_id ),
+				'format'      => $format,
+				'text'        => $fallback_text ? mb_substr( $fallback_text, 0, 500 ) : '',
+				'stats'       => $stats,
+				'preview_url' => $preview_url,
+				'message'     => __( 'Elementor returned empty HTML. Text extracted from raw data instead. The page may need to be saved in the Elementor editor first.', 'site-pilot-ai' ),
 			);
+
+			return $response;
 		}
 
-		return array(
-			'post_id'     => $post_id,
+		// Extract plain text from rendered HTML.
+		$full_text = $this->html_to_plain_text( $html );
+
+		// Build response based on requested format.
+		$response = array(
+			'id'          => $post_id,
 			'title'       => get_the_title( $post_id ),
-			'html'        => $html,
-			'html_length' => strlen( $html ),
+			'format'      => $format,
+			'stats'       => $stats,
+			'preview_url' => $preview_url,
 		);
+
+		switch ( $format ) {
+			case 'html':
+				$response['html'] = $html;
+				$response['text'] = $full_text;
+				break;
+
+			case 'text':
+				$response['text'] = $full_text;
+				break;
+
+			case 'summary':
+			default:
+				// Truncate to ~500 chars for AI consumption.
+				$response['text'] = mb_substr( $full_text, 0, 500 );
+				if ( mb_strlen( $full_text ) > 500 ) {
+					$response['text'] .= '...';
+				}
+				break;
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Compute element statistics from raw Elementor JSON.
+	 *
+	 * @param string $elementor_data_raw Raw JSON string.
+	 * @return array Stats array with sections, columns, widgets, widget_types, word_count.
+	 */
+	private function compute_element_stats( $elementor_data_raw ) {
+		$elements = json_decode( $elementor_data_raw, true );
+
+		$stats = array(
+			'sections'     => 0,
+			'columns'      => 0,
+			'widgets'      => 0,
+			'widget_types' => array(),
+			'word_count'   => 0,
+		);
+
+		if ( ! is_array( $elements ) ) {
+			return $stats;
+		}
+
+		$all_text = '';
+		$this->walk_elements_for_stats( $elements, $stats, $all_text );
+
+		$stats['widget_types'] = array_values( array_unique( $stats['widget_types'] ) );
+		$stats['word_count']   = str_word_count( $all_text );
+
+		return $stats;
+	}
+
+	/**
+	 * Recursively walk elements to gather stats and text.
+	 *
+	 * @param array  $elements Elements array.
+	 * @param array  $stats    Stats array (by reference).
+	 * @param string $all_text Accumulated text (by reference).
+	 */
+	private function walk_elements_for_stats( $elements, &$stats, &$all_text ) {
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) || empty( $element['elType'] ) ) {
+				continue;
+			}
+
+			$el_type = $element['elType'];
+
+			if ( 'section' === $el_type || 'container' === $el_type ) {
+				$stats['sections']++;
+			} elseif ( 'column' === $el_type ) {
+				$stats['columns']++;
+			} elseif ( 'widget' === $el_type ) {
+				$stats['widgets']++;
+				if ( ! empty( $element['widgetType'] ) ) {
+					$stats['widget_types'][] = $element['widgetType'];
+				}
+
+				// Extract text from common settings.
+				$settings  = isset( $element['settings'] ) ? $element['settings'] : array();
+				$text_keys = array( 'title', 'editor', 'text', 'description', 'html', 'caption', 'content', 'inner_text', 'prefix', 'suffix', 'before_text', 'after_text', 'highlighted_text', 'rotating_text' );
+				foreach ( $text_keys as $key ) {
+					if ( ! empty( $settings[ $key ] ) && is_string( $settings[ $key ] ) ) {
+						$all_text .= ' ' . wp_strip_all_tags( $settings[ $key ] );
+					}
+				}
+			}
+
+			// Recurse into children.
+			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
+				$this->walk_elements_for_stats( $element['elements'], $stats, $all_text );
+			}
+		}
+	}
+
+	/**
+	 * Convert HTML to plain text, collapsing whitespace.
+	 *
+	 * @param string $html HTML string.
+	 * @return string Plain text.
+	 */
+	private function html_to_plain_text( $html ) {
+		// Replace block-level tags with newlines for readability.
+		$html = preg_replace( '/<\/(p|div|h[1-6]|li|tr|section|article|header|footer|blockquote)>/i', "\n", $html );
+		$html = preg_replace( '/<br\s*\/?>/i', "\n", $html );
+
+		// Strip remaining tags.
+		$text = wp_strip_all_tags( $html );
+
+		// Decode HTML entities.
+		$text = html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
+
+		// Collapse whitespace: multiple spaces to single, multiple newlines to double.
+		$text = preg_replace( '/[^\S\n]+/', ' ', $text );
+		$text = preg_replace( '/\n{3,}/', "\n\n", $text );
+
+		return trim( $text );
+	}
+
+	/**
+	 * Extract text content from raw Elementor JSON (fallback when rendering fails).
+	 *
+	 * @param string $elementor_data_raw Raw JSON string.
+	 * @return string Extracted text.
+	 */
+	private function extract_text_from_elementor_json( $elementor_data_raw ) {
+		$elements = json_decode( $elementor_data_raw, true );
+		if ( ! is_array( $elements ) ) {
+			return '';
+		}
+
+		$text = '';
+		$this->walk_elements_for_text( $elements, $text );
+
+		return trim( $text );
+	}
+
+	/**
+	 * Recursively extract text from elements.
+	 *
+	 * @param array  $elements Elements array.
+	 * @param string $text     Accumulated text (by reference).
+	 */
+	private function walk_elements_for_text( $elements, &$text ) {
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) ) {
+				continue;
+			}
+
+			$settings  = isset( $element['settings'] ) ? $element['settings'] : array();
+			$text_keys = array( 'title', 'editor', 'text', 'description', 'html', 'caption', 'content', 'inner_text', 'prefix', 'suffix', 'before_text', 'after_text', 'highlighted_text', 'rotating_text' );
+
+			foreach ( $text_keys as $key ) {
+				if ( ! empty( $settings[ $key ] ) && is_string( $settings[ $key ] ) ) {
+					$text .= ' ' . wp_strip_all_tags( $settings[ $key ] );
+				}
+			}
+
+			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
+				$this->walk_elements_for_text( $element['elements'], $text );
+			}
+		}
 	}
 
 }

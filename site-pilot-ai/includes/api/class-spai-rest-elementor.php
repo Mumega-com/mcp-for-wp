@@ -95,6 +95,10 @@ class Spai_REST_Elementor extends Spai_REST_API {
 							'description' => __( 'Elementor data as JSON string.', 'site-pilot-ai' ),
 							'type'        => 'string',
 						),
+						'elementor_data_base64' => array(
+							'description' => __( 'Base64-encoded Elementor JSON data. Use instead of elementor_data to avoid quoting/escaping issues with large HTML payloads.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
 						'dry_run' => array(
 							'description' => __( 'If true, validate only — no changes are saved.', 'site-pilot-ai' ),
 							'type'        => 'boolean',
@@ -127,6 +131,14 @@ class Spai_REST_Elementor extends Spai_REST_API {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_elementor_preview' ),
 					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'format' => array(
+							'description' => __( 'Output format: "summary" (text + stats, no HTML — saves tokens), "text" (full text extraction), "html" (full rendered HTML).', 'site-pilot-ai' ),
+							'type'        => 'string',
+							'enum'        => array( 'summary', 'text', 'html' ),
+							'default'     => 'summary',
+						),
+					),
 				),
 			)
 		);
@@ -433,7 +445,8 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$this->log_activity( 'get_elementor_preview', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$result  = $this->elementor->get_rendered_content( $page_id );
+		$format  = $request->get_param( 'format' ) ? (string) $request->get_param( 'format' ) : 'summary';
+		$result  = $this->elementor->get_rendered_content( $page_id, $format );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -454,8 +467,9 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$page_id = $request->get_param( 'id' );
 		$dry_run = (bool) $request->get_param( 'dry_run' );
 		$data    = array(
-			'elementor_data' => $request->get_param( 'elementor_data' ),
-			'elementor_json' => $request->get_param( 'elementor_json' ),
+			'elementor_data'        => $request->get_param( 'elementor_data' ),
+			'elementor_json'        => $request->get_param( 'elementor_json' ),
+			'elementor_data_base64' => $request->get_param( 'elementor_data_base64' ),
 		);
 
 		$result = $this->elementor->set_elementor_data( $page_id, $data, $dry_run );

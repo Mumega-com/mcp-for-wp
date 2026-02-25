@@ -1298,7 +1298,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_set_elementor',
-			'Set Elementor page data for a specific page or post. Use dry_run=true to validate data without saving — returns warnings and validation fixes without modifying the page.',
+			'Set Elementor page data for a specific page or post. Use dry_run=true to validate data without saving — returns warnings and validation fixes without modifying the page. For large payloads with HTML content, use elementor_data_base64 (base64-encoded JSON) instead of elementor_data to avoid quoting/escaping issues.',
 			array(
 				'id'             => array(
 					'type'        => 'number',
@@ -1307,8 +1307,11 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				),
 				'elementor_data' => array(
 					'type'        => 'string',
-					'description' => 'Elementor JSON data',
-					'required'    => true,
+					'description' => 'Elementor JSON data. For large payloads with HTML, prefer elementor_data_base64 instead.',
+				),
+				'elementor_data_base64' => array(
+					'type'        => 'string',
+					'description' => 'Base64-encoded Elementor JSON data. Use this instead of elementor_data for large payloads containing HTML or special characters to avoid quoting/escaping corruption. Encode your JSON string with btoa() or base64_encode() before sending.',
 				),
 				'dry_run'        => array(
 					'type'        => 'boolean',
@@ -1377,12 +1380,17 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_preview_elementor',
-			'Get rendered HTML output of Elementor content for a page. Returns the HTML that Elementor generates, without the full page template. Useful for verifying what the page looks like after setting Elementor data.',
+			'Get rendered HTML preview of a page\'s Elementor content. Returns HTML output, text summary, and element statistics (sections, columns, widgets, widget types, word count). Use "summary" format (default) to save tokens — returns truncated text + stats without HTML. Use "text" for full text extraction, or "html" for full rendered HTML.',
 			array(
-				'id' => array(
+				'id'     => array(
 					'type'        => 'number',
 					'description' => 'Page/post ID to preview',
 					'required'    => true,
+				),
+				'format' => array(
+					'type'        => 'string',
+					'description' => 'Output format: "summary" (text truncated to 500 chars + stats, no HTML — default, saves tokens), "text" (full plain text extraction), "html" (full rendered HTML + text)',
+					'enum'        => array( 'summary', 'text', 'html' ),
 				),
 			)
 		);

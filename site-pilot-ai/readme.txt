@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.4
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,13 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.5.0 =
+* New: wp_preview_elementor — render page content as HTML, text, or summary with element stats (#168)
+* New: elementor_data_base64 parameter for wp_set_elementor — base64 encoding bypasses all quoting/escaping issues (#165)
+* Fix: JSON recovery for corrupted Elementor payloads (stripslashes, double-encoding unwrap, UTF-8 fix)
+* Fix: Re-encode decoded Elementor JSON to ensure clean storage
+* Enhancement: Preview endpoint returns sections/columns/widgets count, widget types list, word count
 
 = 1.4.4 =
 * Fix: Force JSON content-type on MCP responses, prevents SSE content-type errors during rapid calls (#164)
