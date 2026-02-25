@@ -849,6 +849,65 @@ class Spai_REST_Site extends Spai_REST_API {
 				),
 			)
 		);
+
+		// Multisite routes (only registered on multisite installations).
+		if ( is_multisite() ) {
+			register_rest_route(
+				$this->namespace,
+				'/network/sites',
+				array(
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( $this, 'get_network_sites' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+						'args'                => array(
+							'per_page' => array(
+								'description' => __( 'Results per page.', 'site-pilot-ai' ),
+								'type'        => 'integer',
+								'default'     => 50,
+								'minimum'     => 1,
+								'maximum'     => 200,
+							),
+							'search'   => array(
+								'description' => __( 'Search term.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+						),
+					),
+				)
+			);
+
+			register_rest_route(
+				$this->namespace,
+				'/network/switch',
+				array(
+					array(
+						'methods'             => WP_REST_Server::CREATABLE,
+						'callback'            => array( $this, 'switch_site' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+						'args'                => array(
+							'blog_id' => array(
+								'description' => __( 'Blog ID to switch to.', 'site-pilot-ai' ),
+								'type'        => 'integer',
+								'required'    => true,
+							),
+						),
+					),
+				)
+			);
+
+			register_rest_route(
+				$this->namespace,
+				'/network/stats',
+				array(
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( $this, 'get_network_stats' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+					),
+				)
+			);
+		}
 	}
 
 	/**
@@ -3759,5 +3818,136 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		return $this->success_response( $workflow );
+	}
+
+	/**
+	 * Get all sites in the multisite network.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_network_sites( $request ) {
+		if ( ! is_multisite() ) {
+			return $this->error_response( 'not_multisite', 'This is not a multisite installation.', 400 );
+		}
+
+		$this->log_activity( 'network_sites', $request );
+
+		$per_page = $request->get_param( 'per_page' ) ?: 50;
+		$search   = $request->get_param( 'search' );
+
+		$args = array(
+			'number' => $per_page,
+			'fields' => 'ids',
+		);
+		if ( $search ) {
+			$args['search'] = $search;
+		}
+
+		$site_ids = get_sites( $args );
+		$sites    = array();
+
+		foreach ( $site_ids as $blog_id ) {
+			switch_to_blog( $blog_id );
+			$sites[] = array(
+				'blog_id'        => (int) $blog_id,
+				'name'           => get_bloginfo( 'name' ),
+				'url'            => get_bloginfo( 'url' ),
+				'admin_url'      => admin_url(),
+				'plugin_active'  => is_plugin_active( SPAI_PLUGIN_BASENAME )
+					|| ( function_exists( 'is_plugin_active_for_network' ) && is_plugin_active_for_network( SPAI_PLUGIN_BASENAME ) ),
+				'plugin_version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
+				'has_api_key'    => ! empty( get_option( 'spai_api_key' ) ) || ! empty( get_option( 'spai_api_keys' ) ),
+			);
+			restore_current_blog();
+		}
+
+		return $this->success_response(
+			array(
+				'sites'        => $sites,
+				'total'        => count( $sites ),
+				'is_multisite' => true,
+			)
+		);
+	}
+
+	/**
+	 * Get MCP connection details for a specific site in the network.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function switch_site( $request ) {
+		if ( ! is_multisite() ) {
+			return $this->error_response( 'not_multisite', 'Not a multisite installation.', 400 );
+		}
+
+		$this->log_activity( 'network_switch', $request );
+
+		$blog_id = absint( $request->get_param( 'blog_id' ) );
+		$blog    = get_blog_details( $blog_id );
+
+		if ( ! $blog ) {
+			return $this->error_response( 'invalid_site', 'Site not found.', 404 );
+		}
+
+		// Get target site details.
+		switch_to_blog( $blog_id );
+		$site_url = get_bloginfo( 'url' );
+		$has_key  = ! empty( get_option( 'spai_api_key' ) ) || ! empty( get_option( 'spai_api_keys' ) );
+		restore_current_blog();
+
+		return $this->success_response(
+			array(
+				'blog_id'      => $blog_id,
+				'name'         => $blog->blogname,
+				'url'          => $site_url,
+				'mcp_endpoint' => trailingslashit( $site_url ) . 'wp-json/site-pilot-ai/v1/mcp',
+				'has_api_key'  => $has_key,
+				'hint'         => $has_key
+					? 'Connect to the MCP endpoint above with the site\'s API key.'
+					: 'This site needs an API key. Generate one from WP Admin > Site Pilot AI.',
+			)
+		);
+	}
+
+	/**
+	 * Get content statistics across all sites in the network.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public function get_network_stats( $request ) {
+		if ( ! is_multisite() ) {
+			return $this->error_response( 'not_multisite', 'Not a multisite installation.', 400 );
+		}
+
+		$this->log_activity( 'network_stats', $request );
+
+		$site_ids = get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 100,
+			)
+		);
+
+		$stats = array(
+			'site_count' => count( $site_ids ),
+			'sites'      => array(),
+		);
+
+		foreach ( $site_ids as $blog_id ) {
+			switch_to_blog( $blog_id );
+			$stats['sites'][] = array(
+				'blog_id' => (int) $blog_id,
+				'name'    => get_bloginfo( 'name' ),
+				'posts'   => (int) wp_count_posts( 'post' )->publish,
+				'pages'   => (int) wp_count_posts( 'page' )->publish,
+				'media'   => array_sum( array_map( 'intval', (array) wp_count_attachments() ) ),
+			);
+			restore_current_blog();
+		}
+
+		return $this->success_response( $stats );
 	}
 }

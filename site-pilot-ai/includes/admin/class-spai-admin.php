@@ -469,6 +469,163 @@ class Spai_Admin {
 	}
 
 	/**
+	 * Add network admin menu page for multisite.
+	 */
+	public function add_network_admin_menu() {
+		add_menu_page(
+			__( 'Site Pilot AI Network', 'site-pilot-ai' ),
+			__( 'Site Pilot AI', 'site-pilot-ai' ),
+			'manage_network_plugins',
+			'site-pilot-ai-network',
+			array( $this, 'render_network_admin_page' ),
+			self::MENU_ICON,
+			80
+		);
+	}
+
+	/**
+	 * Handle "Setup All Sites" POST action from network admin page.
+	 */
+	private function handle_network_setup_all() {
+		if ( ! isset( $_POST['spai_network_setup_all'] ) ) {
+			return;
+		}
+
+		check_admin_referer( 'spai_network_setup_all', 'spai_network_nonce' );
+
+		if ( ! current_user_can( 'manage_network_plugins' ) ) {
+			return;
+		}
+
+		require_once SPAI_PLUGIN_DIR . 'includes/class-spai-activator.php';
+
+		$sites = get_sites( array( 'fields' => 'ids' ) );
+		$count = 0;
+
+		foreach ( $sites as $blog_id ) {
+			switch_to_blog( $blog_id );
+			Spai_Activator::activate();
+			$count++;
+			restore_current_blog();
+		}
+
+		add_settings_error(
+			'spai_network_messages',
+			'spai_network_setup_done',
+			sprintf(
+				/* translators: %d: number of sites */
+				__( 'Site Pilot AI activated on %d site(s).', 'site-pilot-ai' ),
+				$count
+			),
+			'updated'
+		);
+	}
+
+	/**
+	 * Render the network admin page.
+	 */
+	public function render_network_admin_page() {
+		if ( ! current_user_can( 'manage_network_plugins' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
+		}
+
+		$this->handle_network_setup_all();
+
+		$sites      = get_sites( array( 'number' => 500 ) );
+		$site_data  = array();
+
+		foreach ( $sites as $site ) {
+			switch_to_blog( $site->blog_id );
+
+			$version        = get_option( 'spai_version', '' );
+			$has_api_key    = ! empty( get_option( 'spai_api_key' ) );
+			$scoped_keys    = get_option( 'spai_api_keys', array() );
+			$active_keys    = 0;
+			if ( is_array( $scoped_keys ) ) {
+				foreach ( $scoped_keys as $key ) {
+					if ( empty( $key['revoked_at'] ) ) {
+						$active_keys++;
+					}
+				}
+			}
+
+			$tool_count = 0;
+			if ( class_exists( 'Spai_MCP_Tool_Registry' ) ) {
+				$registry   = new Spai_MCP_Tool_Registry();
+				$tool_count = count( $registry->get_all_tools() );
+			}
+
+			$site_data[] = array(
+				'blog_id'     => $site->blog_id,
+				'blogname'    => get_option( 'blogname', $site->domain . $site->path ),
+				'siteurl'     => get_option( 'siteurl' ),
+				'version'     => $version,
+				'has_api_key' => $has_api_key,
+				'active_keys' => $active_keys,
+				'tool_count'  => $tool_count,
+			);
+
+			restore_current_blog();
+		}
+
+		settings_errors( 'spai_network_messages' );
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Site Pilot AI — Network Overview', 'site-pilot-ai' ); ?></h1>
+
+			<form method="post">
+				<?php wp_nonce_field( 'spai_network_setup_all', 'spai_network_nonce' ); ?>
+				<p>
+					<input type="submit" name="spai_network_setup_all" class="button button-primary"
+						value="<?php esc_attr_e( 'Setup All Sites', 'site-pilot-ai' ); ?>"
+						onclick="return confirm('<?php echo esc_js( __( 'Run activation (tables, options, bot user) on every site in the network?', 'site-pilot-ai' ) ); ?>');" />
+					<span class="description"><?php esc_html_e( 'Runs activation on every site to ensure tables, options, and the bot user are provisioned.', 'site-pilot-ai' ); ?></span>
+				</p>
+			</form>
+
+			<table class="widefat striped" style="margin-top:20px;">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'ID', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Site', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'URL', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Version', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'API Key', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Active Keys', 'site-pilot-ai' ); ?></th>
+						<th><?php esc_html_e( 'Tools', 'site-pilot-ai' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $site_data as $s ) : ?>
+					<tr>
+						<td><?php echo esc_html( $s['blog_id'] ); ?></td>
+						<td><?php echo esc_html( $s['blogname'] ); ?></td>
+						<td><a href="<?php echo esc_url( $s['siteurl'] ); ?>" target="_blank"><?php echo esc_html( $s['siteurl'] ); ?></a></td>
+						<td>
+							<?php if ( $s['version'] ) : ?>
+								<?php echo esc_html( $s['version'] ); ?>
+							<?php else : ?>
+								<span style="color:#b32d2e;"><?php esc_html_e( 'Not activated', 'site-pilot-ai' ); ?></span>
+							<?php endif; ?>
+						</td>
+						<td>
+							<?php if ( $s['has_api_key'] ) : ?>
+								<span style="color:#00a32a;">&#10003;</span>
+							<?php else : ?>
+								<span style="color:#b32d2e;">&#10007;</span>
+							<?php endif; ?>
+						</td>
+						<td><?php echo esc_html( $s['active_keys'] ); ?></td>
+						<td><?php echo esc_html( $s['tool_count'] ); ?></td>
+					</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Get capabilities for display.
 	 *
 	 * @return array Capabilities.

@@ -424,8 +424,27 @@ trait Spai_Api_Auth {
 		) );
 
 		if ( ! empty( $users ) ) {
-			wp_set_current_user( $users[0]->ID );
+			$user = $users[0];
+
+			// Multisite: ensure the bot user is a member of the current blog.
+			if ( function_exists( 'is_multisite' ) && is_multisite() && ! is_user_member_of_blog( $user->ID, get_current_blog_id() ) ) {
+				add_user_to_blog( get_current_blog_id(), $user->ID, 'spai_api_agent' );
+			}
+
+			wp_set_current_user( $user->ID );
 			return true;
+		}
+
+		// Multisite fallback: the bot user may exist on the main site but
+		// get_users with role filter only searches the current blog's usermeta.
+		// Look up the user by login directly.
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			$user = get_user_by( 'login', 'spai_bot' );
+			if ( $user ) {
+				add_user_to_blog( get_current_blog_id(), $user->ID, 'spai_api_agent' );
+				wp_set_current_user( $user->ID );
+				return true;
+			}
 		}
 
 		return false;

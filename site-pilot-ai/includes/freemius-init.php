@@ -168,18 +168,40 @@ if ( $spai_fs_instance && method_exists( $spai_fs_instance, 'add_action' ) ) {
  * Cleanup on uninstall.
  */
 function spa_fs_uninstall_cleanup() {
+	if ( is_multisite() ) {
+		$sites = get_sites( array( 'fields' => 'ids' ) );
+		foreach ( $sites as $blog_id ) {
+			switch_to_blog( $blog_id );
+			spa_fs_uninstall_cleanup_site();
+			restore_current_blog();
+		}
+	} else {
+		spa_fs_uninstall_cleanup_site();
+	}
+}
+
+/**
+ * Cleanup a single site's Site Pilot AI data.
+ */
+function spa_fs_uninstall_cleanup_site() {
 	// Clean up options.
 	delete_option( 'spai_api_key' );
 	delete_option( 'spai_api_keys' );
 	delete_option( 'spai_settings' );
 	delete_option( 'spai_version' );
+	delete_option( 'spai_db_version' );
 	delete_option( 'spai_rate_limit_settings' );
+	delete_option( 'spai_first_activation' );
+	delete_option( 'spai_premium_preferred' );
+	delete_option( 'spai_last_update_flush' );
 
 	// Clean up transients.
 	delete_transient( 'spai_capabilities_cache' );
+	delete_transient( 'spai_new_api_key' );
 
 	// Clear scheduled events.
 	wp_clear_scheduled_hook( 'spai_cleanup_logs' );
+	wp_clear_scheduled_hook( 'spai_check_alerts' );
 
 	// Clean up tables.
 	global $wpdb;
@@ -189,4 +211,6 @@ function spa_fs_uninstall_cleanup() {
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}spai_webhooks" );
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->prefix is safe.
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}spai_webhook_logs" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->prefix is safe.
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}spai_feedback" );
 }

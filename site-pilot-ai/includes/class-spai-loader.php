@@ -68,6 +68,11 @@ class Spai_Loader {
 
 		// Admin menu
 		$this->add_action( 'admin_menu', $admin, 'add_admin_menu' );
+
+		// Network admin menu (multisite only).
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			$this->add_action( 'network_admin_menu', $admin, 'add_network_admin_menu' );
+		}
 		$this->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_styles' );
 		$this->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_scripts' );
 

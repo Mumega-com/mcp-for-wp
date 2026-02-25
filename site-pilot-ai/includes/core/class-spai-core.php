@@ -112,7 +112,9 @@ class Spai_Core {
 			'wpforms'        => class_exists( 'WPForms' ),
 			'gravityforms'   => class_exists( 'GFForms' ),
 			'ninjaforms'     => class_exists( 'Ninja_Forms' ),
-			'learnpress'     => defined( 'LEARNPRESS_VERSION' ) || class_exists( 'LP' ),
+			'learnpress'          => defined( 'LEARNPRESS_VERSION' ) || class_exists( 'LP' ),
+			'is_multisite'        => is_multisite(),
+			'network_site_count'  => is_multisite() ? get_blog_count() : null,
 		);
 
 		// Allow premium package to extend capabilities (e.g., Pro status).

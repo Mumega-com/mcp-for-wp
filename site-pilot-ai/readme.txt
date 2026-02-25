@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,16 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.5.1 =
+* New: WordPress Multisite support — network-wide activation, per-site provisioning (#14)
+* New: wp_network_sites — list all sites in a multisite network with plugin/key status
+* New: wp_network_switch — switch MCP context to a different network site
+* New: wp_network_stats — network-wide statistics (total sites, posts, users, storage)
+* New: Network Admin page for managing Site Pilot AI across all sites
+* Enhancement: Auto-provision plugin tables and API keys on new site creation
+* Enhancement: Bot user fallback for cross-site authentication in multisite
+* Enhancement: Network-wide uninstall cleanup iterates all sites
 
 = 1.5.0 =
 * New: wp_preview_elementor — render page content as HTML, text, or summary with element stats (#168)

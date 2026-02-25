@@ -14,7 +14,7 @@
  * Plugin Name:       Site Pilot AI
  * Plugin URI:        https://sitepilotai.mumega.com/
  * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.5.0
+ * Version:           1.5.1
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -43,30 +43,61 @@ if ( ! defined( 'ABSPATH' ) ) {
 $spai_free_plugin_file    = 'site-pilot-ai/site-pilot-ai.php';
 $spai_premium_plugin_file = 'site-pilot-ai-premium/site-pilot-ai.php';
 
+$spai_is_plugin_active = static function ( $plugin_file ) {
+	if ( ! function_exists( 'get_option' ) ) {
+		return false;
+	}
+
+	// Check single-site active plugins.
+	$active_plugins = get_option( 'active_plugins', array() );
+	if ( is_array( $active_plugins ) && in_array( $plugin_file, $active_plugins, true ) ) {
+		return true;
+	}
+
+	// Check network-wide active plugins (multisite).
+	if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_site_option' ) ) {
+		$network_plugins = get_site_option( 'active_sitewide_plugins', array() );
+		if ( is_array( $network_plugins ) && isset( $network_plugins[ $plugin_file ] ) ) {
+			return true;
+		}
+	}
+
+	return false;
+};
+
 $spai_remove_from_active_plugins = static function ( $plugin_file ) {
 	if ( ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) ) {
 		return false;
 	}
 
+	$removed = false;
+
+	// Remove from single-site active plugins.
 	$active_plugins = get_option( 'active_plugins', array() );
-	if ( ! is_array( $active_plugins ) ) {
-		return false;
+	if ( is_array( $active_plugins ) ) {
+		$index = array_search( $plugin_file, $active_plugins, true );
+		if ( false !== $index ) {
+			unset( $active_plugins[ $index ] );
+			$active_plugins = array_values( $active_plugins );
+			update_option( 'active_plugins', $active_plugins );
+			if ( function_exists( 'wp_cache_delete' ) ) {
+				wp_cache_delete( 'active_plugins', 'options' );
+			}
+			$removed = true;
+		}
 	}
 
-	$index = array_search( $plugin_file, $active_plugins, true );
-	if ( false === $index ) {
-		return false;
+	// Remove from network-wide active plugins (multisite).
+	if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_site_option' ) && function_exists( 'update_site_option' ) ) {
+		$network_plugins = get_site_option( 'active_sitewide_plugins', array() );
+		if ( is_array( $network_plugins ) && isset( $network_plugins[ $plugin_file ] ) ) {
+			unset( $network_plugins[ $plugin_file ] );
+			update_site_option( 'active_sitewide_plugins', $network_plugins );
+			$removed = true;
+		}
 	}
 
-	unset( $active_plugins[ $index ] );
-	$active_plugins = array_values( $active_plugins );
-	update_option( 'active_plugins', $active_plugins );
-
-	if ( function_exists( 'wp_cache_delete' ) ) {
-		wp_cache_delete( 'active_plugins', 'options' );
-	}
-
-	return true;
+	return $removed;
 };
 
 // If this is the premium plugin, deactivate the free plugin (if active) and continue loading.
@@ -77,8 +108,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 	}
 } else {
 	// Free plugin: if premium is active, stop early so only premium runs.
-	$active_plugins = function_exists( 'get_option' ) ? get_option( 'active_plugins', array() ) : array();
-	if ( is_array( $active_plugins ) && in_array( $spai_premium_plugin_file, $active_plugins, true ) ) {
+	if ( $spai_is_plugin_active( $spai_premium_plugin_file ) ) {
 		return;
 	}
 }
@@ -86,7 +116,7 @@ if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.5.0' );
+define( 'SPAI_VERSION', '1.5.1' );
 
 /**
  * Plugin directory path.
@@ -306,14 +336,51 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 }
 
 /**
- * Activation hook.
+ * Activation hook — supports network-wide activation on multisite.
+ *
+ * @param bool $network_wide True when activated network-wide.
  */
 if ( ! function_exists( 'spai_activate' ) ) {
-	function spai_activate() {
+	function spai_activate( $network_wide = false ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-activator.php';
-	Spai_Activator::activate();
+
+	if ( $network_wide && function_exists( 'is_multisite' ) && is_multisite() ) {
+		$sites = get_sites( array( 'fields' => 'ids' ) );
+		foreach ( $sites as $blog_id ) {
+			switch_to_blog( $blog_id );
+			Spai_Activator::activate();
+			restore_current_blog();
+		}
+	} else {
+		Spai_Activator::activate();
+	}
 	}
 }
+
+/**
+ * Provision Site Pilot AI tables/options when a new site is created in a multisite network.
+ *
+ * @param WP_Site $new_site New site object.
+ */
+if ( ! function_exists( 'spai_on_new_site' ) ) {
+	function spai_on_new_site( $new_site ) {
+	if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	// Only run if Site Pilot AI is network-activated.
+	if ( ! is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
+		return;
+	}
+
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-activator.php';
+
+	switch_to_blog( $new_site->blog_id );
+	Spai_Activator::activate();
+	restore_current_blog();
+	}
+}
+add_action( 'wp_insert_site', 'spai_on_new_site' );
 
 /**
  * Deactivation hook.

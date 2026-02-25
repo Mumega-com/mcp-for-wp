@@ -159,6 +159,11 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_event'                       => 'events',
 			'wp_create_event'                    => 'events',
 			'wp_update_event'                    => 'events',
+
+			// Multisite
+			'wp_network_sites'                   => 'multisite',
+			'wp_network_switch'                  => 'multisite',
+			'wp_network_stats'                   => 'multisite',
 		);
 	}
 
@@ -248,6 +253,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_event'                       => 'tp_events',
 			'wp_create_event'                    => 'tp_events',
 			'wp_update_event'                    => 'tp_events',
+			// Multisite tools.
+			'wp_network_sites'                   => 'multisite',
+			'wp_network_switch'                  => 'multisite',
+			'wp_network_stats'                   => 'multisite',
 		);
 	}
 
@@ -2212,6 +2221,43 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Multisite tools (only exposed on multisite installations).
+		if ( is_multisite() ) {
+			$pro_tools[] = $this->define_tool(
+				'wp_network_sites',
+				'List all sites in the WordPress multisite network with their status, plugin activation state, and API key availability.',
+				array(
+					'per_page' => array(
+						'type'        => 'number',
+						'description' => 'Number of sites to return (default 50, max 200)',
+						'default'     => 50,
+					),
+					'search'   => array(
+						'type'        => 'string',
+						'description' => 'Search term to filter sites by name or URL',
+					),
+				)
+			);
+
+			$pro_tools[] = $this->define_tool(
+				'wp_network_switch',
+				'Get MCP connection details for a specific site in the multisite network. Returns the MCP endpoint URL and API key status so you can connect to that site.',
+				array(
+					'blog_id' => array(
+						'type'        => 'number',
+						'description' => 'Blog ID of the site to switch to',
+						'required'    => true,
+					),
+				)
+			);
+
+			$pro_tools[] = $this->define_tool(
+				'wp_network_stats',
+				'Get content statistics across all sites in the multisite network including post, page, and media counts per site.',
+				array()
+			);
+		}
+
 		return $pro_tools;
 	}
 
@@ -2610,6 +2656,20 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_event'            => array(
 				'method' => 'PUT',
 				'route'  => '/events/{id}',
+			),
+
+			// Multisite
+			'wp_network_sites'           => array(
+				'method' => 'GET',
+				'route'  => '/network/sites',
+			),
+			'wp_network_switch'          => array(
+				'method' => 'POST',
+				'route'  => '/network/switch',
+			),
+			'wp_network_stats'           => array(
+				'method' => 'GET',
+				'route'  => '/network/stats',
 			),
 		);
 	}
