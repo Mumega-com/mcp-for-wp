@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.2
+Stable tag: 1.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,15 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.4.3 =
+* Fix: Page-specific CSS now verified after generation; auto-primes via loopback if empty (#169)
+* Fix: Eduma theme custom CSS dual-write to thim_custom_css option (#171)
+* Fix: Cache-busting on CSS verification loopback request
+* Enhancement: 9 new Pro widget schemas (theme-post-content, theme-site-logo, loop-grid, gallery, table-of-contents, hotspot, search-form, etc.) (#167)
+* Enhancement: Expanded nav-menu widget keys (dropdown, toggle, submenu styles)
+* Enhancement: Auto-rename common wrong nav-menu keys (text_color → color_menu_item, etc.)
+* Enhancement: Actionable alternatives in custom CSS response when theme doesn't render it
 
 = 1.4.2 =
 * Fix: Template assignment scopes (specific_post_type, specific_posts, all_singular, all_archive) now work correctly

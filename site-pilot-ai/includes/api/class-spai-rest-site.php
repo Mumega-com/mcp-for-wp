@@ -3075,11 +3075,14 @@ class Spai_REST_Site extends Spai_REST_API {
 		$theme_name = $theme->get( 'Name' );
 		$theme_warning = null;
 
-		// Eduma / ThimPress themes use their own CSS option.
-		if ( get_option( 'thim_custom_css' ) !== false || false !== stripos( $theme_name, 'eduma' ) || false !== stripos( $theme_name, 'thimpress' ) ) {
+		// Eduma / ThimPress themes use their own CSS option — dual-write so CSS actually renders.
+		$thim_css_option = get_option( 'thim_custom_css' );
+		if ( false !== $thim_css_option || $this->is_eduma_theme() ) {
+			update_option( 'thim_custom_css', $css );
+			$response['thim_custom_css_synced'] = true;
 			$theme_warning = sprintf(
 				/* translators: %s: theme name */
-				__( "Theme '%s' may use its own CSS system (thim_custom_css). CSS saved via WordPress Customizer but may not render. Check theme settings.", 'site-pilot-ai' ),
+				__( "Theme '%s' uses its own CSS system (thim_custom_css). CSS has been dual-written to both WordPress Customizer and Eduma's custom CSS option.", 'site-pilot-ai' ),
 				$theme_name
 			);
 		} elseif ( false !== stripos( $theme_name, 'flavor' ) ) {
@@ -3109,7 +3112,7 @@ class Spai_REST_Site extends Spai_REST_API {
 		// CSS rendering verification via loopback.
 		$verification = array( 'checked' => false );
 		$loopback     = wp_remote_get(
-			home_url( '/' ),
+			add_query_arg( 'nocache', wp_rand(), home_url( '/' ) ),
 			array(
 				'timeout'   => 5,
 				'sslverify' => false,
@@ -3134,6 +3137,15 @@ class Spai_REST_Site extends Spai_REST_API {
 					'site-pilot-ai'
 				);
 			}
+		}
+
+		// If CSS rendering could not be verified, provide actionable alternatives.
+		if ( ! empty( $verification['checked'] ) && empty( $verification['verified'] ) ) {
+			$response['alternatives'] = array(
+				'Use wp_set_elementor with page_settings.custom_css for page-specific CSS',
+				'Use wp_set_option to write to thim_custom_css directly for Eduma themes',
+				'Add CSS via Elementor Custom Code (elementor_snippet post type)',
+			);
 		}
 
 		$response['verification'] = $verification;
@@ -3188,6 +3200,22 @@ class Spai_REST_Site extends Spai_REST_API {
 				'has_css'    => strlen( $css ) > 0,
 			)
 		);
+	}
+
+	/**
+	 * Check if the active theme is Eduma or a ThimPress theme.
+	 *
+	 * @return bool True if the theme is Eduma/ThimPress.
+	 */
+	private function is_eduma_theme() {
+		$theme    = wp_get_theme();
+		$name     = strtolower( $theme->get( 'Name' ) );
+		$template = strtolower( $theme->get_template() );
+
+		return false !== strpos( $name, 'eduma' )
+			|| false !== strpos( $template, 'eduma' )
+			|| false !== strpos( $name, 'thimpress' )
+			|| false !== strpos( $template, 'thim' );
 	}
 
 	/**

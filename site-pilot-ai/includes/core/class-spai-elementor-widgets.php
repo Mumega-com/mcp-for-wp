@@ -949,16 +949,23 @@ class Spai_Elementor_Widgets {
 				'description' => 'WordPress navigation menu display. Requires Elementor Pro.',
 				'category'    => 'pro',
 				'settings'    => array(
-					'menu'                      => array( 'type' => 'select', 'default' => '', 'description' => 'WordPress menu ID or slug' ),
-					'layout'                    => array( 'type' => 'select', 'default' => 'horizontal', 'options' => array( 'horizontal', 'vertical', 'dropdown' ), 'description' => 'Menu layout' ),
-					'align_items'               => array( 'type' => 'choose', 'default' => '', 'options' => array( 'left', 'center', 'right', 'justify' ), 'description' => 'Menu alignment' ),
-					'pointer'                   => array( 'type' => 'select', 'default' => 'underline', 'options' => array( 'none', 'underline', 'overline', 'double-line', 'framed', 'background', 'text' ), 'description' => 'Hover indicator style' ),
-					'submenu_icon'              => array( 'type' => 'icons', 'default' => '', 'description' => 'Submenu indicator icon' ),
-					'toggle'                    => array( 'type' => 'select', 'default' => 'burger', 'options' => array( 'burger', 'burger-arrow' ), 'description' => 'Mobile toggle type' ),
-					'breakpoint'                => array( 'type' => 'select', 'default' => 'tablet', 'options' => array( 'mobile', 'tablet', 'none' ), 'description' => 'Mobile menu breakpoint' ),
-					'color_menu_item'           => array( 'type' => 'color', 'default' => '', 'description' => 'Menu item text color' ),
-					'color_menu_item_hover'     => array( 'type' => 'color', 'default' => '', 'description' => 'Hover text color' ),
-					'color_menu_item_active'    => array( 'type' => 'color', 'default' => '', 'description' => 'Active item text color' ),
+					'menu'                              => array( 'type' => 'select', 'default' => '', 'description' => 'WordPress menu ID or slug' ),
+					'layout'                            => array( 'type' => 'select', 'default' => 'horizontal', 'options' => array( 'horizontal', 'vertical', 'dropdown' ), 'description' => 'Menu layout' ),
+					'align_items'                       => array( 'type' => 'choose', 'default' => '', 'options' => array( 'left', 'center', 'right', 'justify' ), 'description' => 'Menu alignment' ),
+					'pointer'                           => array( 'type' => 'select', 'default' => 'underline', 'options' => array( 'none', 'underline', 'overline', 'double-line', 'framed', 'background', 'text' ), 'description' => 'Hover indicator style' ),
+					'submenu_icon'                      => array( 'type' => 'icons', 'default' => '', 'description' => 'Submenu indicator icon' ),
+					'submenu_indicator'                 => array( 'type' => 'select', 'default' => 'classic', 'options' => array( 'none', 'classic', 'chevron', 'angle', 'plus' ), 'description' => 'Dropdown arrow indicator style' ),
+					'toggle'                            => array( 'type' => 'select', 'default' => 'burger', 'options' => array( 'burger', 'burger-arrow' ), 'description' => 'Mobile toggle type' ),
+					'breakpoint'                        => array( 'type' => 'select', 'default' => 'tablet', 'options' => array( 'mobile', 'tablet', 'none' ), 'description' => 'Mobile menu breakpoint' ),
+					'color_menu_item'                   => array( 'type' => 'color', 'default' => '', 'description' => 'Menu item text color' ),
+					'color_menu_item_hover'             => array( 'type' => 'color', 'default' => '', 'description' => 'Hover text color' ),
+					'color_menu_item_active'            => array( 'type' => 'color', 'default' => '', 'description' => 'Active item text color' ),
+					'color_dropdown_item'               => array( 'type' => 'color', 'default' => '', 'description' => 'Dropdown item text color' ),
+					'color_dropdown_item_hover'         => array( 'type' => 'color', 'default' => '', 'description' => 'Dropdown item hover text color' ),
+					'background_color_dropdown_item'    => array( 'type' => 'color', 'default' => '', 'description' => 'Dropdown item background color' ),
+					'background_color_dropdown_item_hover' => array( 'type' => 'color', 'default' => '', 'description' => 'Dropdown item hover background color' ),
+					'toggle_color'                      => array( 'type' => 'color', 'default' => '', 'description' => 'Mobile hamburger icon color' ),
+					'toggle_size'                       => array( 'type' => 'slider', 'default' => '', 'description' => 'Mobile hamburger icon size with unit, e.g. {"size":22,"unit":"px"}' ),
 				),
 				'example'     => array(
 					'id'         => 'abc12374',
@@ -1363,6 +1370,256 @@ class Spai_Elementor_Widgets {
 				'common_mistakes' => array(
 					'Using "url" instead of "source_external_url"',
 					'Passing URL as string instead of {"url":"..."} object',
+				),
+			),
+
+			'theme-post-content' => array(
+				'description' => 'Displays the post/page content in theme builder templates. Auto-renders the content area. Requires Elementor Pro.',
+				'category'    => 'pro-theme-builder',
+				'settings'    => array(),
+				'example'     => array(
+					'id'         => 'abc12388',
+					'elType'     => 'widget',
+					'widgetType' => 'theme-post-content',
+					'settings'   => array(),
+				),
+				'common_mistakes' => array(
+					'Adding content settings — this widget auto-renders the post content with no configuration needed',
+					'Using "post-content" instead of "theme-post-content"',
+				),
+			),
+
+			'theme-post-title'   => array(
+				'description' => 'Displays the post/page title in theme builder templates. Requires Elementor Pro.',
+				'category'    => 'pro-theme-builder',
+				'settings'    => array(
+					'header_size'               => array( 'type' => 'select', 'default' => 'h1', 'options' => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ), 'description' => 'HTML heading tag' ),
+					'align'                     => array( 'type' => 'choose', 'default' => '', 'options' => array( 'left', 'center', 'right', 'justify' ), 'description' => 'Title alignment' ),
+					'link'                      => array( 'type' => 'select', 'default' => '', 'options' => array( '', 'yes' ), 'description' => 'Link title to post permalink ("yes" to enable)' ),
+					'title_color'               => array( 'type' => 'color', 'default' => '', 'description' => 'Title text color' ),
+					'typography_typography'      => array( 'type' => 'switcher', 'default' => '', 'description' => 'Enable custom typography' ),
+					'typography_font_family'     => array( 'type' => 'font', 'default' => '', 'description' => 'Font family' ),
+					'typography_font_size'       => array( 'type' => 'slider', 'default' => '', 'description' => 'Font size with unit' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12389',
+					'elType'     => 'widget',
+					'widgetType' => 'theme-post-title',
+					'settings'   => array(
+						'header_size' => 'h1',
+						'align'       => 'left',
+					),
+				),
+				'common_mistakes' => array(
+					'Using "post-title" instead of "theme-post-title"',
+					'Setting a "title" text — this widget auto-pulls the post title',
+					'Using "tag" instead of "header_size"',
+				),
+			),
+
+			'theme-site-logo'    => array(
+				'description' => 'Displays the WordPress site logo configured in Customizer. Requires Elementor Pro.',
+				'category'    => 'pro-theme-builder',
+				'settings'    => array(
+					'width'                     => array( 'type' => 'slider', 'default' => '', 'description' => 'Logo width with unit, e.g. {"size":200,"unit":"px"}' ),
+					'align'                     => array( 'type' => 'choose', 'default' => '', 'options' => array( 'left', 'center', 'right' ), 'description' => 'Logo alignment' ),
+					'link_to'                   => array( 'type' => 'select', 'default' => 'home', 'options' => array( 'home', 'custom', 'none' ), 'description' => 'Link destination' ),
+					'link'                      => array( 'type' => 'url', 'default' => '', 'description' => 'Custom link URL (when link_to is "custom")' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12390',
+					'elType'     => 'widget',
+					'widgetType' => 'theme-site-logo',
+					'settings'   => array(
+						'width' => array( 'size' => 180, 'unit' => 'px' ),
+						'align' => 'left',
+					),
+				),
+				'common_mistakes' => array(
+					'Using "site-logo" instead of "theme-site-logo"',
+					'Setting an "image" — this widget auto-pulls the site logo from Customizer',
+					'Passing width as a number instead of {"size":N,"unit":"px"} object',
+				),
+			),
+
+			'theme-site-title'   => array(
+				'description' => 'Displays the WordPress site title. Requires Elementor Pro.',
+				'category'    => 'pro-theme-builder',
+				'settings'    => array(
+					'header_size'               => array( 'type' => 'select', 'default' => 'h1', 'options' => array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span', 'p' ), 'description' => 'HTML tag' ),
+					'align'                     => array( 'type' => 'choose', 'default' => '', 'options' => array( 'left', 'center', 'right', 'justify' ), 'description' => 'Title alignment' ),
+					'title_color'               => array( 'type' => 'color', 'default' => '', 'description' => 'Title text color' ),
+					'typography_typography'      => array( 'type' => 'switcher', 'default' => '', 'description' => 'Enable custom typography' ),
+					'typography_font_family'     => array( 'type' => 'font', 'default' => '', 'description' => 'Font family' ),
+					'typography_font_size'       => array( 'type' => 'slider', 'default' => '', 'description' => 'Font size with unit' ),
+					'link_to'                   => array( 'type' => 'select', 'default' => 'home', 'options' => array( 'home', 'custom', 'none' ), 'description' => 'Link destination' ),
+					'link'                      => array( 'type' => 'url', 'default' => '', 'description' => 'Custom link URL' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12391',
+					'elType'     => 'widget',
+					'widgetType' => 'theme-site-title',
+					'settings'   => array(
+						'header_size' => 'h1',
+						'align'       => 'left',
+					),
+				),
+				'common_mistakes' => array(
+					'Using "site-title" instead of "theme-site-title"',
+					'Setting a "title" text — this widget auto-pulls the site title from WordPress settings',
+					'Using "tag" instead of "header_size"',
+				),
+			),
+
+			'loop-grid'          => array(
+				'description' => 'Displays posts/CPT in a grid using a loop template. Requires Elementor Pro.',
+				'category'    => 'pro',
+				'settings'    => array(
+					'template_id'               => array( 'type' => 'select', 'default' => '', 'description' => 'Loop template ID (created in Elementor > Templates > Loop)' ),
+					'columns'                   => array( 'type' => 'select', 'default' => '3', 'options' => array( '1', '2', '3', '4', '5', '6' ), 'description' => 'Grid columns' ),
+					'posts_per_page'            => array( 'type' => 'number', 'default' => 6, 'description' => 'Number of posts to display' ),
+					'query_post_type'           => array( 'type' => 'select', 'default' => 'post', 'description' => 'Post type to query (post, page, or custom post type slug)' ),
+					'row_gap'                   => array( 'type' => 'slider', 'default' => '', 'description' => 'Row gap between items' ),
+					'column_gap'                => array( 'type' => 'slider', 'default' => '', 'description' => 'Column gap between items' ),
+					'pagination_type'           => array( 'type' => 'select', 'default' => '', 'options' => array( '', 'numbers', 'prev_next', 'numbers_and_prev_next', 'load_more_on_click', 'load_more_infinite_scroll' ), 'description' => 'Pagination type' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12392',
+					'elType'     => 'widget',
+					'widgetType' => 'loop-grid',
+					'settings'   => array(
+						'template_id'     => '456',
+						'columns'         => '3',
+						'posts_per_page'  => 6,
+						'query_post_type' => 'post',
+					),
+				),
+				'common_mistakes' => array(
+					'Forgetting to set template_id — a loop template must be created first',
+					'Using "post_type" instead of "query_post_type"',
+					'Using "grid_columns" instead of "columns"',
+				),
+			),
+
+			'gallery'            => array(
+				'description' => 'Pro gallery with grid, justified, and masonry layouts. Requires Elementor Pro.',
+				'category'    => 'pro',
+				'settings'    => array(
+					'gallery_type'              => array( 'type' => 'select', 'default' => 'grid', 'options' => array( 'grid', 'justified', 'masonry' ), 'description' => 'Gallery layout type' ),
+					'columns'                   => array( 'type' => 'select', 'default' => '4', 'options' => array( '1', '2', '3', '4', '5', '6', '7', '8', '9', '10' ), 'description' => 'Number of columns' ),
+					'gap'                       => array( 'type' => 'slider', 'default' => '', 'description' => 'Gap between images with unit, e.g. {"size":10,"unit":"px"}' ),
+					'images'                    => array( 'type' => 'gallery', 'default' => '', 'description' => 'Array of image objects: [{"id":123,"url":"https://..."},...]' ),
+					'link_to'                   => array( 'type' => 'select', 'default' => 'file', 'options' => array( 'file', 'custom', 'none' ), 'description' => 'Image link destination' ),
+					'open_lightbox'             => array( 'type' => 'select', 'default' => 'default', 'options' => array( 'default', 'yes', 'no' ), 'description' => 'Open images in lightbox' ),
+					'show_title'                => array( 'type' => 'select', 'default' => '', 'options' => array( '', 'yes' ), 'description' => 'Show image title in overlay' ),
+					'overlay_background'        => array( 'type' => 'color', 'default' => '', 'description' => 'Hover overlay background color' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12393',
+					'elType'     => 'widget',
+					'widgetType' => 'gallery',
+					'settings'   => array(
+						'gallery_type' => 'grid',
+						'columns'      => '3',
+						'images'       => array(
+							array( 'id' => '', 'url' => 'https://example.com/img1.jpg' ),
+							array( 'id' => '', 'url' => 'https://example.com/img2.jpg' ),
+							array( 'id' => '', 'url' => 'https://example.com/img3.jpg' ),
+						),
+					),
+				),
+				'common_mistakes' => array(
+					'Using "type" instead of "gallery_type"',
+					'Using "gallery" instead of "images" for the image list',
+					'Passing image URLs as strings instead of {"id":N,"url":"..."} objects',
+				),
+			),
+
+			'table-of-contents'  => array(
+				'description' => 'Automatic table of contents generated from page headings. Requires Elementor Pro.',
+				'category'    => 'pro',
+				'settings'    => array(
+					'headings_by_tags'          => array( 'type' => 'select2', 'default' => array( 'h2', 'h3', 'h4', 'h5', 'h6' ), 'description' => 'Which heading tags to include (array of h1-h6)' ),
+					'title'                     => array( 'type' => 'text', 'default' => 'Table of Contents', 'description' => 'TOC widget title' ),
+					'minimize_box'              => array( 'type' => 'switcher', 'default' => 'yes', 'description' => 'Show minimize/collapse toggle' ),
+					'minimized_on'              => array( 'type' => 'select', 'default' => '', 'options' => array( '', 'tablet', 'mobile' ), 'description' => 'Minimized by default on device' ),
+					'hierarchical_view'         => array( 'type' => 'switcher', 'default' => 'yes', 'description' => 'Show indented hierarchy based on heading level' ),
+					'marker_view'               => array( 'type' => 'select', 'default' => 'numbers', 'options' => array( 'numbers', 'bullets', 'none' ), 'description' => 'List marker style' ),
+					'sticky'                    => array( 'type' => 'switcher', 'default' => '', 'description' => 'Make TOC sticky on scroll' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12394',
+					'elType'     => 'widget',
+					'widgetType' => 'table-of-contents',
+					'settings'   => array(
+						'title'            => 'Table of Contents',
+						'headings_by_tags' => array( 'h2', 'h3' ),
+						'minimize_box'     => 'yes',
+					),
+				),
+				'common_mistakes' => array(
+					'Using "toc" instead of "table-of-contents"',
+					'Using "headings" instead of "headings_by_tags"',
+					'Passing heading tags as a string instead of an array',
+				),
+			),
+
+			'hotspot'            => array(
+				'description' => 'Image with interactive hotspot points that show tooltips on hover/click. Requires Elementor Pro.',
+				'category'    => 'pro',
+				'settings'    => array(
+					'image'                     => array( 'type' => 'media', 'default' => '', 'description' => 'Background image: {"url":"https://...","id":123}' ),
+					'hotspot'                   => array( 'type' => 'repeater', 'default' => '', 'description' => 'Array of hotspot points: [{"hotspot_label":"Point 1","hotspot_offset_x":{"size":50,"unit":"%"},"hotspot_offset_y":{"size":50,"unit":"%"},"hotspot_tooltip_content":"Tooltip text"}, ...]' ),
+					'hotspot_animation'         => array( 'type' => 'select', 'default' => '', 'options' => array( '', 'soft-beat', 'expand', 'shadow' ), 'description' => 'Hotspot pulse animation' ),
+					'tooltip_trigger'           => array( 'type' => 'select', 'default' => 'hover', 'options' => array( 'hover', 'click' ), 'description' => 'How to trigger tooltip display' ),
+					'tooltip_position'          => array( 'type' => 'select', 'default' => 'top', 'options' => array( 'top', 'bottom', 'left', 'right' ), 'description' => 'Tooltip position relative to hotspot' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12395',
+					'elType'     => 'widget',
+					'widgetType' => 'hotspot',
+					'settings'   => array(
+						'image'   => array( 'url' => 'https://example.com/product.jpg', 'id' => '' ),
+						'hotspot' => array(
+							array(
+								'hotspot_label'           => 'Feature 1',
+								'hotspot_offset_x'        => array( 'size' => 30, 'unit' => '%' ),
+								'hotspot_offset_y'        => array( 'size' => 40, 'unit' => '%' ),
+								'hotspot_tooltip_content' => 'This is a key feature of the product.',
+							),
+						),
+					),
+				),
+				'common_mistakes' => array(
+					'Using "hotspots" (plural) instead of "hotspot" for the repeater',
+					'Using "x"/"y" instead of "hotspot_offset_x"/"hotspot_offset_y" for position',
+					'Forgetting to pass offset values as {"size":N,"unit":"%"} objects',
+				),
+			),
+
+			'search-form'        => array(
+				'description' => 'WordPress search form with multiple skins. Requires Elementor Pro.',
+				'category'    => 'pro',
+				'settings'    => array(
+					'skin'                      => array( 'type' => 'select', 'default' => 'classic', 'options' => array( 'classic', 'minimal', 'full_screen' ), 'description' => 'Search form skin/layout' ),
+					'placeholder'               => array( 'type' => 'text', 'default' => 'Search...', 'description' => 'Input placeholder text' ),
+					'button_type'               => array( 'type' => 'select', 'default' => 'icon', 'options' => array( 'icon', 'text' ), 'description' => 'Submit button display type' ),
+					'button_text'               => array( 'type' => 'text', 'default' => 'Search', 'description' => 'Submit button text (when button_type is "text")' ),
+					'size'                      => array( 'type' => 'select', 'default' => 'sm', 'options' => array( 'xs', 'sm', 'md', 'lg', 'xl' ), 'description' => 'Input field size' ),
+				),
+				'example'     => array(
+					'id'         => 'abc12396',
+					'elType'     => 'widget',
+					'widgetType' => 'search-form',
+					'settings'   => array(
+						'skin'        => 'classic',
+						'placeholder' => 'Search articles...',
+					),
+				),
+				'common_mistakes' => array(
+					'Using "search" instead of "search-form"',
+					'Using "style" instead of "skin" for the layout option',
+					'Using "text" instead of "placeholder" for the input hint',
 				),
 			),
 		);

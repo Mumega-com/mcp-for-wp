@@ -579,6 +579,30 @@ class Spai_Elementor_Basic {
 				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 				$css_file->update();
 				$save_debug['css_regenerated'] = true;
+
+				// Verify the generated CSS file exists and is non-empty.
+				$upload_dir = wp_upload_dir();
+				$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
+				$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
+				$save_debug['css_file_size'] = $css_size;
+
+				// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
+				if ( $css_size < 10 ) {
+					delete_post_meta( $page_id, '_elementor_css' );
+					$save_debug['css_deferred'] = true;
+					$permalink = get_permalink( $page_id );
+					if ( $permalink ) {
+						wp_remote_get(
+							add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+							array(
+								'timeout'   => 15,
+								'sslverify' => false,
+								'blocking'  => false,
+							)
+						);
+						$save_debug['css_primed'] = true;
+					}
+				}
 			}
 
 			// Also regenerate the global CSS (kit styles) if applicable.
@@ -756,6 +780,13 @@ class Spai_Elementor_Basic {
 			'back_description_text'  => 'description_text_b',
 			'front_background_color' => 'background_color_a',
 			'back_background_color'  => 'background_color_b',
+		),
+		'nav-menu' => array(
+			'text_color'       => 'color_menu_item',
+			'hover_color'      => 'color_menu_item_hover',
+			'active_color'     => 'color_menu_item_active',
+			'dropdown_color'   => 'color_dropdown_item',
+			'dropdown_hover'   => 'color_dropdown_item_hover',
 		),
 	);
 
@@ -1373,16 +1404,38 @@ class Spai_Elementor_Basic {
 			$css_path = $css_dir . 'post-' . $page_id . '.css';
 			$css_size = file_exists( $css_path ) ? filesize( $css_path ) : 0;
 
+			// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
+			$css_deferred = false;
+			$css_primed   = false;
+			if ( $css_size < 10 && 'css_regenerated' === $method ) {
+				delete_post_meta( $page_id, '_elementor_css' );
+				$css_deferred = true;
+				$permalink = get_permalink( $page_id );
+				if ( $permalink ) {
+					wp_remote_get(
+						add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+						array(
+							'timeout'   => 15,
+							'sslverify' => false,
+							'blocking'  => false,
+						)
+					);
+					$css_primed = true;
+				}
+			}
+
 			$has_elementor_data = ! empty( get_post_meta( $page_id, '_elementor_data', true ) );
 
 			$result = array(
-				'success'  => true,
-				'page_id'  => $page_id,
-				'title'    => get_the_title( $page_id ),
-				'method'   => $method,
-				'force'    => $force,
-				'css_file' => 'post-' . $page_id . '.css',
-				'css_size' => $css_size,
+				'success'      => true,
+				'page_id'      => $page_id,
+				'title'        => get_the_title( $page_id ),
+				'method'       => $method,
+				'force'        => $force,
+				'css_file'     => 'post-' . $page_id . '.css',
+				'css_size'     => $css_size,
+				'css_deferred' => $css_deferred,
+				'css_primed'   => $css_primed,
 			);
 
 			if ( 'css_regenerated' === $method ) {
@@ -1451,12 +1504,32 @@ class Spai_Elementor_Basic {
 					$css_path = $css_dir . 'post-' . $pid . '.css';
 					$css_size = file_exists( $css_path ) ? filesize( $css_path ) : 0;
 
-					$regenerated[] = array(
+					$regen_entry = array(
 						'id'       => $pid,
 						'title'    => get_the_title( $pid ),
 						'css_file' => 'post-' . $pid . '.css',
 						'css_size' => $css_size,
 					);
+
+					// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
+					if ( $css_size < 10 ) {
+						delete_post_meta( $pid, '_elementor_css' );
+						$regen_entry['css_deferred'] = true;
+						$permalink = get_permalink( $pid );
+						if ( $permalink ) {
+							wp_remote_get(
+								add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+								array(
+									'timeout'   => 15,
+									'sslverify' => false,
+									'blocking'  => false,
+								)
+							);
+							$regen_entry['css_primed'] = true;
+						}
+					}
+
+					$regenerated[] = $regen_entry;
 				} catch ( \Exception $e ) {
 					$failed[] = array(
 						'id'    => $pid,
@@ -1633,9 +1706,35 @@ class Spai_Elementor_Basic {
 
 		// Regenerate CSS.
 		delete_post_meta( $page_id, '_elementor_css' );
+		$css_debug = array();
 		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 			$css_file->update();
+			$css_debug['css_regenerated'] = true;
+
+			// Verify the generated CSS file exists and is non-empty.
+			$upload_dir = wp_upload_dir();
+			$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
+			$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
+			$css_debug['css_file_size'] = $css_size;
+
+			// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
+			if ( $css_size < 10 ) {
+				delete_post_meta( $page_id, '_elementor_css' );
+				$css_debug['css_deferred'] = true;
+				$permalink = get_permalink( $page_id );
+				if ( $permalink ) {
+					wp_remote_get(
+						add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+						array(
+							'timeout'   => 15,
+							'sslverify' => false,
+							'blocking'  => false,
+						)
+					);
+					$css_debug['css_primed'] = true;
+				}
+			}
 		}
 
 		// Purge caches.
@@ -1663,6 +1762,9 @@ class Spai_Elementor_Basic {
 			'element'  => $saved_element ? $saved_element : $found,
 			'edit_url' => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
+		if ( ! empty( $css_debug ) ) {
+			$result['css_debug'] = $css_debug;
+		}
 
 		$all_warnings = array_merge(
 			isset( $validation['warnings'] ) ? $validation['warnings'] : array(),
@@ -1800,9 +1902,35 @@ class Spai_Elementor_Basic {
 
 		// Regenerate CSS.
 		delete_post_meta( $page_id, '_elementor_css' );
+		$css_debug = array();
 		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 			$css_file->update();
+			$css_debug['css_regenerated'] = true;
+
+			// Verify the generated CSS file exists and is non-empty.
+			$upload_dir = wp_upload_dir();
+			$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
+			$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
+			$css_debug['css_file_size'] = $css_size;
+
+			// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
+			if ( $css_size < 10 ) {
+				delete_post_meta( $page_id, '_elementor_css' );
+				$css_debug['css_deferred'] = true;
+				$permalink = get_permalink( $page_id );
+				if ( $permalink ) {
+					wp_remote_get(
+						add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+						array(
+							'timeout'   => 15,
+							'sslverify' => false,
+							'blocking'  => false,
+						)
+					);
+					$css_debug['css_primed'] = true;
+				}
+			}
 		}
 
 		// Purge caches.
@@ -1823,6 +1951,9 @@ class Spai_Elementor_Basic {
 			'widget'      => $saved_widget ? $saved_widget : $found,
 			'edit_url'    => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
+		if ( ! empty( $css_debug ) ) {
+			$result['css_debug'] = $css_debug;
+		}
 
 		$all_warnings = array_merge(
 			isset( $validation['warnings'] ) ? $validation['warnings'] : array(),
