@@ -92,7 +92,7 @@ class Spai_Elementor_Basic {
 	 * @param int $page_id Page ID.
 	 * @return array|WP_Error Elementor data or error.
 	 */
-	public function get_elementor_data( $page_id ) {
+	public function get_elementor_data( $page_id, $data = array() ) {
 		if ( ! $this->is_active() ) {
 			return new WP_Error(
 				'elementor_not_active',
@@ -115,13 +115,20 @@ class Spai_Elementor_Basic {
 
 		$page_settings = get_post_meta( $page_id, '_elementor_page_settings', true );
 
+		$decoded = $elementor_data ? json_decode( $elementor_data, true ) : null;
+
+		// Strip default widget settings to reduce payload size.
+		if ( ! empty( $data['strip_defaults'] ) && is_array( $decoded ) ) {
+			$this->strip_element_defaults( $decoded );
+		}
+
 		return array(
 			'page_id'        => $page_id,
 			'title'          => $page->post_title,
 			'has_elementor'  => ! empty( $elementor_data ),
 			'edit_mode'      => $edit_mode ?: 'classic',
 			'template_type'  => $template_type ?: null,
-			'elementor_data' => $elementor_data ? json_decode( $elementor_data, true ) : null,
+			'elementor_data' => $decoded,
 			'elementor_json' => $elementor_data ?: null,
 			'page_settings'  => $page_settings ? ( is_array( $page_settings ) ? $page_settings : json_decode( $page_settings, true ) ) : null,
 			'edit_url'       => admin_url( "post.php?post={$page_id}&action=elementor" ),
@@ -2122,6 +2129,573 @@ class Spai_Elementor_Basic {
 		}
 
 		return $result;
+	}
+
+	// -------------------------------------------------------------------------
+	// Section-level operations: save helper, add, remove, replace, patch, strip
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Shared helper: save an element array to a page with validation, CSS regen, and cache clear.
+	 *
+	 * @param int   $page_id  Page/post ID.
+	 * @param array $elements Full top-level element array.
+	 * @param array $options  Reserved for future options.
+	 * @return array|WP_Error Debug info array or WP_Error on failure.
+	 */
+	protected function save_elements_to_page( $page_id, $elements, $options = array() ) {
+		$debug = array();
+		$elementor_json = wp_json_encode( $elements );
+
+		// Count input.
+		$input_count = count( $elements );
+		$debug['sections_submitted'] = $input_count;
+
+		// Validate and fix (before write).
+		$validation = $this->validate_and_fix_elements( $elementor_json );
+		$debug['validation_fixes']    = $validation['fixes'];
+		$debug['validation_warnings'] = $validation['warnings'];
+
+		// Safety check: validation didn't corrupt data.
+		$post_val = json_decode( $elementor_json, true );
+		if ( ! is_array( $post_val ) || count( $post_val ) !== $input_count ) {
+			return new WP_Error( 'validation_corrupted', 'Data corrupted during validation.', array( 'status' => 500 ) );
+		}
+
+		// Single DB write.
+		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+		$debug['meta_written'] = true;
+
+		// Verify.
+		$stored         = get_post_meta( $page_id, '_elementor_data', true );
+		$stored_decoded = json_decode( $stored, true );
+		$stored_count   = is_array( $stored_decoded ) ? count( $stored_decoded ) : 0;
+		$debug['sections_saved'] = $stored_count;
+		$debug['meta_verified']  = ( $stored_count === $input_count );
+
+		// CSS regen + cache clear.
+		$elementor_ok = class_exists( '\Elementor\Plugin' );
+		if ( $elementor_ok ) {
+			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
+				\Elementor\Plugin::$instance->files_manager->clear_cache();
+			}
+			delete_post_meta( $page_id, '_elementor_css' );
+			wp_cache_delete( $page_id, 'post_meta' );
+			clean_post_cache( $page_id );
+
+			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+				$css_file->update();
+				$debug['css_regenerated'] = true;
+
+				// Prime CSS if empty.
+				$upload_dir = wp_upload_dir();
+				$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
+				$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
+				if ( $css_size < 10 ) {
+					delete_post_meta( $page_id, '_elementor_css' );
+					$permalink = get_permalink( $page_id );
+					if ( $permalink ) {
+						wp_remote_get(
+							add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+							array(
+								'timeout'   => 15,
+								'sslverify' => false,
+								'blocking'  => false,
+							)
+						);
+					}
+				}
+			}
+		}
+
+		$this->purge_page_cache( $page_id );
+
+		return $debug;
+	}
+
+	/**
+	 * Add a section/container at a specific position on a page.
+	 *
+	 * @param int   $page_id Page/post ID.
+	 * @param array $data    {
+	 *     @type array  $element  The element to add (must have elType).
+	 *     @type string $position Where to insert: 'start', 'end', 'before:{id}', 'after:{id}'.
+	 * }
+	 * @return array|WP_Error Result or error.
+	 */
+	public function add_section( $page_id, $data ) {
+		// Validate page exists and has Elementor.
+		$post = get_post( $page_id );
+		if ( ! $post ) {
+			return new WP_Error( 'invalid_page', 'Page not found.', array( 'status' => 404 ) );
+		}
+
+		// Get current elements.
+		$raw      = get_post_meta( $page_id, '_elementor_data', true );
+		$elements = json_decode( $raw, true );
+		if ( ! is_array( $elements ) ) {
+			$elements = array();
+		}
+
+		// Validate new element.
+		$new_element = isset( $data['element'] ) ? $data['element'] : null;
+		if ( ! is_array( $new_element ) || empty( $new_element['elType'] ) ) {
+			return new WP_Error( 'invalid_element', 'element must be an object with elType.', array( 'status' => 400 ) );
+		}
+
+		// Auto-generate ID if missing.
+		if ( empty( $new_element['id'] ) ) {
+			$new_element['id'] = $this->generate_element_id();
+		}
+
+		// Parse position.
+		$position = isset( $data['position'] ) ? $data['position'] : 'end';
+		$inserted = false;
+
+		if ( 'start' === $position ) {
+			array_unshift( $elements, $new_element );
+			$inserted = true;
+		} elseif ( 'end' === $position ) {
+			$elements[] = $new_element;
+			$inserted = true;
+		} elseif ( preg_match( '/^(before|after):(.+)$/', $position, $m ) ) {
+			$rel    = $m[1];
+			$ref_id = $m[2];
+			foreach ( $elements as $idx => $el ) {
+				if ( isset( $el['id'] ) && $el['id'] === $ref_id ) {
+					$insert_at = ( 'after' === $rel ) ? $idx + 1 : $idx;
+					array_splice( $elements, $insert_at, 0, array( $new_element ) );
+					$inserted = true;
+					break;
+				}
+			}
+			if ( ! $inserted ) {
+				return new WP_Error( 'ref_not_found', "Reference element '$ref_id' not found in top-level sections.", array( 'status' => 404 ) );
+			}
+		} else {
+			return new WP_Error( 'invalid_position', "Invalid position '$position'. Use: start, end, before:{id}, after:{id}.", array( 'status' => 400 ) );
+		}
+
+		// Save.
+		$debug = $this->save_elements_to_page( $page_id, $elements );
+		if ( is_wp_error( $debug ) ) {
+			return $debug;
+		}
+
+		return array(
+			'success'       => true,
+			'page_id'       => (string) $page_id,
+			'element_id'    => $new_element['id'],
+			'position'      => $position,
+			'section_count' => count( $elements ),
+			'debug'         => $debug,
+		);
+	}
+
+	/**
+	 * Remove a section/container/widget by element ID.
+	 *
+	 * Searches top-level first, then recursively in nested elements.
+	 *
+	 * @param int   $page_id Page/post ID.
+	 * @param array $data    {
+	 *     @type string $element_id The Elementor element ID to remove.
+	 * }
+	 * @return array|WP_Error Result or error.
+	 */
+	public function remove_section( $page_id, $data ) {
+		$post = get_post( $page_id );
+		if ( ! $post ) {
+			return new WP_Error( 'invalid_page', 'Page not found.', array( 'status' => 404 ) );
+		}
+
+		$element_id = isset( $data['element_id'] ) ? $data['element_id'] : '';
+		if ( empty( $element_id ) ) {
+			return new WP_Error( 'missing_id', 'element_id is required.', array( 'status' => 400 ) );
+		}
+
+		$raw      = get_post_meta( $page_id, '_elementor_data', true );
+		$elements = json_decode( $raw, true );
+		if ( ! is_array( $elements ) ) {
+			return new WP_Error( 'no_data', 'Page has no Elementor data.', array( 'status' => 404 ) );
+		}
+
+		$before_count = count( $elements );
+		$removed      = null;
+
+		// Search top-level first.
+		foreach ( $elements as $idx => $el ) {
+			if ( isset( $el['id'] ) && $el['id'] === $element_id ) {
+				$removed = $el;
+				array_splice( $elements, $idx, 1 );
+				break;
+			}
+		}
+
+		if ( ! $removed ) {
+			// Search recursively in nested elements.
+			$removed = $this->remove_nested_element( $elements, $element_id );
+		}
+
+		if ( ! $removed ) {
+			return new WP_Error( 'not_found', "Element '$element_id' not found.", array( 'status' => 404 ) );
+		}
+
+		$debug = $this->save_elements_to_page( $page_id, $elements );
+		if ( is_wp_error( $debug ) ) {
+			return $debug;
+		}
+
+		return array(
+			'success'       => true,
+			'page_id'       => (string) $page_id,
+			'removed_id'    => $element_id,
+			'removed_type'  => isset( $removed['elType'] ) ? $removed['elType'] : 'unknown',
+			'section_count' => count( $elements ),
+			'debug'         => $debug,
+		);
+	}
+
+	/**
+	 * Recursively remove an element by ID from nested elements arrays.
+	 *
+	 * @param array  &$elements Element tree (by reference).
+	 * @param string $target_id The element ID to remove.
+	 * @return array|null The removed element, or null if not found.
+	 */
+	private function remove_nested_element( &$elements, $target_id ) {
+		foreach ( $elements as $idx => &$el ) {
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				foreach ( $el['elements'] as $child_idx => $child ) {
+					if ( isset( $child['id'] ) && $child['id'] === $target_id ) {
+						$removed = $child;
+						array_splice( $el['elements'], $child_idx, 1 );
+						return $removed;
+					}
+				}
+				$found = $this->remove_nested_element( $el['elements'], $target_id );
+				if ( $found ) {
+					return $found;
+				}
+			}
+		}
+		unset( $el );
+		return null;
+	}
+
+	/**
+	 * Replace a section/container/widget by element ID.
+	 *
+	 * Searches top-level first, then recursively in nested elements.
+	 *
+	 * @param int   $page_id Page/post ID.
+	 * @param array $data    {
+	 *     @type string $element_id The Elementor element ID to replace.
+	 *     @type array  $element    The new element (must have elType).
+	 * }
+	 * @return array|WP_Error Result or error.
+	 */
+	public function replace_section( $page_id, $data ) {
+		$post = get_post( $page_id );
+		if ( ! $post ) {
+			return new WP_Error( 'invalid_page', 'Page not found.', array( 'status' => 404 ) );
+		}
+
+		$element_id  = isset( $data['element_id'] ) ? $data['element_id'] : '';
+		$new_element = isset( $data['element'] ) ? $data['element'] : null;
+
+		if ( empty( $element_id ) ) {
+			return new WP_Error( 'missing_id', 'element_id is required.', array( 'status' => 400 ) );
+		}
+		if ( ! is_array( $new_element ) || empty( $new_element['elType'] ) ) {
+			return new WP_Error( 'invalid_element', 'element must be an object with elType.', array( 'status' => 400 ) );
+		}
+
+		// Preserve or generate ID.
+		if ( empty( $new_element['id'] ) ) {
+			$new_element['id'] = $element_id; // keep same ID by default.
+		}
+
+		$raw      = get_post_meta( $page_id, '_elementor_data', true );
+		$elements = json_decode( $raw, true );
+		if ( ! is_array( $elements ) ) {
+			return new WP_Error( 'no_data', 'Page has no Elementor data.', array( 'status' => 404 ) );
+		}
+
+		$replaced = false;
+
+		// Search top-level.
+		foreach ( $elements as $idx => $el ) {
+			if ( isset( $el['id'] ) && $el['id'] === $element_id ) {
+				$elements[ $idx ] = $new_element;
+				$replaced = true;
+				break;
+			}
+		}
+
+		if ( ! $replaced ) {
+			// Search recursively.
+			$replaced = $this->replace_nested_element( $elements, $element_id, $new_element );
+		}
+
+		if ( ! $replaced ) {
+			return new WP_Error( 'not_found', "Element '$element_id' not found.", array( 'status' => 404 ) );
+		}
+
+		$debug = $this->save_elements_to_page( $page_id, $elements );
+		if ( is_wp_error( $debug ) ) {
+			return $debug;
+		}
+
+		return array(
+			'success'       => true,
+			'page_id'       => (string) $page_id,
+			'replaced_id'   => $element_id,
+			'new_id'        => $new_element['id'],
+			'section_count' => count( $elements ),
+			'debug'         => $debug,
+		);
+	}
+
+	/**
+	 * Recursively replace an element by ID in nested elements arrays.
+	 *
+	 * @param array  &$elements   Element tree (by reference).
+	 * @param string $target_id   The element ID to replace.
+	 * @param array  $new_element The replacement element.
+	 * @return bool True if replaced, false if not found.
+	 */
+	private function replace_nested_element( &$elements, $target_id, $new_element ) {
+		foreach ( $elements as $idx => &$el ) {
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				foreach ( $el['elements'] as $child_idx => $child ) {
+					if ( isset( $child['id'] ) && $child['id'] === $target_id ) {
+						$el['elements'][ $child_idx ] = $new_element;
+						return true;
+					}
+				}
+				if ( $this->replace_nested_element( $el['elements'], $target_id, $new_element ) ) {
+					return true;
+				}
+			}
+		}
+		unset( $el );
+		return false;
+	}
+
+	/**
+	 * Batch patch Elementor data: add, remove, replace, or update settings in one request.
+	 *
+	 * Applies up to 20 operations sequentially, then saves once.
+	 *
+	 * @param int   $page_id Page/post ID.
+	 * @param array $data    {
+	 *     @type array $operations Array of operations, each with:
+	 *         @type string $op             Operation type: 'add', 'remove', 'replace', 'settings'.
+	 *         @type string $element_id     Target element ID (for remove, replace, settings).
+	 *         @type array  $element        New element (for add, replace).
+	 *         @type string $position       Insert position (for add): 'start', 'end', 'before:{id}', 'after:{id}'.
+	 *         @type array  $settings       Settings to merge (for settings op).
+	 *         @type array  $delete_settings Setting keys to remove (for settings op).
+	 * }
+	 * @return array|WP_Error Result with per-operation results, or error.
+	 */
+	public function patch_elementor( $page_id, $data ) {
+		$post = get_post( $page_id );
+		if ( ! $post ) {
+			return new WP_Error( 'invalid_page', 'Page not found.', array( 'status' => 404 ) );
+		}
+
+		$operations = isset( $data['operations'] ) ? $data['operations'] : array();
+		if ( empty( $operations ) || ! is_array( $operations ) ) {
+			return new WP_Error( 'no_operations', 'operations array is required.', array( 'status' => 400 ) );
+		}
+
+		if ( count( $operations ) > 20 ) {
+			return new WP_Error( 'too_many_ops', 'Maximum 20 operations per patch.', array( 'status' => 400 ) );
+		}
+
+		$raw      = get_post_meta( $page_id, '_elementor_data', true );
+		$elements = json_decode( $raw, true );
+		if ( ! is_array( $elements ) ) {
+			$elements = array();
+		}
+
+		$results = array();
+
+		foreach ( $operations as $i => $op ) {
+			$type   = isset( $op['op'] ) ? $op['op'] : '';
+			$el_id  = isset( $op['element_id'] ) ? $op['element_id'] : '';
+			$result = array(
+				'op'    => $type,
+				'index' => $i,
+			);
+
+			switch ( $type ) {
+				case 'add':
+					$new_el = isset( $op['element'] ) ? $op['element'] : null;
+					if ( ! is_array( $new_el ) ) {
+						$result['error'] = 'element required';
+						break;
+					}
+					if ( empty( $new_el['id'] ) ) {
+						$new_el['id'] = $this->generate_element_id();
+					}
+					$position = isset( $op['position'] ) ? $op['position'] : 'end';
+					if ( 'start' === $position ) {
+						array_unshift( $elements, $new_el );
+					} elseif ( 'end' === $position ) {
+						$elements[] = $new_el;
+					} elseif ( preg_match( '/^(before|after):(.+)$/', $position, $m ) ) {
+						$found_ref = false;
+						foreach ( $elements as $idx => $el ) {
+							if ( isset( $el['id'] ) && $el['id'] === $m[2] ) {
+								$insert_at = ( 'after' === $m[1] ) ? $idx + 1 : $idx;
+								array_splice( $elements, $insert_at, 0, array( $new_el ) );
+								$found_ref = true;
+								break;
+							}
+						}
+						if ( ! $found_ref ) {
+							$result['error'] = "ref '{$m[2]}' not found";
+							break;
+						}
+					}
+					$result['success']    = true;
+					$result['element_id'] = $new_el['id'];
+					break;
+
+				case 'remove':
+					if ( empty( $el_id ) ) {
+						$result['error'] = 'element_id required';
+						break;
+					}
+					$removed = null;
+					foreach ( $elements as $idx => $el ) {
+						if ( isset( $el['id'] ) && $el['id'] === $el_id ) {
+							$removed = $el;
+							array_splice( $elements, $idx, 1 );
+							break;
+						}
+					}
+					if ( ! $removed ) {
+						$removed = $this->remove_nested_element( $elements, $el_id );
+					}
+					if ( $removed ) {
+						$result['success'] = true;
+					} else {
+						$result['error'] = "element '$el_id' not found";
+					}
+					break;
+
+				case 'replace':
+					if ( empty( $el_id ) ) {
+						$result['error'] = 'element_id required';
+						break;
+					}
+					$new_el = isset( $op['element'] ) ? $op['element'] : null;
+					if ( ! is_array( $new_el ) ) {
+						$result['error'] = 'element required';
+						break;
+					}
+					if ( empty( $new_el['id'] ) ) {
+						$new_el['id'] = $el_id;
+					}
+					$op_replaced = false;
+					foreach ( $elements as $idx => $el ) {
+						if ( isset( $el['id'] ) && $el['id'] === $el_id ) {
+							$elements[ $idx ] = $new_el;
+							$op_replaced = true;
+							break;
+						}
+					}
+					if ( ! $op_replaced ) {
+						$op_replaced = $this->replace_nested_element( $elements, $el_id, $new_el );
+					}
+					$result['success'] = $op_replaced;
+					if ( ! $op_replaced ) {
+						$result['error'] = "element '$el_id' not found";
+					}
+					break;
+
+				case 'settings':
+					if ( empty( $el_id ) ) {
+						$result['error'] = 'element_id required';
+						break;
+					}
+					$dummy_path = '';
+					$target     =& $this->find_element_by_id( $elements, $el_id, $dummy_path );
+					if ( null === $target ) {
+						$result['error'] = "element '$el_id' not found";
+						break;
+					}
+					if ( ! isset( $target['settings'] ) || ! is_array( $target['settings'] ) ) {
+						$target['settings'] = array();
+					}
+					if ( ! empty( $op['settings'] ) && is_array( $op['settings'] ) ) {
+						foreach ( $op['settings'] as $k => $v ) {
+							$target['settings'][ $k ] = $v;
+						}
+					}
+					if ( ! empty( $op['delete_settings'] ) && is_array( $op['delete_settings'] ) ) {
+						foreach ( $op['delete_settings'] as $k ) {
+							unset( $target['settings'][ $k ] );
+						}
+					}
+					unset( $target );
+					$result['success'] = true;
+					break;
+
+				default:
+					$result['error'] = "unknown op '$type' — use: add, remove, replace, settings";
+					break;
+			}
+
+			$results[] = $result;
+		}
+
+		// Save once.
+		$debug = $this->save_elements_to_page( $page_id, $elements );
+		if ( is_wp_error( $debug ) ) {
+			return $debug;
+		}
+
+		return array(
+			'success'       => true,
+			'page_id'       => (string) $page_id,
+			'operations'    => $results,
+			'section_count' => count( $elements ),
+			'debug'         => $debug,
+		);
+	}
+
+	/**
+	 * Strip default widget settings from an element tree.
+	 *
+	 * Compares each widget's settings against the known schema defaults
+	 * and removes any settings that match the default value, reducing payload size.
+	 *
+	 * @param array &$elements Element tree (by reference, modified in place).
+	 */
+	public function strip_element_defaults( &$elements ) {
+		foreach ( $elements as &$el ) {
+			if ( isset( $el['elType'] ) && 'widget' === $el['elType'] && ! empty( $el['widgetType'] ) ) {
+				$schema = Spai_Elementor_Widgets::get( $el['widgetType'] );
+				if ( $schema && ! empty( $schema['settings'] ) && ! empty( $el['settings'] ) ) {
+					foreach ( $schema['settings'] as $key => $def ) {
+						if ( isset( $el['settings'][ $key ] ) && isset( $def['default'] )
+							&& $el['settings'][ $key ] === $def['default'] ) {
+							unset( $el['settings'][ $key ] );
+						}
+					}
+				}
+			}
+			if ( ! empty( $el['elements'] ) && is_array( $el['elements'] ) ) {
+				$this->strip_element_defaults( $el['elements'] );
+			}
+		}
+		unset( $el );
 	}
 
 	/**

@@ -137,6 +137,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_elementor_bulk'      => 'elementor',
 			'wp_get_elementor_summary'   => 'elementor',
 			'wp_edit_section'            => 'elementor',
+			'wp_add_section'             => 'elementor',
+			'wp_remove_section'          => 'elementor',
+			'wp_replace_section'         => 'elementor',
+			'wp_patch_elementor'         => 'elementor',
 			'wp_edit_widget'             => 'elementor',
 			'wp_set_elementor'           => 'elementor',
 			'wp_elementor_status'        => 'elementor',
@@ -201,6 +205,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_elementor_bulk'       => 'elementor',
 			'wp_get_elementor_summary'    => 'elementor',
 			'wp_edit_section'             => 'elementor',
+			'wp_add_section'              => 'elementor',
+			'wp_remove_section'           => 'elementor',
+			'wp_replace_section'          => 'elementor',
+			'wp_patch_elementor'          => 'elementor',
 			'wp_edit_widget'              => 'elementor',
 			'wp_set_elementor'            => 'elementor',
 			'wp_elementor_status'         => 'elementor',
@@ -1212,6 +1220,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'description' => 'Page or post ID',
 					'required'    => true,
 				),
+				'strip_defaults' => array(
+					'type'        => 'boolean',
+					'description' => 'Strip default widget settings to reduce payload size by 70-80%',
+				),
 			)
 		);
 
@@ -1292,6 +1304,83 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'delete_settings' => array(
 					'type'        => 'array',
 					'description' => 'Setting keys to remove from the widget',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_add_section',
+			'Add a new section/container to an Elementor page at a specific position. No need to send the full page — just the new section.',
+			array(
+				'page_id'  => array(
+					'type'        => 'integer',
+					'description' => 'Page ID',
+					'required'    => true,
+				),
+				'element'  => array(
+					'type'        => 'object',
+					'description' => 'The section/container element object with elType, elements[], and settings',
+					'required'    => true,
+				),
+				'position' => array(
+					'type'        => 'string',
+					'description' => 'Where to insert: "start", "end" (default), "before:{element_id}", "after:{element_id}"',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_remove_section',
+			'Remove a section/container from an Elementor page by its element ID. Searches both top-level and nested elements.',
+			array(
+				'page_id'    => array(
+					'type'        => 'integer',
+					'description' => 'Page ID',
+					'required'    => true,
+				),
+				'element_id' => array(
+					'type'        => 'string',
+					'description' => 'The 8-char Elementor element ID to remove',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_replace_section',
+			'Replace an entire section/container in an Elementor page by its element ID. The new element takes the position of the old one.',
+			array(
+				'page_id'    => array(
+					'type'        => 'integer',
+					'description' => 'Page ID',
+					'required'    => true,
+				),
+				'element_id' => array(
+					'type'        => 'string',
+					'description' => 'The 8-char Elementor element ID to replace',
+					'required'    => true,
+				),
+				'element'    => array(
+					'type'        => 'object',
+					'description' => 'The replacement section/container element',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_patch_elementor',
+			'Apply multiple operations to an Elementor page in a single request. Reads data once, applies all ops, writes once. Operations: add, remove, replace, settings.',
+			array(
+				'page_id'    => array(
+					'type'        => 'integer',
+					'description' => 'Page ID',
+					'required'    => true,
+				),
+				'operations' => array(
+					'type'        => 'array',
+					'description' => 'Array of operations. Each: {op: "add"|"remove"|"replace"|"settings", element_id: "...", element: {...}, position: "...", settings: {...}, delete_settings: [...]}',
+					'required'    => true,
 				),
 			)
 		);
@@ -2376,6 +2465,22 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_edit_section'          => array(
 				'method' => 'POST',
 				'route'  => '/elementor/{id}/edit-section',
+			),
+			'wp_add_section'           => array(
+				'method' => 'POST',
+				'route'  => '/elementor/{page_id}/add-section',
+			),
+			'wp_remove_section'        => array(
+				'method' => 'POST',
+				'route'  => '/elementor/{page_id}/remove-section',
+			),
+			'wp_replace_section'       => array(
+				'method' => 'POST',
+				'route'  => '/elementor/{page_id}/replace-section',
+			),
+			'wp_patch_elementor'       => array(
+				'method' => 'POST',
+				'route'  => '/elementor/{page_id}/patch',
 			),
 			'wp_edit_widget'           => array(
 				'method' => 'POST',

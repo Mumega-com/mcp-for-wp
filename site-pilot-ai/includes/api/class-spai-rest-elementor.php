@@ -81,6 +81,13 @@ class Spai_REST_Elementor extends Spai_REST_API {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_elementor_data' ),
 					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'strip_defaults' => array(
+							'description' => __( 'Strip default widget settings to reduce payload size.', 'site-pilot-ai' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
+					),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
@@ -173,6 +180,113 @@ class Spai_REST_Elementor extends Spai_REST_API {
 							'description' => __( 'Setting keys to remove from the element.', 'site-pilot-ai' ),
 							'type'        => 'array',
 							'items'       => array( 'type' => 'string' ),
+						),
+					),
+				),
+			)
+		);
+
+		// Add a new section/container to an Elementor page.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/add-section',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'add_section' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'       => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+						'element'  => array(
+							'description' => __( 'The new section/container element object.', 'site-pilot-ai' ),
+							'required'    => true,
+							'type'        => 'object',
+						),
+						'position' => array(
+							'description' => __( 'Position: start, end, before:{id}, after:{id}.', 'site-pilot-ai' ),
+							'required'    => false,
+							'type'        => 'string',
+							'default'     => 'end',
+						),
+					),
+				),
+			)
+		);
+
+		// Remove a section/container from an Elementor page.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/remove-section',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'remove_section' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'         => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+						'element_id' => array(
+							'description' => __( 'The Elementor element ID to remove.', 'site-pilot-ai' ),
+							'required'    => true,
+							'type'        => 'string',
+						),
+					),
+				),
+			)
+		);
+
+		// Replace an entire section/container in an Elementor page.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/replace-section',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'replace_section' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'         => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+						'element_id' => array(
+							'description' => __( 'The Elementor element ID to replace.', 'site-pilot-ai' ),
+							'required'    => true,
+							'type'        => 'string',
+						),
+						'element'    => array(
+							'description' => __( 'The replacement section/container element.', 'site-pilot-ai' ),
+							'required'    => true,
+							'type'        => 'object',
+						),
+					),
+				),
+			)
+		);
+
+		// Apply multiple patch operations to an Elementor page.
+		register_rest_route(
+			$this->namespace,
+			'/elementor/(?P<id>\d+)/patch',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'patch_elementor' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'id'         => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+						'operations' => array(
+							'description' => __( 'Array of patch operations: {op, element_id, element, position, settings, delete_settings}.', 'site-pilot-ai' ),
+							'required'    => true,
+							'type'        => 'array',
 						),
 					),
 				),
@@ -378,7 +492,10 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		$this->log_activity( 'get_elementor', $request );
 
 		$page_id = $request->get_param( 'id' );
-		$result  = $this->elementor->get_elementor_data( $page_id );
+		$options = array(
+			'strip_defaults' => (bool) $request->get_param( 'strip_defaults' ),
+		);
+		$result  = $this->elementor->get_elementor_data( $page_id, $options );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -506,6 +623,54 @@ class Spai_REST_Elementor extends Spai_REST_API {
 		}
 
 		return $this->success_response( $result );
+	}
+
+	/**
+	 * Add a new section/container to an Elementor page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function add_section( $request ) {
+		$this->log_activity( 'add_elementor_section', $request );
+
+		return rest_ensure_response( $this->elementor->add_section( $request->get_param( 'id' ), $request->get_params() ) );
+	}
+
+	/**
+	 * Remove a section/container from an Elementor page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function remove_section( $request ) {
+		$this->log_activity( 'remove_elementor_section', $request );
+
+		return rest_ensure_response( $this->elementor->remove_section( $request->get_param( 'id' ), $request->get_params() ) );
+	}
+
+	/**
+	 * Replace an entire section/container in an Elementor page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function replace_section( $request ) {
+		$this->log_activity( 'replace_elementor_section', $request );
+
+		return rest_ensure_response( $this->elementor->replace_section( $request->get_param( 'id' ), $request->get_params() ) );
+	}
+
+	/**
+	 * Apply multiple patch operations to an Elementor page.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public function patch_elementor( $request ) {
+		$this->log_activity( 'patch_elementor', $request );
+
+		return rest_ensure_response( $this->elementor->patch_elementor( $request->get_param( 'id' ), $request->get_params() ) );
 	}
 
 	/**

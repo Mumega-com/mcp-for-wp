@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.2
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,15 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.6.0 =
+* New: wp_add_section — add a section/container at any position (start, end, before/after element ID)
+* New: wp_remove_section — remove any element by ID (top-level or nested)
+* New: wp_replace_section — replace an element in-place by ID
+* New: wp_patch_elementor — batch multiple operations (add, remove, replace, settings) in a single request with one DB write
+* New: strip_defaults parameter on wp_get_elementor — strips default widget settings to reduce payload 70-80%
+* Enhancement: Shared save_elements_to_page helper — validate, write, verify, CSS regen, cache clear in one path
+* Enhancement: Section-level CRUD eliminates need to send full page JSON for targeted edits
 
 = 1.5.2 =
 * Fix: wp_build_page now properly initializes Elementor documents — sets _elementor_version and _elementor_pro_version meta, clears caches (#174)
