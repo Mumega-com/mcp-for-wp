@@ -95,8 +95,21 @@ class Spai_Page_Builder {
 		update_post_meta( $page_id, '_elementor_template_type', 'wp-page' );
 		update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
 
-		// Regenerate CSS so the page renders immediately.
+		// Elementor version stamps — required for the editor to recognize the document.
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			update_post_meta( $page_id, '_elementor_version', ELEMENTOR_VERSION );
+		}
+		if ( defined( 'ELEMENTOR_PRO_VERSION' ) ) {
+			update_post_meta( $page_id, '_elementor_pro_version', ELEMENTOR_PRO_VERSION );
+		}
+
+		// Clear Elementor caches and regenerate CSS so the page renders immediately.
+		if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
+			\Elementor\Plugin::$instance->files_manager->clear_cache();
+		}
 		delete_post_meta( $page_id, '_elementor_css' );
+		wp_cache_delete( $page_id, 'post_meta' );
+		clean_post_cache( $page_id );
 		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 			$css_file->update();

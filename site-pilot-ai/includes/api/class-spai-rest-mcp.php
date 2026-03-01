@@ -441,13 +441,6 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 * @return WP_REST_Response Response.
 	 */
 	public function handle_mcp( $request ) {
-		// Increase PHP input limits for large Elementor payloads via MCP.
-		// Base64-encoded page data can exceed default post_max_size.
-		// phpcs:ignore WordPress.PHP.IniSet.Risky
-		@ini_set( 'post_max_size', '10M' );
-		// phpcs:ignore WordPress.PHP.IniSet.Risky
-		@ini_set( 'max_input_vars', '5000' );
-
 		$body = $request->get_json_params();
 
 		if ( empty( $body ) ) {

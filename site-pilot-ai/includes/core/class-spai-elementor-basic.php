@@ -557,7 +557,40 @@ class Spai_Elementor_Basic {
 			$save_debug['elementor_pro_version'] = ELEMENTOR_PRO_VERSION;
 		}
 
-		// --- 2. Write element data via update_post_meta (always reliable) ---
+		// --- 2. Validate and fix element tree BEFORE writing ---
+
+		$input_count = count( json_decode( $elementor_json, true ) ?: array() );
+		$save_debug['sections_submitted'] = $input_count;
+
+		$validation = $this->validate_and_fix_elements( $elementor_json );
+		if ( ! empty( $validation['fixes'] ) || ! empty( $validation['warnings'] ) ) {
+			$save_debug['validation_fixes']    = $validation['fixes'];
+			$save_debug['validation_warnings'] = $validation['warnings'];
+		}
+
+		// Safety check: ensure validation did not corrupt or truncate the data.
+		$post_validation_decoded = json_decode( $elementor_json, true );
+		if ( ! is_array( $post_validation_decoded ) ) {
+			return new WP_Error(
+				'validation_corrupted',
+				__( 'Elementor data was corrupted during validation. Please retry with elementor_data_base64.', 'site-pilot-ai' ),
+				array( 'status' => 500, 'sections_submitted' => $input_count )
+			);
+		}
+		$post_validation_count = count( $post_validation_decoded );
+		if ( $post_validation_count !== $input_count ) {
+			return new WP_Error(
+				'validation_data_loss',
+				sprintf(
+					__( 'Validation changed section count from %d to %d. Aborting to prevent data loss.', 'site-pilot-ai' ),
+					$input_count,
+					$post_validation_count
+				),
+				array( 'status' => 500, 'sections_submitted' => $input_count, 'sections_after_validation' => $post_validation_count )
+			);
+		}
+
+		// --- 3. Write element data via update_post_meta (single write) ---
 
 		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
 		$save_debug['meta_written'] = true;
@@ -565,23 +598,25 @@ class Spai_Elementor_Basic {
 		// Verify data was stored correctly.
 		$stored = get_post_meta( $page_id, '_elementor_data', true );
 		$stored_decoded = json_decode( $stored, true );
-		$input_decoded  = json_decode( $elementor_json, true );
-		$save_debug['meta_verified'] = (
-			is_array( $stored_decoded ) &&
-			is_array( $input_decoded ) &&
-			count( $stored_decoded ) === count( $input_decoded )
-		);
+		$stored_count   = is_array( $stored_decoded ) ? count( $stored_decoded ) : 0;
+		$save_debug['meta_verified']    = ( $stored_count === $input_count );
+		$save_debug['sections_saved']   = $stored_count;
 
-		// --- 3. Validate and fix element tree ---
-
-		$validation = $this->validate_and_fix_elements( $elementor_json );
-		if ( ! empty( $validation['fixes'] ) || ! empty( $validation['warnings'] ) ) {
-			$save_debug['validation_fixes']    = $validation['fixes'];
-			$save_debug['validation_warnings'] = $validation['warnings'];
-			// Re-write fixed data if any auto-fixes were applied.
-			if ( ! empty( $validation['fixes'] ) ) {
-				update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
-			}
+		if ( $stored_count !== $input_count ) {
+			return new WP_Error(
+				'meta_write_truncated',
+				sprintf(
+					__( 'Data truncated during save: %d sections submitted but only %d stored. Try using elementor_data_base64 for large payloads.', 'site-pilot-ai' ),
+					$input_count,
+					$stored_count
+				),
+				array(
+					'status'              => 500,
+					'sections_submitted'  => $input_count,
+					'sections_saved'      => $stored_count,
+					'hint'                => 'Base64-encode your JSON and send via elementor_data_base64 parameter to bypass size limits.',
+				)
+			);
 		}
 
 		// --- 4. Clear Elementor caches and regenerate CSS ---
@@ -699,14 +734,16 @@ class Spai_Elementor_Basic {
 		}
 
 		$result = array(
-			'success'         => true,
-			'page_id'         => (string) $page_id,
-			'message'         => __( 'Elementor data updated.', 'site-pilot-ai' ),
-			'save_method'     => $save_method,
-			'preview_url'     => add_query_arg( 'elementor-preview', $page_id, get_permalink( $page_id ) ),
-			'css_regenerated' => ! empty( $save_debug['css_regenerated'] ),
-			'debug'           => $save_debug,
-			'edit_url'        => admin_url( "post.php?post={$page_id}&action=elementor" ),
+			'success'            => true,
+			'page_id'            => (string) $page_id,
+			'message'            => __( 'Elementor data updated.', 'site-pilot-ai' ),
+			'sections_saved'     => $save_debug['sections_saved'],
+			'sections_submitted' => $save_debug['sections_submitted'],
+			'save_method'        => $save_method,
+			'preview_url'        => add_query_arg( 'elementor-preview', $page_id, get_permalink( $page_id ) ),
+			'css_regenerated'    => ! empty( $save_debug['css_regenerated'] ),
+			'debug'              => $save_debug,
+			'edit_url'           => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
 
 		if ( ! empty( $all_warnings ) ) {

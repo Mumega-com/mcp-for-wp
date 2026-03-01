@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,12 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.5.2 =
+* Fix: wp_build_page now properly initializes Elementor documents — sets _elementor_version and _elementor_pro_version meta, clears caches (#174)
+* Fix: wp_set_elementor no longer silently drops sections — validation runs before DB write, single write, count verification with error on mismatch (#175)
+* Fix: Response now includes sections_saved and sections_submitted counts for data integrity verification
+* Fix: Removed ineffective ini_set calls from MCP handler (called too late to affect PHP input parsing)
 
 = 1.5.1 =
 * New: WordPress Multisite support — network-wide activation, per-site provisioning (#14)
