@@ -1,56 +1,57 @@
-# Claude Desktop Setup for Site Pilot AI
+# Connecting AI Assistants to Site Pilot AI
 
 ## Quick Start
 
-Connect Claude Desktop directly to your WordPress site using the native MCP endpoint.
+Site Pilot AI exposes your WordPress site as an MCP server. Any MCP-compatible client (Claude Desktop, Claude Code, Cursor, Windsurf, etc.) can connect directly over HTTP.
+
+```
+AI Client → POST /wp-json/site-pilot-ai/v1/mcp → WordPress Plugin → 200+ tools
+```
 
 ## Prerequisites
 
-1. Site Pilot AI plugin installed and activated on WordPress
-2. API key generated (go to WordPress Admin → Tools → Site Pilot AI)
-3. Claude Desktop installed on your computer
+1. Site Pilot AI plugin installed and activated (v1.5.2+)
+2. API key generated (WordPress Admin → Tools → Site Pilot AI)
+3. An MCP-compatible AI client
 
-## Setup Steps
+## Setup by Client
 
-### 1. Get Your API Key
+### Claude Code (CLI)
 
-In WordPress admin:
-1. Go to **Tools → Site Pilot AI**
-2. Copy your API key (starts with `spai_`)
-3. If no key exists, click "Generate New Key"
-
-### 2. Configure Claude Desktop
-
-Open your Claude Desktop MCP configuration file:
-
-**macOS:**
-```bash
-~/Library/Application Support/Claude/claude_desktop_config.json
-```
-
-**Windows:**
-```
-%APPDATA%\Claude\claude_desktop_config.json
-```
-
-**Linux:**
-```
-~/.config/Claude/claude_desktop_config.json
-```
-
-### 3. Add Your WordPress Site
-
-Add this configuration:
+Create or edit `.mcp.json` in your project root:
 
 ```json
 {
   "mcpServers": {
-    "wordpress-musical-unicorn": {
+    "my-wordpress": {
+      "url": "https://yoursite.com/wp-json/site-pilot-ai/v1/mcp",
+      "headers": {
+        "X-API-Key": "spai_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Code. Your tools appear automatically.
+
+### Claude Desktop
+
+Edit the config file:
+
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux:** `~/.config/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "my-wordpress": {
       "transport": {
         "type": "http",
-        "url": "https://musicalunicornfarm.com/wp-json/site-pilot-ai/v1/mcp",
+        "url": "https://yoursite.com/wp-json/site-pilot-ai/v1/mcp",
         "headers": {
-          "X-API-Key": "spai_your_actual_api_key_here"
+          "X-API-Key": "spai_your_api_key_here"
         }
       }
     }
@@ -58,240 +59,171 @@ Add this configuration:
 }
 ```
 
-**Replace:**
-- `wordpress-musical-unicorn` - Any unique name for this site
-- `musicalunicornfarm.com` - Your actual domain
-- `spai_your_actual_api_key_here` - Your actual API key
+Restart Claude Desktop to load.
 
-### 4. Restart Claude Desktop
+### Cursor / Windsurf / Other MCP Clients
 
-Close and reopen Claude Desktop to load the new configuration.
-
-### 5. Verify Connection
-
-In Claude Desktop, start a new conversation and ask:
-
-> "What tools do you have available for WordPress?"
-
-Claude should list 17+ WordPress tools including:
-- wp_site_info
-- wp_list_posts
-- wp_create_post
-- wp_list_pages
-- etc.
+Most MCP clients support Streamable HTTP. Use the same endpoint URL and API key header — refer to your client's MCP documentation for the config format.
 
 ## Multiple Sites
 
-You can connect multiple WordPress sites:
-
 ```json
 {
   "mcpServers": {
-    "wordpress-musical-unicorn": {
-      "transport": {
-        "type": "http",
-        "url": "https://musicalunicornfarm.com/wp-json/site-pilot-ai/v1/mcp",
-        "headers": {
-          "X-API-Key": "spai_key_for_musical_unicorn"
-        }
-      }
+    "production": {
+      "url": "https://mysite.com/wp-json/site-pilot-ai/v1/mcp",
+      "headers": { "X-API-Key": "spai_production_key" }
     },
-    "wordpress-my-other-site": {
-      "transport": {
-        "type": "http",
-        "url": "https://myothersite.com/wp-json/site-pilot-ai/v1/mcp",
-        "headers": {
-          "X-API-Key": "spai_key_for_other_site"
-        }
-      }
+    "staging": {
+      "url": "https://staging.mysite.com/wp-json/site-pilot-ai/v1/mcp",
+      "headers": { "X-API-Key": "spai_staging_key" }
     }
   }
 }
 ```
 
-## Example Prompts
+## Verify Connection
 
-Once connected, you can ask Claude:
+```bash
+curl -X POST "https://yoursite.com/wp-json/site-pilot-ai/v1/mcp" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: spai_your_key" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' | jq '.result.tools | length'
+```
 
-### Get Site Information
-> "Show me information about my WordPress site"
+Should return a number (100+). Or just ask your AI: *"What WordPress tools do you have?"*
 
-### List Recent Posts
-> "What are my 5 most recent published blog posts?"
+## Tool Categories (200+)
 
-### Create a Draft Post
-> "Create a new blog post titled 'My Summer Adventures' with a brief introduction. Keep it as a draft."
+| Category | Examples | Tier |
+|----------|----------|------|
+| **Site & Settings** | wp_site_info, wp_onboard, wp_get_options, wp_get_custom_css, wp_set_custom_css | Free |
+| **Content** | wp_list_posts, wp_create_post, wp_list_pages, wp_create_page, wp_search, wp_bulk_create_posts | Free |
+| **Media** | wp_upload_media, wp_upload_media_from_url, wp_list_media | Free |
+| **Menus** | wp_list_menus, wp_setup_menu, wp_add_menu_item, wp_reorder_menu_items | Free |
+| **Elementor** | wp_get_elementor, wp_set_elementor, wp_edit_section, wp_get_elementor_summary, wp_preview_elementor, wp_build_page | Free |
+| **Widgets & Sidebars** | wp_list_sidebars, wp_add_widget, wp_update_widget, wp_reorder_widgets | Free |
+| **Webhooks & API Keys** | wp_create_webhook, wp_list_webhooks, wp_create_api_key | Free |
+| **AI Education** | wp_get_guide, wp_widget_help, wp_get_error_hint, wp_list_workflows | Free |
+| **SEO** | wp_get_seo, wp_set_seo, wp_analyze_seo, wp_bulk_seo, wp_seo_scan, wp_seo_report | Pro |
+| **Forms** | wp_list_forms, wp_get_form, wp_get_form_entries | Pro |
+| **Elementor Pro** | wp_list_elementor_templates, wp_apply_elementor_template, wp_create_theme_template, wp_clone_elementor_page | Pro |
+| **Theme Builder** | wp_theme_builder_status, wp_list_theme_templates, wp_set_template_conditions | Pro |
+| **LearnPress** | wp_list_courses, wp_create_course, wp_list_lessons, wp_list_quizzes (18 tools) | Pro |
+| **WooCommerce** | wp_list_products, wp_create_product, wp_list_orders, wp_list_coupons (17 tools) | Pro |
+| **Events** | wp_list_events, wp_create_event, wp_event_bookings | Pro |
+| **AI Integrations** | wp_search_stock_photos, wp_generate_image, wp_generate_alt_text, wp_text_to_speech | Pro |
+| **Multilanguage** | wp_languages, wp_set_language, wp_get_translations, wp_create_translation | Pro |
+| **Multisite** | wp_network_sites, wp_network_switch, wp_network_stats | Pro |
 
-### Update SEO (PRO only)
-> "Update the SEO title and description for page ID 42"
+Tools are auto-detected based on installed plugins. If Elementor isn't active, Elementor tools won't appear. Same for WooCommerce, LearnPress, etc.
 
-### Manage Elementor Pages
-> "Get the Elementor data for page 123"
+## Design Workflow Best Practices
 
-### Check What's Possible
-> "What can you help me do with my WordPress site?"
+These patterns come from real-world experience using AI assistants with Site Pilot AI:
 
-## Available Capabilities
+### Start Every Session with Onboarding
 
-### FREE (17 tools)
+> "Run wp_onboard to learn about my site"
 
-**Site Management:**
-- Get site info (name, URL, version, theme, plugins)
-- View analytics (post counts, page views, etc.)
-- Detect installed plugins and capabilities
+This returns site identity, content inventory, active integrations, and available tools — giving the AI full context before any changes.
 
-**Content Creation:**
-- List/create/update/delete blog posts
-- List/create/update pages
-- Manage drafts
+### Use CSS for Quick Design Tweaks
 
-**Media:**
-- Upload files
-- Upload from URL
+> "Reduce the hero section padding and add a subtle background color to the pricing section"
 
-**Elementor:**
-- Get/set page data
-- Check Elementor status
+AI agents strongly prefer **incremental, low-risk** operations. Custom CSS (`wp_get_custom_css` / `wp_set_custom_css`) is the safest way to make visual changes without touching Elementor data.
 
-### PRO (13 additional tools)
+### Use wp_edit_section for Targeted Changes
 
-**SEO:**
-- Read/write SEO metadata (Yoast, Rank Math)
-- Analyze SEO
-- Bulk SEO updates
+> "Change the heading in section 3 from h2 to h1 and update the text"
 
-**Forms:**
-- List forms (Contact Form 7, WPForms, Gravity Forms)
-- Read form details
-- View submissions
+For modifying specific sections, `wp_edit_section` is safer than replacing the entire page with `wp_set_elementor`. It edits a single section by index without touching the rest.
 
-**Elementor Pro:**
-- List/apply templates
-- Create landing pages
-- Clone pages
-- Access global settings
+### Use wp_get_elementor_summary Before Full Edits
+
+> "Show me the structure of page 42"
+
+Returns a lightweight section/widget tree (types, IDs, key settings) without the full JSON — much easier for AI to reason about than raw Elementor data.
+
+### Use wp_preview_elementor to Verify Changes
+
+> "Preview page 42 as text"
+
+After saving Elementor data, use the preview endpoint (supports `html`, `text`, and `summary` formats) to verify the result without opening a browser.
+
+### Use Base64 for Large Payloads
+
+> "Set this Elementor data using base64 encoding"
+
+For pages with 10+ sections, use `elementor_data_base64` instead of `elementor_data` to avoid JSON quoting issues in MCP transport. The plugin decodes it server-side.
+
+### Build Pages in Steps
+
+1. `wp_build_page` — create the page with initial sections
+2. `wp_edit_section` — refine individual sections
+3. `wp_set_custom_css` — polish with CSS
+4. `wp_preview_elementor` — verify the result
+
+### Use Drafts First
+
+> "Create a draft page with..."
+
+Always create as `draft` first. Review via preview, then publish when satisfied.
 
 ## Troubleshooting
 
-### Claude doesn't see any tools
+### No tools visible
 
-1. **Check config file location** - Make sure you edited the right file
-2. **Verify JSON syntax** - Use a JSON validator (jsonlint.com)
-3. **Restart Claude Desktop** - Close completely and reopen
-4. **Check URL** - Must be full URL including `/wp-json/site-pilot-ai/v1/mcp`
+1. Check config file path and JSON syntax
+2. Restart your AI client
+3. Verify the URL ends with `/wp-json/site-pilot-ai/v1/mcp`
+4. Test with curl (see Verify Connection above)
 
-### "Connection failed" or "Unauthorized"
+### "Unauthorized" or 401/403
 
-1. **Verify API key** - Copy exact key from WordPress admin
-2. **Check URL** - Make sure site is accessible
-3. **Test manually:**
-   ```bash
-   curl -X POST "https://yoursite.com/wp-json/site-pilot-ai/v1/mcp" \
-     -H "Content-Type: application/json" \
-     -H "X-API-Key: spai_xxx" \
-     -d '{"jsonrpc":"2.0","method":"ping","id":1}'
-   ```
-   Should return: `{"jsonrpc":"2.0","id":1,"result":{"pong":true}}`
+1. Verify API key starts with `spai_`
+2. Copy exact key from WordPress admin
+3. Check the `X-API-Key` header is set (not `Authorization`)
 
-### Tools list is empty
+### Tools list seems small
 
-1. **Check plugin version** - Must be v1.0.14+ with MCP support
-2. **Verify REST API works** - Visit `https://yoursite.com/wp-json/`
-3. **Check permalinks** - Must be enabled (not default)
+1. Update plugin to v1.5.2+ (earlier versions had fewer tools)
+2. Pro tools require a Freemius license
+3. Integration tools (WooCommerce, LearnPress) only appear when those plugins are active
+
+### Elementor data saves but editor shows empty
+
+1. Update to v1.5.2+ (fixed in #174)
+2. The plugin now sets `_elementor_version` meta automatically
+
+### Large Elementor payloads lose sections
+
+1. Update to v1.5.2+ (fixed in #175)
+2. Check `sections_saved` vs `sections_submitted` in the response
+3. Use `elementor_data_base64` for payloads over 20KB
 
 ### Rate limited
 
-1. Go to WordPress Admin → Tools → Site Pilot AI
-2. Check rate limit settings
-3. Increase limits or disable rate limiting
+Go to WordPress Admin → Tools → Site Pilot AI and increase rate limits.
 
-## Manual Testing (without Claude Desktop)
+## Security
 
-Test the endpoint with curl:
+1. **Keep API keys secret** — don't commit to git, use environment variables
+2. **Use HTTPS** — always use secure connections
+3. **Regenerate if exposed** — new key in WordPress admin
+4. **Enable rate limiting** — prevent abuse
+5. **Review before publishing** — always review AI-generated content
 
-```bash
-# Set your variables
-SITE_URL="https://musicalunicornfarm.com"
-API_KEY="spai_your_key_here"
+## Resources
 
-# Test ping
-curl -X POST "${SITE_URL}/wp-json/site-pilot-ai/v1/mcp" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: ${API_KEY}" \
-  -d '{"jsonrpc":"2.0","method":"ping","id":1}' | jq
-
-# List tools
-curl -X POST "${SITE_URL}/wp-json/site-pilot-ai/v1/mcp" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: ${API_KEY}" \
-  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' | jq
-
-# Get site info
-curl -X POST "${SITE_URL}/wp-json/site-pilot-ai/v1/mcp" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: ${API_KEY}" \
-  -d '{"jsonrpc":"2.0","method":"tools/call","id":1,"params":{"name":"wp_site_info","arguments":{}}}' | jq
-```
-
-## Security Best Practices
-
-1. **Keep API key secret** - Don't commit to git
-2. **Use environment variables** - Store key in secure location
-3. **Regenerate if exposed** - Can regenerate in WordPress admin
-4. **Use HTTPS** - Always use secure connection
-5. **Enable rate limiting** - Prevent abuse
-
-## Example Config File
-
-Complete example for Musical Unicorn Farm:
-
-```json
-{
-  "mcpServers": {
-    "wordpress-musical-unicorn": {
-      "transport": {
-        "type": "http",
-        "url": "https://musicalunicornfarm.com/wp-json/site-pilot-ai/v1/mcp",
-        "headers": {
-          "X-API-Key": "spai_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh"
-        }
-      },
-      "description": "Musical Unicorn Farm - Tours, bikes, events"
-    }
-  },
-  "globalShortcut": "Ctrl+Shift+Space"
-}
-```
-
-## Pro Tips
-
-1. **Be specific** - Tell Claude which site to use if you have multiple
-2. **Check capabilities first** - Ask what tools are available
-3. **Use drafts** - Create posts as drafts first, review, then publish
-4. **Batch operations** - Ask Claude to do multiple things at once
-5. **Review before publishing** - Always review AI-generated content
-
-## Support
-
-Need help?
-- Documentation: See `docs/MCP_NATIVE_ENDPOINT.md`
-- GitHub: https://github.com/Digidinc/site-pilot-ai
-- Email: support@digid.ca
-
-## What's Next?
-
-Once connected, Claude can help you:
-- Write and publish blog posts
-- Create landing pages
-- Manage content
-- Optimize SEO
-- Analyze site data
-- Automate workflows
-
-Just chat naturally - Claude knows how to use all the tools!
+- [MCP Protocol Reference](docs/MCP_NATIVE_ENDPOINT.md)
+- [Elementor Widget Reference](docs/ELEMENTOR_WIDGET_REFERENCE.md)
+- [REST API Reference](docs/API.md)
+- GitHub: https://github.com/Digidinc/wp-ai-operator
 
 ---
 
-**Last Updated:** 2024-02-06
-**Plugin Version Required:** 1.0.14+
-**MCP Protocol:** 2024-11-05
+**Last Updated:** 2026-03-01
+**Plugin Version:** 1.5.2+
+**MCP Protocol:** 2024-11-05 (Streamable HTTP)
