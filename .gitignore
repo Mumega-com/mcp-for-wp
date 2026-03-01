@@ -38,6 +38,7 @@ scripts/*.py
 scripts/*.php
 scripts/*.sh
 !scripts/release_freemius.sh
+!scripts/site-sync.sh
 
 # Test caches
 site-pilot-ai/tests/.phpunit.result.cache

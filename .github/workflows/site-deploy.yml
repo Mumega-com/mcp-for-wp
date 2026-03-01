@@ -1,0 +1,64 @@
+name: Deploy Site Content
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site-data/**"
+
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no changes)"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify secrets
+        run: |
+          if [[ -z "${{ secrets.SPAI_URL }}" ]]; then
+            echo "::error::SPAI_URL secret is not set. Add it in repo Settings > Secrets."
+            exit 1
+          fi
+          if [[ -z "${{ secrets.SPAI_API_KEY }}" ]]; then
+            echo "::error::SPAI_API_KEY secret is not set. Add it in repo Settings > Secrets."
+            exit 1
+          fi
+
+      - name: Verify site-data exists
+        run: |
+          if [[ ! -f site-data/manifest.json ]]; then
+            echo "::error::site-data/manifest.json not found. Run 'scripts/site-sync.sh pull' first."
+            exit 1
+          fi
+
+      - name: Push site content
+        env:
+          SPAI_URL: ${{ secrets.SPAI_URL }}
+          SPAI_API_KEY: ${{ secrets.SPAI_API_KEY }}
+        run: |
+          FLAGS=""
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            FLAGS="--dry-run"
+          fi
+          bash scripts/site-sync.sh push $FLAGS
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Site Sync Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          if [[ -f site-data/manifest.json ]]; then
+            PAGES="$(python3 -c "import json; m=json.load(open('site-data/manifest.json')); print(m.get('page_count','?'))")"
+            echo "- **Pages:** $PAGES" >> $GITHUB_STEP_SUMMARY
+          fi
