@@ -597,12 +597,41 @@ class Spai_Elementor_Basic {
 			);
 		}
 
-		// --- 3. Write element data via update_post_meta (single write) ---
+		// --- 3. Save via Elementor Document API (preferred) or meta fallback ---
 
-		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
-		$save_debug['meta_written'] = true;
+		$save_method   = 'meta_direct';
+		$document_saved = false;
+
+		if ( $elementor_ok ) {
+			// Try Document::save() — this updates _elementor_data, post_content, and CSS in one go.
+			$documents_manager = \Elementor\Plugin::$instance->documents;
+			if ( $documents_manager && method_exists( $documents_manager, 'get' ) ) {
+				wp_cache_delete( $page_id, 'post_meta' );
+				clean_post_cache( $page_id );
+
+				$document = $documents_manager->get( $page_id, false );
+				if ( $document && method_exists( $document, 'save' ) ) {
+					$save_result = $document->save( array( 'elements' => $post_validation_decoded ) );
+
+					if ( ! is_wp_error( $save_result ) ) {
+						$document_saved = true;
+						$save_method    = 'document_save';
+						$save_debug['document_save'] = true;
+					} else {
+						$save_debug['document_save_error'] = $save_result->get_error_message();
+					}
+				}
+			}
+		}
+
+		// Fallback: direct meta write if Document::save() is unavailable or failed.
+		if ( ! $document_saved ) {
+			update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+			$save_debug['meta_written'] = true;
+		}
 
 		// Verify data was stored correctly.
+		wp_cache_delete( $page_id, 'post_meta' );
 		$stored = get_post_meta( $page_id, '_elementor_data', true );
 		$stored_decoded = json_decode( $stored, true );
 		$stored_count   = is_array( $stored_decoded ) ? count( $stored_decoded ) : 0;
@@ -626,69 +655,51 @@ class Spai_Elementor_Basic {
 			);
 		}
 
-		// --- 4. Clear Elementor caches and regenerate CSS ---
+		// --- 4. CSS regeneration (only needed for meta_direct fallback — Document::save handles it) ---
 
-		$save_method = 'meta_direct';
-
-		if ( $elementor_ok ) {
+		if ( ! $document_saved && $elementor_ok ) {
 			// Clear file cache.
 			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
 				\Elementor\Plugin::$instance->files_manager->clear_cache();
 				$save_debug['cache_cleared'] = true;
 			}
 
-			// Delete compiled CSS meta to force regeneration on next page load.
 			delete_post_meta( $page_id, '_elementor_css' );
 
-			// Load the Elementor document fresh so it reads the updated meta.
-			if ( method_exists( \Elementor\Plugin::$instance, 'documents' ) ) {
-				// Flush the documents cache so the document is re-read from DB.
-				$documents_manager = \Elementor\Plugin::$instance->documents;
-				if ( method_exists( $documents_manager, 'get' ) ) {
-					// Force a fresh document instance by clearing internal cache.
-					wp_cache_delete( $page_id, 'post_meta' );
-					clean_post_cache( $page_id );
-
-					$document = $documents_manager->get( $page_id, false );
-					if ( $document ) {
-						$save_debug['document_loaded'] = true;
-					}
-				}
-			}
-
-			// Regenerate CSS for this page.
 			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 				$css_file->update();
 				$save_debug['css_regenerated'] = true;
+			}
+		}
 
-				// Verify the generated CSS file exists and is non-empty.
-				$upload_dir = wp_upload_dir();
-				$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
-				$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
-				$save_debug['css_file_size'] = $css_size;
+		// Report CSS file size for debugging.
+		if ( $elementor_ok ) {
+			$upload_dir = wp_upload_dir();
+			$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
+			$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
+			$save_debug['css_file_size'] = $css_size;
 
-				// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
-				if ( $css_size < 10 ) {
-					delete_post_meta( $page_id, '_elementor_css' );
-					$save_debug['css_deferred'] = true;
-					$permalink = get_permalink( $page_id );
-					if ( $permalink ) {
-						wp_remote_get(
-							add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
-							array(
-								'timeout'   => 15,
-								'sslverify' => false,
-								'blocking'  => false,
-							)
-						);
-						$save_debug['css_primed'] = true;
-					}
+			// If CSS is still empty/tiny, prime it via loopback request.
+			if ( $css_size < 10 ) {
+				delete_post_meta( $page_id, '_elementor_css' );
+				$save_debug['css_deferred'] = true;
+				$permalink = get_permalink( $page_id );
+				if ( $permalink ) {
+					wp_remote_get(
+						add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+						array(
+							'timeout'   => 15,
+							'sslverify' => false,
+							'blocking'  => false,
+						)
+					);
+					$save_debug['css_primed'] = true;
 				}
 			}
 
 			// Also regenerate the global CSS (kit styles) if applicable.
-			if ( class_exists( '\Elementor\Core\Files\CSS\Global_CSS' ) ) {
+			if ( ! $document_saved && class_exists( '\Elementor\Core\Files\CSS\Global_CSS' ) ) {
 				$global_css = \Elementor\Core\Files\CSS\Global_CSS::create( 'global.css' );
 				if ( $global_css ) {
 					$global_css->update();
@@ -2162,49 +2173,75 @@ class Spai_Elementor_Basic {
 			return new WP_Error( 'validation_corrupted', 'Data corrupted during validation.', array( 'status' => 500 ) );
 		}
 
-		// Single DB write.
-		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+		// Save via Elementor Document API (preferred) or meta fallback.
+		$document_saved = false;
+		$elementor_ok   = class_exists( '\Elementor\Plugin' );
+
+		if ( $elementor_ok ) {
+			$documents_manager = \Elementor\Plugin::$instance->documents;
+			if ( $documents_manager && method_exists( $documents_manager, 'get' ) ) {
+				wp_cache_delete( $page_id, 'post_meta' );
+				clean_post_cache( $page_id );
+
+				$document = $documents_manager->get( $page_id, false );
+				if ( $document && method_exists( $document, 'save' ) ) {
+					$save_result = $document->save( array( 'elements' => $post_val ) );
+					if ( ! is_wp_error( $save_result ) ) {
+						$document_saved = true;
+						$debug['save_method'] = 'document_save';
+					}
+				}
+			}
+		}
+
+		// Fallback: direct meta write.
+		if ( ! $document_saved ) {
+			update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+			$debug['save_method'] = 'meta_direct';
+		}
+
 		$debug['meta_written'] = true;
 
 		// Verify.
+		wp_cache_delete( $page_id, 'post_meta' );
 		$stored         = get_post_meta( $page_id, '_elementor_data', true );
 		$stored_decoded = json_decode( $stored, true );
 		$stored_count   = is_array( $stored_decoded ) ? count( $stored_decoded ) : 0;
 		$debug['sections_saved'] = $stored_count;
 		$debug['meta_verified']  = ( $stored_count === $input_count );
 
-		// CSS regen + cache clear.
-		$elementor_ok = class_exists( '\Elementor\Plugin' );
-		if ( $elementor_ok ) {
+		// CSS regen only needed for meta_direct fallback.
+		if ( ! $document_saved && $elementor_ok ) {
 			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
 				\Elementor\Plugin::$instance->files_manager->clear_cache();
 			}
 			delete_post_meta( $page_id, '_elementor_css' );
-			wp_cache_delete( $page_id, 'post_meta' );
-			clean_post_cache( $page_id );
 
 			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
 				$css_file->update();
 				$debug['css_regenerated'] = true;
+			}
+		}
 
-				// Prime CSS if empty.
-				$upload_dir = wp_upload_dir();
-				$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
-				$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
-				if ( $css_size < 10 ) {
-					delete_post_meta( $page_id, '_elementor_css' );
-					$permalink = get_permalink( $page_id );
-					if ( $permalink ) {
-						wp_remote_get(
-							add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
-							array(
-								'timeout'   => 15,
-								'sslverify' => false,
-								'blocking'  => false,
-							)
-						);
-					}
+		// Prime CSS if still empty.
+		if ( $elementor_ok ) {
+			$upload_dir = wp_upload_dir();
+			$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
+			$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
+			$debug['css_file_size'] = $css_size;
+			if ( $css_size < 10 ) {
+				delete_post_meta( $page_id, '_elementor_css' );
+				$permalink = get_permalink( $page_id );
+				if ( $permalink ) {
+					wp_remote_get(
+						add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
+						array(
+							'timeout'   => 15,
+							'sslverify' => false,
+							'blocking'  => false,
+						)
+					);
 				}
 			}
 		}

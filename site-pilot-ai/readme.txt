@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,6 +112,12 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.7.1 =
+* Fix: Elementor save now uses Document::save() API instead of direct meta write — properly regenerates CSS and updates post_content (#176)
+* Fix: Cloned/rebuilt pages now render correctly on the frontend without manual editor re-save
+* Fix: CSS file size no longer stuck at 33 bytes after API saves
+* Enhancement: save_method field in response reports "document_save" (new) or "meta_direct" (fallback)
 
 = 1.7.0 =
 * Renamed to Mumega Site Pilot AI
