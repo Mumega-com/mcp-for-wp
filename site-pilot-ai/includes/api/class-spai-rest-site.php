@@ -1112,19 +1112,8 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 
-		// Pro status.
-		$is_pro = false;
-		if ( function_exists( 'spai_license' ) ) {
-			try {
-				$license = spai_license();
-				$is_pro  = $license && method_exists( $license, 'is_pro' ) && $license->is_pro();
-			} catch ( \Exception $e ) {
-				$is_pro = false;
-			}
-		}
-		if ( ! $is_pro ) {
-			$is_pro = function_exists( 'spai_pro' ) || defined( 'SPAI_PRO_VERSION' );
-		}
+		// All features available (no Pro gating).
+		$is_pro = true;
 
 		// 4. Available tools grouped by category.
 		$tools_by_category = array();

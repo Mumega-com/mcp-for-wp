@@ -1,63 +1,57 @@
-=== Site Pilot AI ===
-Contributors: digidinc
+=== Mumega Site Pilot AI ===
+Contributors: digidinc, mumega
 Donate link: https://sitepilotai.mumega.com
 Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via the Model Context Protocol (MCP).
+Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, Elementor, SEO, WooCommerce, and more through natural language.
 
 == Description ==
 
-Site Pilot AI lets you control your WordPress site using AI assistants like Claude. Using the Model Context Protocol (MCP), your AI assistant can create posts, manage pages, upload media, and work with Elementor - all through natural language.
+Mumega Site Pilot AI connects your WordPress site to AI assistants like Claude using the Model Context Protocol (MCP). Your AI assistant can create posts, manage pages, upload media, work with Elementor, manage SEO, control WooCommerce, and more — all through natural language. Every feature is free.
 
 = Key Features =
 
 * **Content Management** - Create, edit, and delete posts and pages
 * **Media Handling** - Upload files or import from URLs
 * **Draft Management** - List and bulk-delete drafts
-* **Basic Elementor** - Get and set Elementor page data
+* **Full Elementor** - Get/set Elementor data, templates, landing pages, widget control
+* **SEO Tools** - Yoast, RankMath, AIOSEO, SEOPress integration
+* **Forms** - Contact Form 7, WPForms, Gravity Forms, Ninja Forms
+* **WooCommerce** - Products, orders, customers, categories, analytics
+* **AI Integrations** - Image generation, stock photos, text-to-speech, alt text
+* **Theme Builder** - Create and manage Elementor theme templates
 * **Secure API** - API key authentication with activity logging
 * **MCP Compatible** - Works with Claude Code and Claude Desktop
+* **200+ MCP Tools** - All features included, no paid tiers
 
 = How It Works =
 
 1. Install and activate the plugin
-2. Copy your API key from Site Pilot AI in the admin menu
+2. Copy your API key from Mumega Site Pilot AI in the admin menu
 3. Configure your MCP server with the API key
 4. Start controlling WordPress with natural language
 
 = Example Commands =
 
 * "Create a blog post about summer recipes"
-* "List all draft pages"
+* "Run an SEO audit on all published pages"
+* "Build a landing page with hero, features, and pricing sections"
 * "Upload this image and set it as the featured image for post 123"
-* "Get the Elementor data for the homepage"
-
-= Pro Features =
-
-Upgrade to Site Pilot AI Pro for advanced features:
-
-* **Full Elementor Integration** - Templates, landing pages, clone pages, widget control
-* **SEO Tools** - Yoast, RankMath, AIOSEO, SEOPress integration
-* **Forms** - Contact Form 7, WPForms, Gravity Forms, Ninja Forms
-* **Landing Page Builder** - One-click AI-generated landing pages
-* **Priority Support** - 48-hour response time
-
-[Learn more about Pro →](https://sitepilotai.mumega.com/pricing)
 
 == Installation ==
 
 = From WordPress Admin =
 
 1. Go to Plugins → Add New
-2. Search for "Site Pilot AI"
+2. Search for "Mumega Site Pilot AI"
 3. Click Install Now, then Activate
-4. Go to Site Pilot AI in the admin menu to get your API key
+4. Go to Mumega Site Pilot AI in the admin menu to get your API key
 
 = Manual Installation =
 
@@ -65,7 +59,7 @@ Upgrade to Site Pilot AI Pro for advanced features:
 2. Go to Plugins → Add New → Upload Plugin
 3. Select the ZIP file and click Install Now
 4. Activate the plugin
-5. Go to Site Pilot AI in the admin menu to get your API key
+5. Go to Mumega Site Pilot AI in the admin menu to get your API key
 
 = MCP Server Setup =
 
@@ -88,7 +82,7 @@ Add to your `~/.claude.json`:
 
 = What is MCP? =
 
-Model Context Protocol (MCP) is an open protocol that enables AI assistants like Claude to interact with external tools and services. Site Pilot AI exposes your WordPress site as an MCP-compatible tool.
+Model Context Protocol (MCP) is an open protocol that enables AI assistants like Claude to interact with external tools and services. Mumega Site Pilot AI exposes your WordPress site as an MCP-compatible tool.
 
 = Is this secure? =
 
@@ -96,7 +90,7 @@ Yes. All requests require a unique API key. Keys are hashed using WordPress pass
 
 = Does it work with any AI? =
 
-Site Pilot AI works with any AI assistant that supports the MCP protocol. Currently, this includes Claude Code and Claude Desktop. More integrations are planned.
+Mumega Site Pilot AI works with any AI assistant that supports the MCP protocol. Currently, this includes Claude Code and Claude Desktop. More integrations are planned.
 
 = Do I need coding skills? =
 
@@ -104,11 +98,11 @@ No. Once configured, you control WordPress through natural language. The AI hand
 
 = What about Elementor? =
 
-The free version includes basic Elementor support (get/set page data). The Pro version adds templates, landing pages, widgets, and full page building capabilities.
+Full Elementor support is included: get/set page data, templates, landing pages, widgets, and full page building capabilities. All features are free.
 
 = Can I use this on multiple sites? =
 
-Each site needs its own plugin installation and API key. The Pro version includes multi-site management features.
+Each site needs its own plugin installation and API key. Multi-site management features are included.
 
 == Screenshots ==
 
@@ -118,6 +112,15 @@ Each site needs its own plugin installation and API key. The Pro version include
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.7.0 =
+* Renamed to Mumega Site Pilot AI
+* All 200+ MCP tools are now free — no Pro tier, no license required
+* Removed Freemius SDK dependency
+* SEO, WooCommerce, Forms, Theme Builder, AI integrations — all included
+* Author URI updated to digid.ca
+* Expanded External Services disclosure in readme
+* Simplified admin UI — removed upgrade banners and license management
 
 = 1.6.0 =
 * New: wp_add_section — add a section/container at any position (start, end, before/after element ID)
@@ -627,16 +630,63 @@ Site Pilot AI does not collect or transmit any user content to external servers.
 
 == External Services ==
 
-This plugin connects to the following external services:
+This plugin may connect to the following external services depending on your configuration:
 
-= Freemius =
-Site Pilot AI uses [Freemius](https://freemius.com/) for license management, analytics, and plugin updates.
-* Data sent: Plugin version, WordPress version, PHP version, site URL (for license validation and update checks)
-* Terms of Service: https://freemius.com/terms/
-* Privacy Policy: https://freemius.com/privacy/
+= WordPress.com mShots =
+Used as a fallback for generating website screenshot thumbnails when no Cloudflare Browser Rendering worker is configured.
+* Data sent: The URL of the page to screenshot
+* When: When the wp_screenshot_url MCP tool is called and no custom screenshot worker is configured
+* Service: https://s0.wp.com/mshots/v1/
+* Privacy Policy: https://automattic.com/privacy/
+
+= Feedback Relay (optional) =
+When a user submits feedback via the wp_submit_feedback tool, the feedback is relayed to a central endpoint so plugin developers receive bug reports. This can be disabled by defining `SPAI_DISABLE_FEEDBACK_RELAY` as true.
+* Data sent: Feedback text, site URL, site name, plugin version
+* When: Only when the wp_submit_feedback MCP tool is explicitly called
+* Endpoint: https://sitepilotai.mumega.com/wp-json/site-pilot-ai/v1/feedback/relay
+* Privacy Policy: https://sitepilotai.mumega.com/privacy
+
+= GitHub API (optional) =
+If configured in settings, feedback can be automatically posted as GitHub issues.
+* Data sent: Feedback text, site name, plugin version
+* When: Only when GitHub integration is configured and feedback is submitted
+* Service: https://api.github.com/
+* Privacy Policy: https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement
+
+= OpenAI API (optional) =
+Used for AI image generation (wp_generate_image, wp_generate_featured_image) and alt text generation when configured by the user.
+* Data sent: Text prompts or image URLs for processing
+* When: Only when the user has configured an OpenAI API key and explicitly calls AI generation tools
+* Service: https://api.openai.com/
+* Terms of Service: https://openai.com/policies/terms-of-use
+* Privacy Policy: https://openai.com/policies/privacy-policy
+
+= Google Gemini API (optional) =
+Used as an alternative AI provider for image description and text generation when configured by the user.
+* Data sent: Text prompts or image URLs for processing
+* When: Only when the user has configured a Gemini API key and explicitly calls AI generation tools
+* Service: https://generativelanguage.googleapis.com/
+* Terms of Service: https://ai.google.dev/gemini-api/terms
+* Privacy Policy: https://policies.google.com/privacy
+
+= ElevenLabs API (optional) =
+Used for text-to-speech generation when configured by the user.
+* Data sent: Text content to convert to speech
+* When: Only when the user has configured an ElevenLabs API key and calls the wp_text_to_speech tool
+* Service: https://api.elevenlabs.io/
+* Terms of Service: https://elevenlabs.io/terms-of-use
+* Privacy Policy: https://elevenlabs.io/privacy-policy
+
+= Pexels API (optional) =
+Used for stock photo search and download when configured by the user.
+* Data sent: Search queries for stock photos
+* When: Only when the user has configured a Pexels API key and calls wp_search_stock_photos or wp_download_stock_photo
+* Service: https://api.pexels.com/
+* Terms of Service: https://www.pexels.com/api/documentation/#guidelines
+* Privacy Policy: https://www.pexels.com/privacy-policy/
 
 == Support ==
 
 * Documentation: [sitepilotai.mumega.com/docs](https://sitepilotai.mumega.com/docs)
-* Support Forum: [wordpress.org/support/plugin/site-pilot-ai](https://wordpress.org/support/plugin/site-pilot-ai)
-* GitHub: [github.com/Digidinc/site-pilot-ai](https://github.com/Digidinc/site-pilot-ai)
+* Support Forum: [wordpress.org/support/plugin/mumega-site-pilot-ai](https://wordpress.org/support/plugin/mumega-site-pilot-ai)
+* GitHub: [github.com/Digidinc/wp-ai-operator](https://github.com/Digidinc/wp-ai-operator)

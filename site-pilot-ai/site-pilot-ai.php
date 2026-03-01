@@ -1,24 +1,24 @@
 <?php
 /**
- * Site Pilot AI
+ * Mumega Site Pilot AI
  *
- * Control WordPress with AI through the Model Context Protocol (MCP).
+ * Connect WordPress to AI assistants through the Model Context Protocol (MCP).
  * Expose your WordPress site's functionality to AI assistants like Claude.
  *
- * @package           SitePilotAI
+ * @package           MumegaSitePilotAI
  * @author            DigID Inc
  * @copyright         2024 DigID Inc
  * @license           GPL-2.0-or-later
  *
  * @wordpress-plugin
- * Plugin Name:       Site Pilot AI
+ * Plugin Name:       Mumega Site Pilot AI
  * Plugin URI:        https://sitepilotai.mumega.com/
- * Description:       Control WordPress with AI. Expose posts, pages, media, and Elementor to AI assistants via MCP.
- * Version:           1.6.0
+ * Description:       Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, and Elementor through natural language.
+ * Version:           1.7.0
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
- * Author URI:        https://mumega.com/
+ * Author URI:        https://digid.ca/
  * Text Domain:       site-pilot-ai
  * Domain Path:       /languages
  * License:           GPL v2 or later
@@ -31,92 +31,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handle free vs premium package coexistence.
- *
- * Freemius can distribute a separate premium zip (`site-pilot-ai-premium`).
- * When both are installed, we prefer the premium package and ensure only one
- * instance is active to avoid double-loading and fatals.
- *
- * - If the premium package is active, the free package should not run.
- * - If the premium package is being activated, deactivate the free package.
- */
-$spai_free_plugin_file    = 'site-pilot-ai/site-pilot-ai.php';
-$spai_premium_plugin_file = 'site-pilot-ai-premium/site-pilot-ai.php';
-
-$spai_is_plugin_active = static function ( $plugin_file ) {
-	if ( ! function_exists( 'get_option' ) ) {
-		return false;
-	}
-
-	// Check single-site active plugins.
-	$active_plugins = get_option( 'active_plugins', array() );
-	if ( is_array( $active_plugins ) && in_array( $plugin_file, $active_plugins, true ) ) {
-		return true;
-	}
-
-	// Check network-wide active plugins (multisite).
-	if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_site_option' ) ) {
-		$network_plugins = get_site_option( 'active_sitewide_plugins', array() );
-		if ( is_array( $network_plugins ) && isset( $network_plugins[ $plugin_file ] ) ) {
-			return true;
-		}
-	}
-
-	return false;
-};
-
-$spai_remove_from_active_plugins = static function ( $plugin_file ) {
-	if ( ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) ) {
-		return false;
-	}
-
-	$removed = false;
-
-	// Remove from single-site active plugins.
-	$active_plugins = get_option( 'active_plugins', array() );
-	if ( is_array( $active_plugins ) ) {
-		$index = array_search( $plugin_file, $active_plugins, true );
-		if ( false !== $index ) {
-			unset( $active_plugins[ $index ] );
-			$active_plugins = array_values( $active_plugins );
-			update_option( 'active_plugins', $active_plugins );
-			if ( function_exists( 'wp_cache_delete' ) ) {
-				wp_cache_delete( 'active_plugins', 'options' );
-			}
-			$removed = true;
-		}
-	}
-
-	// Remove from network-wide active plugins (multisite).
-	if ( function_exists( 'is_multisite' ) && is_multisite() && function_exists( 'get_site_option' ) && function_exists( 'update_site_option' ) ) {
-		$network_plugins = get_site_option( 'active_sitewide_plugins', array() );
-		if ( is_array( $network_plugins ) && isset( $network_plugins[ $plugin_file ] ) ) {
-			unset( $network_plugins[ $plugin_file ] );
-			update_site_option( 'active_sitewide_plugins', $network_plugins );
-			$removed = true;
-		}
-	}
-
-	return $removed;
-};
-
-// If this is the premium plugin, deactivate the free plugin (if active) and continue loading.
-if ( 'site-pilot-ai-premium' === basename( __DIR__ ) ) {
-	$spai_remove_from_active_plugins( $spai_free_plugin_file );
-	if ( function_exists( 'update_option' ) ) {
-		update_option( 'spai_premium_preferred', 1 );
-	}
-} else {
-	// Free plugin: if premium is active, stop early so only premium runs.
-	if ( $spai_is_plugin_active( $spai_premium_plugin_file ) ) {
-		return;
-	}
-}
-
-/**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.6.0' );
+define( 'SPAI_VERSION', '1.7.0' );
 
 /**
  * Plugin directory path.
@@ -211,27 +128,6 @@ if ( ! function_exists( 'spai_wp_version_notice' ) ) {
 	}
 }
 
-// Check if premium version is active - deactivate free if so.
-if ( function_exists( 'spa_fs' ) ) {
-	$spa_fs_instance = spa_fs();
-	if ( is_object( $spa_fs_instance ) && method_exists( $spa_fs_instance, 'set_basename' ) ) {
-		$spa_fs_instance->set_basename( true, __FILE__ );
-		return;
-	}
-}
-
-/**
- * Initialize Freemius SDK.
- */
-if ( ! function_exists( 'spai_init_freemius' ) ) {
-	function spai_init_freemius() {
-	if ( ! function_exists( 'spa_fs' ) ) {
-		require_once SPAI_PLUGIN_DIR . 'includes/freemius-init.php';
-	}
-	}
-}
-add_action( 'plugins_loaded', 'spai_init_freemius', 5 );
-
 /**
  * Load plugin files.
  */
@@ -285,6 +181,15 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-pro-tools.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-ai-integration.php';
 
+	// Load Pro modules (always available — all features are free).
+	$pro_bootstrap = SPAI_PLUGIN_DIR . 'includes/pro/class-spai-pro-bootstrap.php';
+	if ( file_exists( $pro_bootstrap ) ) {
+		require_once $pro_bootstrap;
+		if ( class_exists( 'Spai_Pro_Bootstrap' ) ) {
+			Spai_Pro_Bootstrap::init();
+		}
+	}
+
 	// Load REST API
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-api.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-posts.php';
@@ -309,15 +214,6 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-integrations-admin.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-tools-admin.php';
 
-	// Load Pro modules (premium package only).
-	$pro_bootstrap = SPAI_PLUGIN_DIR . 'includes/pro/class-spai-pro-bootstrap.php';
-	if ( file_exists( $pro_bootstrap ) ) {
-		require_once $pro_bootstrap;
-		if ( class_exists( 'Spai_Pro_Bootstrap' ) ) {
-			Spai_Pro_Bootstrap::init();
-		}
-	}
-
 	// Check if database needs updating
 	$installed_db_version = get_option( 'spai_db_version', '0' );
 	if ( version_compare( $installed_db_version, SPAI_VERSION, '<' ) ) {
@@ -330,8 +226,6 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	$loader = new Spai_Loader();
 	$loader->run();
 
-	// Note: Plugin updates are handled by Freemius SDK automatically.
-	// Upload new versions at: https://dashboard.freemius.com
 	}
 }
 

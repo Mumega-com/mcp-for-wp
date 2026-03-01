@@ -129,10 +129,8 @@ class Spai_MCP_AI_Integration extends Spai_Integration {
 			)
 		);
 
-		// Pro tier: AI generation tools.
-		$is_pro = function_exists( 'spai_license' ) && spai_license()->is_pro();
-		if ( $is_pro ) {
-			$tools[] = $this->define_tool(
+		// AI generation tools.
+		$tools[] = $this->define_tool(
 				'wp_generate_image',
 				'Generate an AI image using GPT-Image-1-Mini (OpenAI) or Imagen 3 (Gemini) and upload to WordPress media library.',
 				array(
@@ -284,7 +282,6 @@ class Spai_MCP_AI_Integration extends Spai_Integration {
 					),
 				)
 			);
-		}
 
 		return $tools;
 	}

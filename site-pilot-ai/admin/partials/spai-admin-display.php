@@ -12,11 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 $stored_key_hash = get_option( 'spai_api_key', '' );
 $admin           = new Spai_Admin();
 $capabilities    = $admin->get_capabilities_display();
-$license         = function_exists( 'spai_license' ) ? spai_license() : null;
-$is_paying       = $license ? $license->is_paying() : false;
-$plan            = $license ? $license->get_plan() : 'free';
-$is_pro          = $license ? $license->is_pro() : false;
-$upgrade_url     = $license ? $license->get_upgrade_url() : 'https://sitepilotai.mumega.com/pricing/';
+$is_pro          = true;
 $is_first        = get_option( 'spai_first_activation', false );
 $rest_base       = rest_url( 'site-pilot-ai/v1/' );
 $mcp_url         = rest_url( 'site-pilot-ai/v1/mcp' );
@@ -50,13 +46,8 @@ if ( isset( $new_key ) && $new_key ) {
 		<span class="spai-logo">
 			<span class="dashicons dashicons-airplane"></span>
 		</span>
-		<?php esc_html_e( 'Site Pilot AI', 'site-pilot-ai' ); ?>
+		<?php esc_html_e( 'Mumega Site Pilot AI', 'site-pilot-ai' ); ?>
 		<span class="spai-version">v<?php echo esc_html( SPAI_VERSION ); ?></span>
-		<?php if ( $is_pro ) : ?>
-		<span class="spai-version" style="margin-left:10px;background:#1d2327;color:#fff;padding:2px 8px;border-radius:999px;font-size:12px;">
-			<?php echo esc_html( strtoupper( $plan ) ); ?>
-		</span>
-		<?php endif; ?>
 	</h1>
 
 	<?php if ( $is_first && isset( $new_key ) && $new_key ) : ?>
@@ -92,65 +83,14 @@ if ( isset( $new_key ) && $new_key ) {
 	</div>
 	<?php endif; ?>
 
-	<?php if ( ! $is_pro ) : ?>
-	<div class="spai-upgrade-banner">
-		<div class="spai-upgrade-icon">
-			<span class="dashicons dashicons-superhero-alt"></span>
-		</div>
-		<div class="spai-upgrade-content">
-			<h2><?php esc_html_e( 'Upgrade to Pro', 'site-pilot-ai' ); ?></h2>
-			<p class="spai-upgrade-tagline"><?php esc_html_e( 'Unlock SEO tools, form builders, advanced Elementor, and WooCommerce management', 'site-pilot-ai' ); ?></p>
-
-			<div class="spai-upgrade-features">
-				<div class="spai-feature-col">
-					<div class="spai-feature-item">
-						<span class="dashicons dashicons-yes"></span>
-						<?php esc_html_e( 'SEO Tools (Yoast, RankMath)', 'site-pilot-ai' ); ?>
-					</div>
-					<div class="spai-feature-item">
-						<span class="dashicons dashicons-yes"></span>
-						<?php esc_html_e( 'Form Builders Support', 'site-pilot-ai' ); ?>
-					</div>
-				</div>
-				<div class="spai-feature-col">
-					<div class="spai-feature-item">
-						<span class="dashicons dashicons-yes"></span>
-						<?php esc_html_e( 'Advanced Elementor', 'site-pilot-ai' ); ?>
-					</div>
-					<div class="spai-feature-item">
-						<span class="dashicons dashicons-yes"></span>
-						<?php esc_html_e( 'WooCommerce Management', 'site-pilot-ai' ); ?>
-					</div>
-				</div>
-			</div>
-
-			<div class="spai-upgrade-cta">
-				<a href="<?php echo esc_url( $upgrade_url ); ?>" class="spai-upgrade-button" target="_blank">
-					<span class="dashicons dashicons-cart"></span>
-					<?php esc_html_e( 'Get Pro', 'site-pilot-ai' ); ?>
-				</a>
-			</div>
-		</div>
-	</div>
-	<?php else : ?>
 	<div class="spai-license-banner spai-license-active">
 		<div class="spai-license-content">
 			<span class="dashicons dashicons-yes-alt"></span>
-			<strong><?php
-			/* translators: %s: plan name (e.g. Pro, Agency) */
-			printf( esc_html__( '%s Plan Active', 'site-pilot-ai' ), esc_html( ucfirst( $plan ) ) );
-		?></strong>
-			<?php if ( $license && $license->get_expiration() ) : ?>
-				<span class="spai-license-expiry">
-					<?php
-					/* translators: %s: license renewal date */
-					printf( esc_html__( 'Renews: %s', 'site-pilot-ai' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $license->get_expiration() ) ) ) );
-				?>
-				</span>
-			<?php endif; ?>
+			<strong><?php esc_html_e( 'All features included', 'site-pilot-ai' ); ?></strong>
+			&mdash;
+			<a href="https://mumega.com/" target="_blank"><?php esc_html_e( 'Powered by Mumega', 'site-pilot-ai' ); ?></a>
 		</div>
 	</div>
-	<?php endif; ?>
 
 	<!-- Tab Navigation -->
 	<nav class="nav-tab-wrapper spai-tabs">
@@ -806,119 +746,20 @@ if ( isset( $new_key ) && $new_key ) {
 	<?php elseif ( 'settings' === $current_tab ) : ?>
 
 	<div class="spai-tab-content">
-		<!-- License / Upgrade Card -->
 		<div class="spai-card">
 			<h2>
 				<span class="dashicons dashicons-awards"></span>
-				<?php esc_html_e( 'License', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'About', 'site-pilot-ai' ); ?>
 			</h2>
-
-			<?php if ( $is_paying ) : ?>
-				<div class="spai-license-info">
-					<table class="spai-license-table">
-						<tr>
-							<td><strong><?php esc_html_e( 'Status:', 'site-pilot-ai' ); ?></strong></td>
-							<td><span class="spai-status spai-status-active"><?php esc_html_e( 'Active', 'site-pilot-ai' ); ?></span></td>
-						</tr>
-						<tr>
-							<td><strong><?php esc_html_e( 'Plan:', 'site-pilot-ai' ); ?></strong></td>
-							<td><?php echo esc_html( ucfirst( $plan ) ); ?></td>
-						</tr>
-						<?php if ( $license && $license->get_license_key() ) : ?>
-						<tr>
-							<td><strong><?php esc_html_e( 'License Key:', 'site-pilot-ai' ); ?></strong></td>
-							<td><code><?php echo esc_html( $license->get_license_key() ); ?></code></td>
-						</tr>
-						<?php endif; ?>
-						<?php if ( $license && $license->get_expiration() ) : ?>
-						<tr>
-							<td><strong><?php esc_html_e( 'Expires:', 'site-pilot-ai' ); ?></strong></td>
-							<td><?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $license->get_expiration() ) ) ); ?></td>
-						</tr>
-						<?php endif; ?>
-					</table>
-
-					<?php if ( function_exists( 'spa_fs' ) ) : ?>
-					<p style="margin-top: 15px;">
-						<a href="<?php echo esc_url( spa_fs()->get_account_url() ); ?>" class="button">
-							<span class="dashicons dashicons-admin-users" style="margin-top: 4px;"></span>
-							<?php esc_html_e( 'Manage License', 'site-pilot-ai' ); ?>
-						</a>
-					</p>
-					<?php endif; ?>
-				</div>
-			<?php else : ?>
-				<p class="description">
-					<?php esc_html_e( 'You are on the Free plan. Upgrade to Pro to unlock SEO tools, form builders, advanced Elementor templates, and WooCommerce management.', 'site-pilot-ai' ); ?>
-				</p>
-
-				<div class="spai-license-actions" style="margin-top: 15px;">
-					<?php if ( function_exists( 'spa_fs' ) ) : ?>
-						<a href="<?php echo esc_url( spa_fs()->get_upgrade_url() ); ?>" class="button button-primary" style="margin-right: 10px;">
-							<span class="dashicons dashicons-cart" style="margin-top: 4px;"></span>
-							<?php esc_html_e( 'Upgrade to Pro', 'site-pilot-ai' ); ?>
-						</a>
-						<a href="<?php echo esc_url( spa_fs()->get_account_url() ); ?>" class="button">
-							<span class="dashicons dashicons-admin-network" style="margin-top: 4px;"></span>
-							<?php esc_html_e( 'Enter License Key', 'site-pilot-ai' ); ?>
-						</a>
-					<?php else : ?>
-						<a href="<?php echo esc_url( $upgrade_url ); ?>" class="button button-primary" target="_blank">
-							<span class="dashicons dashicons-cart" style="margin-top: 4px;"></span>
-							<?php esc_html_e( 'Upgrade to Pro', 'site-pilot-ai' ); ?>
-						</a>
-					<?php endif; ?>
-				</div>
-
-				<div class="spai-pro-features-grid" style="margin-top: 20px;">
-					<table class="widefat">
-						<thead>
-							<tr>
-								<th><?php esc_html_e( 'Feature', 'site-pilot-ai' ); ?></th>
-								<th style="text-align:center;"><?php esc_html_e( 'Free', 'site-pilot-ai' ); ?></th>
-								<th style="text-align:center;"><span class="spai-badge spai-badge-pro">PRO</span></th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td><?php esc_html_e( 'Posts, Pages & Media', 'site-pilot-ai' ); ?></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-							</tr>
-							<tr>
-								<td><?php esc_html_e( 'Elementor (Basic)', 'site-pilot-ai' ); ?></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-							</tr>
-							<tr>
-								<td><?php esc_html_e( 'MCP Protocol (Claude)', 'site-pilot-ai' ); ?></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-							</tr>
-							<tr>
-								<td><?php esc_html_e( 'SEO Tools (Yoast, RankMath, AIOSEO)', 'site-pilot-ai' ); ?></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-no-alt" style="color:#ccc;"></span></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-							</tr>
-							<tr>
-								<td><?php esc_html_e( 'Form Builders (CF7, WPForms, Gravity)', 'site-pilot-ai' ); ?></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-no-alt" style="color:#ccc;"></span></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-							</tr>
-							<tr>
-								<td><?php esc_html_e( 'Elementor Pro Templates & Landing Pages', 'site-pilot-ai' ); ?></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-no-alt" style="color:#ccc;"></span></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-							</tr>
-							<tr>
-								<td><?php esc_html_e( 'WooCommerce Management', 'site-pilot-ai' ); ?></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-no-alt" style="color:#ccc;"></span></td>
-								<td style="text-align:center;"><span class="dashicons dashicons-yes" style="color:#28a745;"></span></td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			<?php endif; ?>
+			<p class="description">
+				<?php esc_html_e( 'All features are included for free. Mumega Site Pilot AI connects your WordPress site to AI assistants via the Model Context Protocol (MCP).', 'site-pilot-ai' ); ?>
+			</p>
+			<p style="margin-top: 10px;">
+				<a href="https://mumega.com/" target="_blank" class="button">
+					<span class="dashicons dashicons-external" style="margin-top: 4px;"></span>
+					<?php esc_html_e( 'Visit Mumega', 'site-pilot-ai' ); ?>
+				</a>
+			</p>
 		</div>
 
 		<div class="spai-card">

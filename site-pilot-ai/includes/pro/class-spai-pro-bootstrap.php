@@ -23,11 +23,6 @@ class Spai_Pro_Bootstrap {
 	 * Register hooks for pro features.
 	 */
 	public static function init() {
-		// Only enable Pro endpoints when the license/trial grants access.
-		if ( ! function_exists( 'spai_license' ) || ! spai_license()->is_pro() ) {
-			return;
-		}
-
 		add_action( 'spai_register_rest_routes', array( __CLASS__, 'register_routes' ) );
 		add_filter( 'spai_site_capabilities', array( __CLASS__, 'add_pro_capabilities' ) );
 	}
@@ -116,7 +111,7 @@ class Spai_Pro_Bootstrap {
 	 */
 	public static function add_pro_capabilities( $capabilities ) {
 		$capabilities['pro_active']  = true;
-		$capabilities['plan']        = function_exists( 'spai_license' ) ? spai_license()->get_plan() : 'free';
+		$capabilities['plan']        = 'free';
 		$capabilities['learnpress']  = class_exists( 'LearnPress' ) || post_type_exists( 'lp_course' );
 		$capabilities['tp_events']   = post_type_exists( 'tp_event' );
 		return $capabilities;

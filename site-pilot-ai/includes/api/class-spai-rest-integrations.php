@@ -852,15 +852,7 @@ class Spai_REST_Integrations extends Spai_REST_API {
 	 * @return true|WP_Error
 	 */
 	private function require_pro() {
-		if ( function_exists( 'spai_license' ) && spai_license()->is_pro() ) {
-			return true;
-		}
-
-		return $this->error_response(
-			'pro_required',
-			__( 'This feature requires Site Pilot AI Pro. Upgrade at Site Pilot AI > Pricing.', 'site-pilot-ai' ),
-			403
-		);
+		return true;
 	}
 
 	/**

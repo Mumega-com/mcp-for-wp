@@ -50,13 +50,11 @@ class Spai_Core {
 			),
 		);
 
-		// Include non-sensitive license status so clients can understand Pro state without guessing.
-		if ( function_exists( 'spai_license' ) ) {
-			$license = spai_license();
-			if ( is_object( $license ) && method_exists( $license, 'get_info' ) ) {
-				$info['license'] = $license->get_info();
-			}
-		}
+		// All features are free — no license required.
+		$info['license'] = array(
+			'plan'   => 'free',
+			'is_pro' => true,
+		);
 
 		return $info;
 	}

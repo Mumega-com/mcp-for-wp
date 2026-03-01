@@ -19,3 +19,7 @@
 CLAUDE_DESKTOP_SETUP.md
 MCP_IMPLEMENTATION.md
 CHANGELOG.md
+/assets/banner-*.png
+/assets/icon-*.png
+/assets/screenshot-*.png
+/assets/icon.svg
