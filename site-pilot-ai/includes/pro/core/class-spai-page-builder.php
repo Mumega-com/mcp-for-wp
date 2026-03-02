@@ -102,8 +102,9 @@ class Spai_Page_Builder {
 
 		// Save via Elementor Document::save() API — this rebuilds post_content
 		// and regenerates CSS so the page renders on the frontend immediately.
-		$save_method = 'meta_direct';
-		$elementor_ok = class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->documents );
+		$save_method    = 'meta_direct';
+		$document_saved = false;
+		$elementor_ok   = class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->documents );
 
 		if ( $elementor_ok ) {
 			wp_cache_delete( $page_id, 'post_meta' );
@@ -112,15 +113,25 @@ class Spai_Page_Builder {
 			if ( $document && method_exists( $document, 'save' ) ) {
 				$save_result = $document->save( array( 'elements' => $elements ) );
 				if ( ! is_wp_error( $save_result ) ) {
-					$save_method = 'document_save';
+					// Verify the data was actually persisted.
+					wp_cache_delete( $page_id, 'post_meta' );
+					$stored         = get_post_meta( $page_id, '_elementor_data', true );
+					$stored_decoded = json_decode( $stored, true );
+					$stored_count   = is_array( $stored_decoded ) ? count( $stored_decoded ) : 0;
+
+					if ( $stored_count > 0 ) {
+						$document_saved = true;
+						$save_method    = 'document_save';
+					}
 				}
 			}
 		}
 
-		// Fallback: direct meta write if Document::save() unavailable.
-		if ( 'meta_direct' === $save_method ) {
+		// Fallback: direct meta write if Document::save() unavailable or failed to persist.
+		if ( ! $document_saved ) {
 			$json = wp_json_encode( $elements );
 			update_post_meta( $page_id, '_elementor_data', wp_slash( $json ) );
+			$save_method = 'meta_direct';
 
 			// Manual CSS regeneration for fallback path.
 			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
@@ -135,6 +146,13 @@ class Spai_Page_Builder {
 			}
 		}
 
+		// Final verification: confirm data is in the database.
+		wp_cache_delete( $page_id, 'post_meta' );
+		$final_stored  = get_post_meta( $page_id, '_elementor_data', true );
+		$final_decoded = json_decode( $final_stored, true );
+		$final_count   = is_array( $final_decoded ) ? count( $final_decoded ) : 0;
+		$meta_verified = ( $final_count === count( $elements ) );
+
 		$page = get_post( $page_id );
 
 		return array(
@@ -145,6 +163,8 @@ class Spai_Page_Builder {
 			'edit_url'       => admin_url( "post.php?post={$page_id}&action=elementor" ),
 			'section_count'  => count( $elements ),
 			'save_method'    => $save_method,
+			'meta_verified'  => $meta_verified,
+			'sections_saved' => $final_count,
 			'warnings'       => $warnings,
 		);
 	}
