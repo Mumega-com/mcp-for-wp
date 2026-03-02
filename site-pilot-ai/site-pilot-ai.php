@@ -14,7 +14,7 @@
  * Plugin Name:       Mumega Site Pilot AI
  * Plugin URI:        https://sitepilotai.mumega.com/
  * Description:       Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, and Elementor through natural language.
- * Version:           1.7.1
+ * Version:           1.7.2
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.7.1' );
+define( 'SPAI_VERSION', '1.7.2' );
 
 /**
  * Plugin directory path.
@@ -154,6 +154,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-webhooks.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-alerts.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-license.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-updater.php';
 
 	// Load core functionality
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-core.php';
@@ -225,6 +226,9 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	// Initialize the plugin
 	$loader = new Spai_Loader();
 	$loader->run();
+
+	// Self-hosted update checker.
+	new Spai_Updater();
 
 	}
 }

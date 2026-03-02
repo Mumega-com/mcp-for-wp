@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,6 +112,10 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.7.2 =
+* Add: Self-hosted auto-updater — plugin updates directly from sitepilotai.mumega.com
+* Add: "Check for updates" link in plugin row meta
 
 = 1.7.1 =
 * Fix: Elementor save now uses Document::save() API instead of direct meta write — properly regenerates CSS and updates post_content (#176)
