@@ -36,6 +36,51 @@ class Spai_Elementor_Pro {
 	}
 
 	/**
+	 * Save Elementor data using Document::save() API with meta fallback.
+	 *
+	 * @param int          $post_id  Post/page/template ID.
+	 * @param array|string $elements Elementor elements array or JSON string.
+	 * @return string Save method used: 'document_save' or 'meta_direct'.
+	 */
+	private function save_elementor_data( $post_id, $elements ) {
+		if ( is_string( $elements ) ) {
+			$elements = json_decode( $elements, true );
+		}
+
+		$elementor_ok = class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->documents );
+
+		if ( $elementor_ok ) {
+			wp_cache_delete( $post_id, 'post_meta' );
+			clean_post_cache( $post_id );
+			$document = \Elementor\Plugin::$instance->documents->get( $post_id, false );
+			if ( $document && method_exists( $document, 'save' ) ) {
+				$result = $document->save( array( 'elements' => $elements ) );
+				if ( ! is_wp_error( $result ) ) {
+					return 'document_save';
+				}
+			}
+		}
+
+		// Fallback: direct meta write.
+		$json = is_string( $elements ) ? $elements : wp_json_encode( $elements );
+		update_post_meta( $post_id, '_elementor_data', wp_slash( $json ) );
+
+		// Manual CSS regeneration.
+		if ( class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
+			\Elementor\Plugin::$instance->files_manager->clear_cache();
+		}
+		delete_post_meta( $post_id, '_elementor_css' );
+		wp_cache_delete( $post_id, 'post_meta' );
+		clean_post_cache( $post_id );
+		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+			$css_file = \Elementor\Core\Files\CSS\Post::create( $post_id );
+			$css_file->update();
+		}
+
+		return 'meta_direct';
+	}
+
+	/**
 	 * Check if templates are supported.
 	 *
 	 * @return bool
@@ -256,11 +301,7 @@ class Spai_Elementor_Pro {
 
 		// Set Elementor data if provided.
 		if ( ! empty( $data['elementor_data'] ) ) {
-			$elementor_data = $data['elementor_data'];
-			if ( is_array( $elementor_data ) ) {
-				$elementor_data = wp_json_encode( $elementor_data );
-			}
-			update_post_meta( $template_id, '_elementor_data', wp_slash( $elementor_data ) );
+			$this->save_elementor_data( $template_id, $data['elementor_data'] );
 		}
 
 		return $this->get_template( $template_id );
@@ -290,11 +331,7 @@ class Spai_Elementor_Pro {
 
 		// Update Elementor data if provided.
 		if ( ! empty( $data['elementor_data'] ) ) {
-			$elementor_data = $data['elementor_data'];
-			if ( is_array( $elementor_data ) ) {
-				$elementor_data = wp_json_encode( $elementor_data );
-			}
-			update_post_meta( $template_id, '_elementor_data', wp_slash( $elementor_data ) );
+			$this->save_elementor_data( $template_id, $data['elementor_data'] );
 		}
 
 		return $this->get_template( $template_id );
@@ -425,13 +462,9 @@ class Spai_Elementor_Pro {
 		// Build Elementor structure if sections provided.
 		if ( ! empty( $data['sections'] ) ) {
 			$elementor_data = $this->build_landing_page_structure( $data['sections'] );
-			update_post_meta( $page_id, '_elementor_data', wp_slash( wp_json_encode( $elementor_data ) ) );
+			$this->save_elementor_data( $page_id, $elementor_data );
 		} elseif ( ! empty( $data['elementor_data'] ) ) {
-			$elementor_data = $data['elementor_data'];
-			if ( is_array( $elementor_data ) ) {
-				$elementor_data = wp_json_encode( $elementor_data );
-			}
-			update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_data ) );
+			$this->save_elementor_data( $page_id, $data['elementor_data'] );
 		}
 
 		// Apply template if specified.
@@ -529,12 +562,10 @@ class Spai_Elementor_Pro {
 			return new WP_Error( 'empty_template', __( 'Template has no content.', 'site-pilot-ai' ) );
 		}
 
-		// Apply to page.
-		update_post_meta( $page_id, '_elementor_data', $template_data );
+		// Set required meta for frontend rendering.
 		update_post_meta( $page_id, '_elementor_edit_mode', 'builder' );
 		update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
 
-		// Set required meta for frontend rendering.
 		$post_type  = get_post_type( $page_id );
 		$type_value = ( 'elementor_library' === $post_type ) ? 'section' : 'wp-page';
 		update_post_meta( $page_id, '_elementor_template_type', $type_value );
@@ -546,16 +577,8 @@ class Spai_Elementor_Pro {
 			update_post_meta( $page_id, '_elementor_pro_version', ELEMENTOR_PRO_VERSION );
 		}
 
-		// Regenerate CSS for the page.
-		if ( class_exists( '\Elementor\Plugin' ) ) {
-			if ( method_exists( \Elementor\Plugin::$instance->files_manager, 'clear_cache' ) ) {
-				\Elementor\Plugin::$instance->files_manager->clear_cache();
-			}
-			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
-			if ( $css_file ) {
-				$css_file->update();
-			}
-		}
+		// Save via Document::save() for proper frontend rendering.
+		$this->save_elementor_data( $page_id, $template_data );
 
 		return true;
 	}

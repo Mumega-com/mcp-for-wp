@@ -88,14 +88,11 @@ class Spai_Page_Builder {
 			return $page_id;
 		}
 
-		// Save Elementor data.
-		$json = wp_json_encode( $elements );
-		update_post_meta( $page_id, '_elementor_data', wp_slash( $json ) );
+		// Initialize Elementor document meta so the editor recognizes the page.
 		update_post_meta( $page_id, '_elementor_edit_mode', 'builder' );
 		update_post_meta( $page_id, '_elementor_template_type', 'wp-page' );
 		update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
 
-		// Elementor version stamps — required for the editor to recognize the document.
 		if ( defined( 'ELEMENTOR_VERSION' ) ) {
 			update_post_meta( $page_id, '_elementor_version', ELEMENTOR_VERSION );
 		}
@@ -103,16 +100,39 @@ class Spai_Page_Builder {
 			update_post_meta( $page_id, '_elementor_pro_version', ELEMENTOR_PRO_VERSION );
 		}
 
-		// Clear Elementor caches and regenerate CSS so the page renders immediately.
-		if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
-			\Elementor\Plugin::$instance->files_manager->clear_cache();
+		// Save via Elementor Document::save() API — this rebuilds post_content
+		// and regenerates CSS so the page renders on the frontend immediately.
+		$save_method = 'meta_direct';
+		$elementor_ok = class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->documents );
+
+		if ( $elementor_ok ) {
+			wp_cache_delete( $page_id, 'post_meta' );
+			clean_post_cache( $page_id );
+			$document = \Elementor\Plugin::$instance->documents->get( $page_id, false );
+			if ( $document && method_exists( $document, 'save' ) ) {
+				$save_result = $document->save( array( 'elements' => $elements ) );
+				if ( ! is_wp_error( $save_result ) ) {
+					$save_method = 'document_save';
+				}
+			}
 		}
-		delete_post_meta( $page_id, '_elementor_css' );
-		wp_cache_delete( $page_id, 'post_meta' );
-		clean_post_cache( $page_id );
-		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
-			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
-			$css_file->update();
+
+		// Fallback: direct meta write if Document::save() unavailable.
+		if ( 'meta_direct' === $save_method ) {
+			$json = wp_json_encode( $elements );
+			update_post_meta( $page_id, '_elementor_data', wp_slash( $json ) );
+
+			// Manual CSS regeneration for fallback path.
+			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
+				\Elementor\Plugin::$instance->files_manager->clear_cache();
+			}
+			delete_post_meta( $page_id, '_elementor_css' );
+			wp_cache_delete( $page_id, 'post_meta' );
+			clean_post_cache( $page_id );
+			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
+				$css_file->update();
+			}
 		}
 
 		$page = get_post( $page_id );
@@ -124,6 +144,7 @@ class Spai_Page_Builder {
 			'link'           => get_permalink( $page_id ),
 			'edit_url'       => admin_url( "post.php?post={$page_id}&action=elementor" ),
 			'section_count'  => count( $elements ),
+			'save_method'    => $save_method,
 			'warnings'       => $warnings,
 		);
 	}
