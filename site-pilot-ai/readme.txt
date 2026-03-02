@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.7.4
+Stable tag: 1.7.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,6 +112,10 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 1.7.5 =
+* Fix: wp_build_page silent failure to persist Elementor data — Document::save() fallback now uses boolean flag with post-write verification (#178)
+* Enhancement: wp_build_page response includes meta_verified and sections_saved fields
 
 = 1.7.4 =
 * Add: wp_check_update MCP tool — check for plugin updates via AI
