@@ -1,0 +1,12 @@
+{
+  "version": "1.7.5",
+  "download_url": "https://github.com/Digidinc/wp-ai-operator/releases/latest/download/mumega-site-pilot-ai-latest.zip",
+  "requires": "5.0",
+  "requires_php": "7.4",
+  "tested": "6.9",
+  "name": "Mumega Site Pilot AI",
+  "homepage": "https://sitepilotai.mumega.com",
+  "author": "DigID Inc",
+  "author_homepage": "https://digid.ca/",
+  "changelog": "<h4>1.7.5</h4><ul><li>Fix: wp_build_page silent failure to persist Elementor data (#178)</li><li>Enhancement: wp_build_page response includes meta_verified and sections_saved fields</li><li>Enhancement: Updater supports MCP-based deploys via spai_update_info option</li><li>Enhancement: wp_trigger_update accepts package_url for forced installs</li></ul>"
+}

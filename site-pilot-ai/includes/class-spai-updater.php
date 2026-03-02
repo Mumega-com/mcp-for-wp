@@ -22,7 +22,7 @@ class Spai_Updater {
 	 *
 	 * @var string
 	 */
-	private $version_url = 'https://sitepilotai.mumega.com/downloads/version.json';
+	private $version_url = 'https://raw.githubusercontent.com/Digidinc/wp-ai-operator/main/version.json';
 
 	/**
 	 * Plugin basename (e.g. site-pilot-ai/site-pilot-ai.php).
