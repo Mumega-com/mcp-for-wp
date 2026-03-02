@@ -105,8 +105,13 @@ class Spai_Updater {
 
 		// Check option-based override first (set via MCP wp_update_option).
 		$option_data = get_option( 'spai_update_info' );
-		if ( ! empty( $option_data ) && is_array( $option_data ) && ! empty( $option_data['version'] ) ) {
-			$data = (object) $option_data;
+		if ( ! empty( $option_data ) ) {
+			if ( is_string( $option_data ) ) {
+				$option_data = json_decode( $option_data, true );
+			}
+			if ( is_array( $option_data ) && ! empty( $option_data['version'] ) ) {
+				$data = (object) $option_data;
+			}
 		}
 
 		// Fall back to remote version.json.
