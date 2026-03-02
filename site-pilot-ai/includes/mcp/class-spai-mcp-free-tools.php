@@ -169,6 +169,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_plugin_settings'     => 'admin',
 			'wp_update_plugin_settings'  => 'admin',
 
+			// Plugin Updates
+			'wp_check_update'            => 'admin',
+			'wp_trigger_update'          => 'admin',
+
 			// Integrations
 			'wp_integrations_status'     => 'admin',
 			'wp_configure_integration'   => 'admin',
@@ -1684,6 +1688,19 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
+		// Plugin Updates
+		$tools[] = $this->define_tool(
+			'wp_check_update',
+			'Check if a newer version of Site Pilot AI is available. Returns current version, latest version, and download URL.',
+			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_trigger_update',
+			'Download and install the latest version of Site Pilot AI. The plugin will be upgraded in place. Requires administrator privileges.',
+			array()
+		);
+
 		// Integration Management
 		$tools[] = $this->define_tool(
 			'wp_integrations_status',
@@ -2555,6 +2572,16 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_plugin_settings'  => array(
 				'method' => 'PUT',
 				'route'  => '/plugin-settings',
+			),
+
+			// Plugin Updates
+			'wp_check_update'            => array(
+				'method' => 'GET',
+				'route'  => '/update',
+			),
+			'wp_trigger_update'          => array(
+				'method' => 'POST',
+				'route'  => '/update',
 			),
 
 			// Integrations

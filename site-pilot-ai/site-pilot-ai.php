@@ -14,7 +14,7 @@
  * Plugin Name:       Mumega Site Pilot AI
  * Plugin URI:        https://sitepilotai.mumega.com/
  * Description:       Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, and Elementor through natural language.
- * Version:           1.7.3
+ * Version:           1.7.4
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.7.3' );
+define( 'SPAI_VERSION', '1.7.4' );
 
 /**
  * Plugin directory path.
