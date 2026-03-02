@@ -82,6 +82,9 @@ class Spai_Updater {
 	/**
 	 * Fetch remote version data.
 	 *
+	 * Checks the `spai_update_info` option first (set via MCP deploy),
+	 * then falls back to the remote version.json URL.
+	 *
 	 * @param bool $force_refresh Force a fresh check.
 	 * @return object|false Remote data object or false on failure.
 	 */
@@ -98,22 +101,33 @@ class Spai_Updater {
 			}
 		}
 
-		$response = wp_remote_get(
-			$this->version_url,
-			array(
-				'timeout' => 10,
-				'headers' => array(
-					'Accept' => 'application/json',
-				),
-			)
-		);
+		$data = null;
 
-		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return false;
+		// Check option-based override first (set via MCP wp_update_option).
+		$option_data = get_option( 'spai_update_info' );
+		if ( ! empty( $option_data ) && is_array( $option_data ) && ! empty( $option_data['version'] ) ) {
+			$data = (object) $option_data;
 		}
 
-		$body = wp_remote_retrieve_body( $response );
-		$data = json_decode( $body );
+		// Fall back to remote version.json.
+		if ( empty( $data ) ) {
+			$response = wp_remote_get(
+				$this->version_url,
+				array(
+					'timeout' => 10,
+					'headers' => array(
+						'Accept' => 'application/json',
+					),
+				)
+			);
+
+			if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+				return false;
+			}
+
+			$body = wp_remote_retrieve_body( $response );
+			$data = json_decode( $body );
+		}
 
 		if ( empty( $data ) || empty( $data->version ) ) {
 			return false;
