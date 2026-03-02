@@ -1,6 +1,6 @@
 {
   "version": "1.7.5",
-  "download_url": "https://github.com/Digidinc/wp-ai-operator/releases/latest/download/mumega-site-pilot-ai-latest.zip",
+  "download_url": "https://sitepilotai.mumega.com/wp-content/uploads/2026/03/mumega-site-pilot-ai-latest-2.zip",
   "requires": "5.0",
   "requires_php": "7.4",
   "tested": "6.9",

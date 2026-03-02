@@ -2,8 +2,8 @@
 /**
  * Self-hosted Plugin Updater
  *
- * Checks sitepilotai.mumega.com/downloads/version.json for new versions
- * and integrates with WordPress's built-in update system.
+ * Checks spai_update_info option first (set via MCP deploy), then
+ * falls back to the spai_version_url option or the default version.json URL.
  *
  * @package SitePilotAI
  */
@@ -18,11 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Spai_Updater {
 
 	/**
-	 * URL to the version JSON file.
+	 * Default URL to the version JSON file.
 	 *
 	 * @var string
 	 */
-	private $version_url = 'https://raw.githubusercontent.com/Digidinc/wp-ai-operator/main/version.json';
+	private $version_url = 'https://sitepilotai.mumega.com/wp-content/uploads/2026/03/spai-version-1.json';
 
 	/**
 	 * Plugin basename (e.g. site-pilot-ai/site-pilot-ai.php).
@@ -114,10 +114,14 @@ class Spai_Updater {
 			}
 		}
 
-		// Fall back to remote version.json.
+		// Fall back to remote version.json (check option override first).
 		if ( empty( $data ) ) {
+			$url = get_option( 'spai_version_url', $this->version_url );
+			if ( empty( $url ) ) {
+				$url = $this->version_url;
+			}
 			$response = wp_remote_get(
-				$this->version_url,
+				$url,
 				array(
 					'timeout' => 10,
 					'headers' => array(
