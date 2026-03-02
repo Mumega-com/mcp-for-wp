@@ -22,7 +22,7 @@ class Spai_Updater {
 	 *
 	 * @var string
 	 */
-	private $version_url = 'https://sitepilotai.mumega.com/wp-content/uploads/2026/03/spai-version-1.json';
+	private $version_url = 'https://spai-updates.weathered-scene-2272.workers.dev/version.json';
 
 	/**
 	 * Plugin basename (e.g. site-pilot-ai/site-pilot-ai.php).
