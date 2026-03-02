@@ -2345,12 +2345,56 @@ class Spai_REST_Site extends Spai_REST_API {
 		}
 
 		$plugin_file = defined( 'SPAI_PLUGIN_BASENAME' ) ? SPAI_PLUGIN_BASENAME : 'site-pilot-ai/site-pilot-ai.php';
+		$package_url = $request->get_param( 'package_url' );
 
-		// Clear update caches and force a fresh check.
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+		// If a package_url is provided, install directly from that URL.
+		if ( ! empty( $package_url ) ) {
+			// Inject into transient so WP_Upgrader finds it.
+			$update_plugins = get_site_transient( 'update_plugins' );
+			if ( ! is_object( $update_plugins ) ) {
+				$update_plugins = new stdClass();
+				$update_plugins->response = array();
+			}
+
+			$inject              = new stdClass();
+			$inject->slug        = 'site-pilot-ai';
+			$inject->plugin      = $plugin_file;
+			$inject->new_version = '999.0.0';
+			$inject->package     = esc_url_raw( $package_url );
+			$update_plugins->response[ $plugin_file ] = $inject;
+			set_site_transient( 'update_plugins', $update_plugins );
+
+			$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+			$result   = $upgrader->upgrade( $plugin_file );
+
+			if ( is_wp_error( $result ) ) {
+				return $this->error_response( 'update_failed', $result->get_error_message(), 500 );
+			}
+
+			if ( true !== $result ) {
+				return $this->error_response( 'update_failed', __( 'Plugin update failed.', 'site-pilot-ai' ), 500 );
+			}
+
+			if ( ! is_plugin_active( $plugin_file ) ) {
+				activate_plugin( $plugin_file );
+			}
+
+			return $this->success_response(
+				array(
+					'updated'     => true,
+					'source'      => 'package_url',
+					'message'     => __( 'Plugin updated from provided URL.', 'site-pilot-ai' ),
+				)
+			);
+		}
+
+		// Standard flow: check for updates via WP transient.
 		delete_site_transient( 'update_plugins' );
 		delete_transient( 'spai_update_check' );
 
-		// Force update check.
 		if ( function_exists( 'wp_update_plugins' ) ) {
 			wp_update_plugins();
 		}
@@ -2375,9 +2419,6 @@ class Spai_REST_Site extends Spai_REST_API {
 				400
 			);
 		}
-
-		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 		$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
 		$result   = $upgrader->upgrade( $plugin_file );
