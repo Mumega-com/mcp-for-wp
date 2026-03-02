@@ -98,8 +98,7 @@ class Spai_Loader {
 		$this->add_action( 'wp_ajax_spai_remove_integration_key', $integrations_admin, 'ajax_remove_key' );
 		$this->add_action( 'wp_ajax_spai_test_integration', $integrations_admin, 'ajax_test_connection' );
 
-		// Plugin action links
-		// Run late so we can prune any Freemius-injected "upgrade" links when Pro is active.
+		// Plugin action links.
 		$this->add_filter( 'plugin_action_links_' . SPAI_PLUGIN_BASENAME, $admin, 'add_action_links', 100 );
 
 		// Register AI integration with MCP via the spai_integrations filter.

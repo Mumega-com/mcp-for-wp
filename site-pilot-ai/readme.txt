@@ -1,5 +1,5 @@
 === Mumega Site Pilot AI ===
-Contributors: digidinc, mumega
+Contributors: mumega
 Donate link: https://sitepilotai.mumega.com
 Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
@@ -108,7 +108,7 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 1. Setup tab — Activity log showing recent API requests
 2. Connect AI tab — One-click configuration for Claude Desktop and Claude Code
-3. Settings tab — Free vs Pro feature comparison and license management
+3. Settings tab — Plugin configuration and integrations
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
@@ -616,23 +616,14 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 == Upgrade Notice ==
 
-= 1.0.20 =
-Recommended update: adds ChatGPT-readiness improvements (search/fetch tools, safety annotations, OAuth client-credentials mode, transport compatibility, and conformance checks).
+= 1.7.2 =
+Self-hosted auto-updater replaces Freemius. All features free.
 
-= 1.0.18 =
-Recommended update: introduces scoped API key management with enforced permissions and improved release quality checks.
-
-= 1.0.15 =
-Major security hardening and new features: native MCP endpoint, redesigned admin UI, SSRF protection, and cryptographic API keys. Recommended for all users.
-
-= 1.0.14 =
-Security update: API keys now hashed, dedicated service account for API requests. Recommended for all users.
-
-= 1.0.13 =
-Plugin updates now handled via Freemius. Automatic updates will work seamlessly.
+= 1.7.0 =
+Major update: all 200+ MCP tools are now free. Freemius SDK removed. Renamed to Mumega Site Pilot AI.
 
 = 1.0.0 =
-Initial release of Site Pilot AI. Control WordPress with AI assistants!
+Initial release. Control WordPress with AI assistants!
 
 == Privacy Policy ==
 
@@ -698,5 +689,5 @@ Used for stock photo search and download when configured by the user.
 == Support ==
 
 * Documentation: [sitepilotai.mumega.com/docs](https://sitepilotai.mumega.com/docs)
-* Support Forum: [wordpress.org/support/plugin/mumega-site-pilot-ai](https://wordpress.org/support/plugin/mumega-site-pilot-ai)
+* Support Forum: [wordpress.org/support/plugin/site-pilot-ai](https://wordpress.org/support/plugin/site-pilot-ai)
 * GitHub: [github.com/Digidinc/wp-ai-operator](https://github.com/Digidinc/wp-ai-operator)

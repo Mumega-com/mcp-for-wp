@@ -4,8 +4,7 @@
  *
  * Loads additional endpoints/features for Pro users.
  *
- * This file is intended to exist ONLY in the premium package zip
- * (`site-pilot-ai-premium`). The free package should not include it.
+ * All features are free — no Pro/premium split.
  *
  * @package SitePilotAI
  */

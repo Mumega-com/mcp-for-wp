@@ -385,7 +385,7 @@ class Spai_Integration_Manager {
 		if ( ! class_exists( 'Spai_Google_Indexing' ) ) {
 			return array(
 				'success' => false,
-				'message' => __( 'Google Indexing API requires the Pro version.', 'site-pilot-ai' ),
+				'message' => __( 'Google Indexing API requires a configured service account.', 'site-pilot-ai' ),
 			);
 		}
 

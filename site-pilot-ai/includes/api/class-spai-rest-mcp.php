@@ -1269,9 +1269,9 @@ class Spai_REST_MCP extends Spai_REST_API {
 	}
 
 	/**
-	 * Check if PRO version is active.
+	 * Check if all features are active.
 	 *
-	 * @return bool True if PRO is active.
+	 * @return bool Always true — all features are free.
 	 */
 	private function is_pro_active() {
 		return true;
