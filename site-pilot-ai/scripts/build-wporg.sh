@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build a WordPress.org-compliant zip of Mumega Site Pilot AI.
+# Build a WordPress.org-compliant zip of Mumega MCP for WordPress.
 #
 # All features are free — no Pro stripping needed.
 # Just applies .distignore and creates a clean zip.
@@ -14,7 +14,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLUGIN_SLUG="site-pilot-ai"
-WPORG_NAME="mumega-site-pilot-ai"
+WPORG_NAME="mumega-mcp"
 
 # Parse version from plugin header if not supplied
 VERSION=""

@@ -397,11 +397,11 @@ class Spai_Admin {
 	 * @return array
 	 */
 	public function get_update_channel_status() {
-		$manifest_url    = get_option( 'spai_version_url', 'https://mumega.com/spai-updates/version.json' );
-		$manifest_url    = $manifest_url ? $manifest_url : 'https://mumega.com/spai-updates/version.json';
+		$manifest_url    = get_option( 'spai_version_url', 'https://mumega.com/mcp-updates/version.json' );
+		$manifest_url    = $manifest_url ? $manifest_url : 'https://mumega.com/mcp-updates/version.json';
 		$current_version = defined( 'SPAI_VERSION' ) ? SPAI_VERSION : '0.0.0';
 		$remote_version  = null;
-		$download_url    = 'https://mumega.com/spai-updates/mumega-site-pilot-ai-latest.zip';
+		$download_url    = 'https://mumega.com/mcp-updates/mumega-mcp-latest.zip';
 		$source          = 'remote';
 		$option_version  = null;
 		$warning         = '';

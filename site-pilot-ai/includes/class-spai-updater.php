@@ -22,7 +22,7 @@ class Spai_Updater {
 	 *
 	 * @var string
 	 */
-	private $version_url = 'https://mumega.com/spai-updates/version.json';
+	private $version_url = 'https://mumega.com/mcp-updates/version.json';
 
 	/**
 	 * Plugin basename (e.g. site-pilot-ai/site-pilot-ai.php).

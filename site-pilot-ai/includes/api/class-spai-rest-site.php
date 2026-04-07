@@ -2555,9 +2555,9 @@ class Spai_REST_Site extends Spai_REST_API {
 			$option_version = (string) $option_data['version'];
 		}
 
-		$version_url = get_option( 'spai_version_url', 'https://mumega.com/spai-updates/version.json' );
+		$version_url = get_option( 'spai_version_url', 'https://mumega.com/mcp-updates/version.json' );
 		if ( empty( $version_url ) ) {
-			$version_url = 'https://mumega.com/spai-updates/version.json';
+			$version_url = 'https://mumega.com/mcp-updates/version.json';
 		}
 		$remote_response = wp_remote_get(
 			$version_url,
