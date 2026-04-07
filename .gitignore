@@ -24,8 +24,9 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Plugin zip (built artifact)
+# Plugin zip (built artifacts)
 plugin/*.zip
+site-pilot-ai/scripts/*.zip
 
 # Local release artifacts (repo root)
 site-pilot-ai-*.zip
