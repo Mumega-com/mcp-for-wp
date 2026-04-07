@@ -640,15 +640,23 @@ class Spai_Elementor_Basic {
 					$save_result = $document->save( array( 'elements' => $post_validation_decoded ) );
 
 					if ( ! is_wp_error( $save_result ) ) {
+						// (#198) Always overwrite raw meta after Document::save() to
+						// prevent revision/cache divergence on subsequent reads.
+						update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+
 						wp_cache_delete( $page_id, 'post_meta' );
 						clean_post_cache( $page_id );
+						if ( function_exists( 'wp_cache_flush_group' ) ) {
+							wp_cache_flush_group( 'post_meta' );
+						}
+
 						$stored_after_document = get_post_meta( $page_id, '_elementor_data', true );
 						$decoded_after_document = json_decode( $stored_after_document, true );
 						$stored_after_count     = is_array( $decoded_after_document ) ? count( $decoded_after_document ) : 0;
 
 						if ( $stored_after_count === $input_count ) {
 							$document_saved              = true;
-							$save_method                 = 'document_save';
+							$save_method                 = 'document_save_with_meta_overwrite';
 							$save_debug['document_save'] = true;
 						} else {
 							$save_debug['document_save_persist_mismatch'] = array(
@@ -2255,15 +2263,27 @@ class Spai_Elementor_Basic {
 				if ( $document && method_exists( $document, 'save' ) ) {
 					$save_result = $document->save( array( 'elements' => $post_val ) );
 					if ( ! is_wp_error( $save_result ) ) {
+						// (#198) Always do a direct meta overwrite after Document::save()
+						// to guarantee the raw _elementor_data meta matches what we sent.
+						// Document::save() may create revisions or write to internal caches
+						// that diverge from the post meta on subsequent reads.
+						update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
+
 						wp_cache_delete( $page_id, 'post_meta' );
 						clean_post_cache( $page_id );
+
+						// Flush persistent object cache if available.
+						if ( function_exists( 'wp_cache_flush_group' ) ) {
+							wp_cache_flush_group( 'post_meta' );
+						}
+
 						$stored_after_document = get_post_meta( $page_id, '_elementor_data', true );
 						$decoded_after_document = json_decode( $stored_after_document, true );
 						$stored_after_count     = is_array( $decoded_after_document ) ? count( $decoded_after_document ) : 0;
 
 						if ( $stored_after_count === $input_count ) {
 							$document_saved       = true;
-							$debug['save_method'] = 'document_save';
+							$debug['save_method'] = 'document_save_with_meta_overwrite';
 						} else {
 							$debug['document_save_persist_mismatch'] = array(
 								'sections_expected' => $input_count,
