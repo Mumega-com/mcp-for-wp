@@ -3,7 +3,7 @@
  * MCP AI Integration
  *
  * Extends Spai_Integration to register AI-powered MCP tools
- * (image generation, vision, TTS, stock photos) with Site Pilot AI.
+ * (image generation, vision, TTS, stock photos) with Mumega MCP for WordPress.
  *
  * @package SitePilotAI
  * @since   1.1.0

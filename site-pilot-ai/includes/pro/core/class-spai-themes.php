@@ -601,6 +601,7 @@ class Spai_Themes {
 		$current = get_option( 'generate_settings', array() );
 		$updated = $this->array_merge_recursive_distinct( $current, $settings );
 
+		// This is GeneratePress theme's own option key — not ours to prefix.
 		update_option( 'generate_settings', $updated );
 
 		// Clear GP cache.

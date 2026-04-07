@@ -3,7 +3,7 @@
  * Guides & Documentation
  *
  * Provides context-aware guides for AI assistants on how to use
- * Site Pilot AI tools effectively.
+ * Mumega MCP tools effectively.
  *
  * @package SitePilotAI
  */
@@ -71,7 +71,7 @@ class Spai_Guides {
 			array(
 				'topic'       => 'woocommerce',
 				'title'       => 'WooCommerce',
-				'description' => 'Products, orders, and categories management via Site Pilot AI tools.',
+				'description' => 'Products, orders, and categories management via Mumega MCP tools.',
 				'requires'    => 'woocommerce',
 			),
 			array(
@@ -95,7 +95,7 @@ class Spai_Guides {
 			array(
 				'topic'       => 'troubleshooting',
 				'title'       => 'Troubleshooting',
-				'description' => 'Common errors, debugging tips, and fixes for frequent issues with Site Pilot AI tools.',
+				'description' => 'Common errors, debugging tips, and fixes for frequent issues with Mumega MCP tools.',
 				'requires'    => null,
 			),
 		);
@@ -365,12 +365,12 @@ class Spai_Guides {
 				array(
 					'heading' => 'SEO Plugin Detection',
 					'content' => 'Active SEO plugin: **' . $active_plugin . "**\n\n"
-						. "Site Pilot AI auto-detects and normalizes SEO fields across plugins. The `wp_get_seo` and `wp_set_seo` tools work with any supported SEO plugin.\n\n"
+						. "Mumega MCP auto-detects and normalizes SEO fields across plugins. The `wp_get_seo` and `wp_set_seo` tools work with any supported SEO plugin.\n\n"
 						. "Use `wp_detect_plugins()` to confirm which SEO plugin is active.",
 				),
 				array(
 					'heading' => 'Field Mapping (Normalized)',
-					'content' => "Site Pilot AI normalizes SEO fields so you can use the same keys regardless of plugin:\n\n"
+					'content' => "Mumega MCP normalizes SEO fields so you can use the same keys regardless of plugin:\n\n"
 						. "| Field | Description |\n"
 						. "|-------|-------------|\n"
 						. "| `title` | SEO title / meta title |\n"
@@ -496,7 +496,7 @@ class Spai_Guides {
 			'sections' => array(
 				array(
 					'heading' => 'Upload Methods',
-					'content' => "Site Pilot AI supports three upload methods:\n\n"
+					'content' => "Mumega MCP supports three upload methods:\n\n"
 						. "1. **From URL** (recommended for AI): `wp_upload_media_from_url(url=\"https://example.com/photo.jpg\")`\n"
 						. "2. **Base64**: `wp_upload_media_b64(data=\"/9j/4AAQ...\", filename=\"photo.jpg\", mime_type=\"image/jpeg\")`\n"
 						. "3. **File upload**: `wp_upload_media(file=...)` — multipart form data\n\n"

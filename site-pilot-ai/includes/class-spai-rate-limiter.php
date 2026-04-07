@@ -162,7 +162,7 @@ class Spai_Rate_Limiter {
 					'remaining'        => 0,
 					'reset'            => $burst_data['reset'],
 					'hint'             => sprintf(
-						'Burst rate limit exceeded (%d/%ds). Wait %d seconds before retrying. To increase limits, the site admin can adjust settings in WP Admin > Site Pilot AI > Settings, or create a key with custom rate_limits.',
+						'Burst rate limit exceeded (%d/%ds). Wait %d seconds before retrying. To increase limits, the site admin can adjust settings in WP Admin > Mumega MCP > Settings, or create a key with custom rate_limits.',
 						$burst_limit,
 						$burst_window,
 						$retry_after

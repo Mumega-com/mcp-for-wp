@@ -376,7 +376,7 @@ class Spai_Feedback {
 			}
 		}
 
-		$body .= "\n---\n*Submitted via Site Pilot AI feedback system*";
+		$body .= "\n---\n*Submitted via Mumega MCP feedback system*";
 
 		return $body;
 	}

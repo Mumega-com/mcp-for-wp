@@ -16,10 +16,10 @@
 *.zip
 *.sh
 .distignore
+/freemius
+/includes/freemius-init.php
 CLAUDE_DESKTOP_SETUP.md
 MCP_IMPLEMENTATION.md
 CHANGELOG.md
-/assets/banner-*.png
-/assets/icon-*.png
-/assets/screenshot-*.png
-/assets/icon.svg
+/assets/*.png
+/assets/*.svg

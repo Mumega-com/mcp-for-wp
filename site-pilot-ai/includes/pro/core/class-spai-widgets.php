@@ -188,7 +188,7 @@ class Spai_Widgets {
 		$numbers      = array_filter( $numbers, 'is_int' );
 		$next_number  = empty( $numbers ) ? 1 : max( $numbers ) + 1;
 
-		// Save widget settings.
+		// Save widget settings — 'widget_<type>' is WordPress core's own option format.
 		$all_settings[ $next_number ] = $settings;
 		update_option( 'widget_' . $widget_type, $all_settings );
 
@@ -237,6 +237,7 @@ class Spai_Widgets {
 			$settings
 		);
 
+		// 'widget_<type>' is WordPress core's own widget option format — not our option.
 		update_option( 'widget_' . $parsed['type'], $all_settings );
 
 		return $this->get_widget( $widget_id );
@@ -271,6 +272,7 @@ class Spai_Widgets {
 		update_option( 'sidebars_widgets', $sidebars_widgets );
 
 		// Remove widget settings.
+		// 'widget_<type>' is WordPress core's own widget option format — not our option.
 		$all_settings = get_option( 'widget_' . $parsed['type'], array() );
 		if ( isset( $all_settings[ $parsed['number'] ] ) ) {
 			unset( $all_settings[ $parsed['number'] ] );
