@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/tools-239-blue" alt="Tools">
-  <img src="https://img.shields.io/badge/version-2.4.1-green" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.6.0-green" alt="Version">
   <img src="https://img.shields.io/badge/MCP-compatible-brightgreen" alt="MCP">
   <img src="https://img.shields.io/badge/WordPress-5.0%2B-blue" alt="WordPress">
   <img src="https://img.shields.io/badge/Elementor-4.x-purple" alt="Elementor">
@@ -130,7 +130,7 @@ Create keys via WP Admin or `wp_create_api_key(label, role)`.
 
 ## Elementor Features
 
-- **14 blueprint types** — hero, features, cta, pricing, faq, testimonials, and more
+- **24 blueprint types** — hero, features, cta, pricing, faq, testimonials, team, portfolio, services, about, and more
 - **Validation** — auto-fixes missing IDs, wrong widget keys, nesting errors
 - **Fuzzy matching** — typo in widget type? "Did you mean 'heading'?"
 - **Save persistence** — verifies data actually persists after Elementor's document save
