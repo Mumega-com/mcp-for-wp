@@ -760,6 +760,10 @@ Major update: all 200+ MCP tools are now free. Freemius SDK removed. Renamed to 
 = 1.0.0 =
 Initial release. Control WordPress with AI assistants!
 
+== Disclaimer ==
+
+This plugin is provided "as is" without warranty of any kind, express or implied. Use at your own risk. The authors are not liable for any damages, data loss, or issues arising from the use of this plugin. This plugin modifies WordPress content (posts, pages, Elementor data, media, settings) through its MCP and REST API endpoints — always maintain backups before making changes via AI assistants. By using this plugin you accept full responsibility for changes made through its API.
+
 == Privacy Policy ==
 
 Mumega MCP for WordPress does not collect or transmit any user content to external servers. All content data stays on your WordPress installation. Activity logs are stored locally and can be configured or disabled in settings.
