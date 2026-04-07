@@ -1,6 +1,7 @@
 {
   "name": "site-pilot-ai",
   "version": "3.0.0",
+  "mcpName": "io.github.Mumega-com/mumcp",
   "description": "MCP Server for WordPress - 200+ tools for posts, pages, Elementor, WooCommerce, LearnPress, SEO, forms & more. Works with Claude Desktop, Cursor, Windsurf and any MCP client.",
   "main": "dist/index.js",
   "type": "module",
@@ -15,9 +16,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Digidinc/wp-ai-operator"
+    "url": "https://github.com/Mumega-com/mcp-for-wp"
   },
-  "homepage": "https://github.com/Digidinc/wp-ai-operator#readme",
+  "homepage": "https://mucp.mumega.com",
   "engines": {
     "node": ">=18"
   },
@@ -48,6 +49,6 @@
     "dotenv": "^16.4.5",
     "typescript": "^5.3.3"
   },
-  "author": "DigID",
+  "author": "Mumega",
   "license": "MIT"
 }
