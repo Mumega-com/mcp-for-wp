@@ -14,7 +14,7 @@
  * Plugin Name:       mumcp
  * Plugin URI:        https://mucp.mumega.com
  * Description:       Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, and Elementor through natural language.
- * Version:           2.4.0
+ * Version:           2.4.1
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            Mumega
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '2.4.0' );
+define( 'SPAI_VERSION', '2.4.1' );
 
 /**
  * Plugin directory path.
@@ -154,7 +154,10 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-webhooks.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-alerts.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-license.php';
-	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-updater.php';
+	// Self-updater excluded from WP.org builds — only loaded when present.
+	if ( file_exists( SPAI_PLUGIN_DIR . 'includes/class-spai-updater.php' ) ) {
+		require_once SPAI_PLUGIN_DIR . 'includes/class-spai-updater.php';
+	}
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-ai-presence.php';
 
 	// Load core functionality
@@ -232,8 +235,10 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	$loader = new Spai_Loader();
 	$loader->run();
 
-	// Self-hosted update checker.
-	new Spai_Updater();
+	// Self-hosted update checker (excluded from WP.org builds).
+	if ( class_exists( 'Spai_Updater' ) ) {
+		new Spai_Updater();
+	}
 
 	}
 }
