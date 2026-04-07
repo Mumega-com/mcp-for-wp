@@ -1663,7 +1663,7 @@ class Spai_Elementor_Basic {
 			}
 
 			// Regenerate CSS for specific post.
-			if ( method_exists( $plugin, 'documents' ) ) {
+			if ( ! empty( $plugin->documents ) ) {
 				$document = $plugin->documents->get( $page_id );
 				if ( $document ) {
 					$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
@@ -1762,7 +1762,7 @@ class Spai_Elementor_Basic {
 		$failed      = array();
 
 		foreach ( $elementor_posts as $pid ) {
-			if ( method_exists( $plugin, 'documents' ) ) {
+			if ( ! empty( $plugin->documents ) ) {
 				$document = $plugin->documents->get( $pid );
 				if ( ! $document ) {
 					$skipped[] = array(
