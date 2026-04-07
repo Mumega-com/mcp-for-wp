@@ -5,7 +5,7 @@
   "requires_php": "7.4",
   "tested": "6.9",
   "name": "Mumega MCP",
-  "homepage": "https://mcpforwp.mumega.com",
+  "homepage": "https://mucp.mumega.com",
   "author": "Mumega",
   "author_homepage": "https://mumega.com/",
   "changelog": "<h4>2.2.2</h4><ul><li>Fix partial updates for Elementor archetypes and reusable parts so omitted metadata fields are preserved instead of being cleared</li><li>Clarify the admin Library model: SPAI archetypes and reusable parts are Elementor templates with SPAI metadata layered on top</li><li>Carry forward the 2.2.1 shared-host-safe Elementor route improvements and operator workflow features</li></ul>"

@@ -195,7 +195,7 @@ class Spai_Feedback {
 	 *
 	 * @var string
 	 */
-	const RELAY_URL = 'https://mcpforwp.mumega.com/wp-json/site-pilot-ai/v1/feedback/relay';
+	const RELAY_URL = 'https://mucp.mumega.com/wp-json/site-pilot-ai/v1/feedback/relay';
 
 	/**
 	 * Route feedback to the central relay and optionally to a local GitHub repo.

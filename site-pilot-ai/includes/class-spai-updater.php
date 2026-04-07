@@ -261,7 +261,7 @@ class Spai_Updater {
 			$update->slug        = $this->plugin_slug;
 			$update->plugin      = $this->plugin_basename;
 			$update->new_version = $remote->version;
-			$update->url         = isset( $remote->homepage ) ? $remote->homepage : 'https://mcpforwp.mumega.com';
+			$update->url         = isset( $remote->homepage ) ? $remote->homepage : 'https://mucp.mumega.com';
 			$update->package     = $remote->download_url;
 			$update->tested      = isset( $remote->tested ) ? $remote->tested : '';
 			$update->requires    = isset( $remote->requires ) ? $remote->requires : '';
