@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.3.0
+Stable tag: 2.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,12 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.3.1 =
+
+* Updated GitHub repository references to Mumega-com/mcp-for-wp
+* Plugin URI updated to sitepilotai.mumega.com
+* Site branding updated to match plugin name
 
 = 2.3.0 =
 
