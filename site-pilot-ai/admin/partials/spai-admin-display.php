@@ -1893,7 +1893,7 @@ if ( isset( $new_key ) && $new_key ) {
 				</li>
 				<li>
 					<span class="dashicons dashicons-sos"></span>
-					<a href="https://github.com/Digidinc/wp-ai-operator/issues" target="_blank"><?php esc_html_e( 'Report a Bug', 'site-pilot-ai' ); ?></a>
+					<a href="https://github.com/Mumega-com/mcp-for-wp/issues" target="_blank"><?php esc_html_e( 'Report a Bug', 'site-pilot-ai' ); ?></a>
 				</li>
 				<li>
 					<span class="dashicons dashicons-info"></span>

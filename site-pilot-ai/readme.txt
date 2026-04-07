@@ -829,4 +829,4 @@ Used for stock photo search and download when configured by the user.
 
 * Documentation: [sitepilotai.mumega.com/docs](https://sitepilotai.mumega.com/docs)
 * Support Forum: [wordpress.org/support/plugin/site-pilot-ai](https://wordpress.org/support/plugin/site-pilot-ai)
-* GitHub: [github.com/Digidinc/wp-ai-operator](https://github.com/Digidinc/wp-ai-operator)
+* GitHub: [github.com/Mumega-com/mcp-for-wp](https://github.com/Mumega-com/mcp-for-wp)

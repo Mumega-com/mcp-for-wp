@@ -271,7 +271,7 @@ class Spai_Settings {
 			'spai_general_section',
 			array(
 				'id'          => 'github_repo',
-				'description' => __( 'Repository in owner/repo format (e.g., Digidinc/wp-ai-operator). Leave empty to disable GitHub integration.', 'site-pilot-ai' ),
+				'description' => __( 'Repository in owner/repo format (e.g., Mumega-com/mcp-for-wp). Leave empty to disable GitHub integration.', 'site-pilot-ai' ),
 				'placeholder' => 'owner/repo',
 			)
 		);
