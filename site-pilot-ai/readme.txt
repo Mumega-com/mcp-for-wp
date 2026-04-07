@@ -1,6 +1,6 @@
 === Mumega MCP for WordPress ===
 Contributors: mumega
-Donate link: https://mumega.com/mcp
+Donate link: https://sitepilotai.mumega.com
 Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
