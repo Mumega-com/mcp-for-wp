@@ -14,7 +14,7 @@
  * Plugin Name:       Mumega Site Pilot AI
  * Plugin URI:        https://sitepilotai.mumega.com/
  * Description:       Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, and Elementor through natural language.
- * Version:           1.7.6
+ * Version:           2.2.3
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            DigID Inc
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '1.7.6' );
+define( 'SPAI_VERSION', '2.2.3' );
 
 /**
  * Plugin directory path.
@@ -155,6 +155,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-alerts.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-license.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-updater.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/class-spai-ai-presence.php';
 
 	// Load core functionality
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-core.php';
@@ -170,6 +171,8 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-feedback.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-encryption.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-integration-manager.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-design-references.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-figma.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-provider-openai.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-provider-gemini.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/core/class-spai-provider-elevenlabs.php';
@@ -181,6 +184,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-free-tools.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-pro-tools.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-ai-integration.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/mcp/class-spai-mcp-figma-integration.php';
 
 	// Load Pro modules (always available — all features are free).
 	$pro_bootstrap = SPAI_PLUGIN_DIR . 'includes/pro/class-spai-pro-bootstrap.php';
@@ -207,6 +211,7 @@ if ( ! function_exists( 'spai_load_plugin' ) ) {
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-mcp.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-batch.php';
 	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-integrations.php';
+	require_once SPAI_PLUGIN_DIR . 'includes/api/class-spai-rest-figma.php';
 
 	// Load admin
 	require_once SPAI_PLUGIN_DIR . 'includes/admin/class-spai-admin.php';

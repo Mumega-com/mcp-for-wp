@@ -18,6 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Spai_Page_Builder {
 
 	/**
+	 * Shared basic Elementor handler.
+	 *
+	 * @var Spai_Elementor_Basic|null
+	 */
+	private $basic_handler = null;
+
+	/**
 	 * Supported section types.
 	 *
 	 * @var array
@@ -27,6 +34,19 @@ class Spai_Page_Builder {
 		'testimonials', 'text', 'gallery',
 		'contact_form', 'map', 'countdown', 'stats', 'logo_grid', 'video',
 	);
+
+	/**
+	 * Get the shared basic Elementor handler.
+	 *
+	 * @return Spai_Elementor_Basic
+	 */
+	private function get_basic_handler() {
+		if ( null === $this->basic_handler ) {
+			$this->basic_handler = new Spai_Elementor_Basic();
+		}
+
+		return $this->basic_handler;
+	}
 
 	/**
 	 * Build a page from section definitions.
@@ -100,50 +120,14 @@ class Spai_Page_Builder {
 			update_post_meta( $page_id, '_elementor_pro_version', ELEMENTOR_PRO_VERSION );
 		}
 
-		// Save via Elementor Document::save() API — this rebuilds post_content
-		// and regenerates CSS so the page renders on the frontend immediately.
-		$save_method    = 'meta_direct';
-		$document_saved = false;
-		$elementor_ok   = class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->documents );
-
-		if ( $elementor_ok ) {
-			wp_cache_delete( $page_id, 'post_meta' );
-			clean_post_cache( $page_id );
-			$document = \Elementor\Plugin::$instance->documents->get( $page_id, false );
-			if ( $document && method_exists( $document, 'save' ) ) {
-				$save_result = $document->save( array( 'elements' => $elements ) );
-				if ( ! is_wp_error( $save_result ) ) {
-					// Verify the data was actually persisted.
-					wp_cache_delete( $page_id, 'post_meta' );
-					$stored         = get_post_meta( $page_id, '_elementor_data', true );
-					$stored_decoded = json_decode( $stored, true );
-					$stored_count   = is_array( $stored_decoded ) ? count( $stored_decoded ) : 0;
-
-					if ( $stored_count > 0 ) {
-						$document_saved = true;
-						$save_method    = 'document_save';
-					}
-				}
-			}
-		}
-
-		// Fallback: direct meta write if Document::save() unavailable or failed to persist.
-		if ( ! $document_saved ) {
-			$json = wp_json_encode( $elements );
-			update_post_meta( $page_id, '_elementor_data', wp_slash( $json ) );
-			$save_method = 'meta_direct';
-
-			// Manual CSS regeneration for fallback path.
-			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
-				\Elementor\Plugin::$instance->files_manager->clear_cache();
-			}
-			delete_post_meta( $page_id, '_elementor_css' );
-			wp_cache_delete( $page_id, 'post_meta' );
-			clean_post_cache( $page_id );
-			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
-				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
-				$css_file->update();
-			}
+		$save_result = $this->get_basic_handler()->set_elementor_data(
+			$page_id,
+			array(
+				'elementor_data' => $elements,
+			)
+		);
+		if ( is_wp_error( $save_result ) ) {
+			return $save_result;
 		}
 
 		// Final verification: confirm data is in the database.
@@ -162,10 +146,11 @@ class Spai_Page_Builder {
 			'link'           => get_permalink( $page_id ),
 			'edit_url'       => admin_url( "post.php?post={$page_id}&action=elementor" ),
 			'section_count'  => count( $elements ),
-			'save_method'    => $save_method,
+			'save_method'    => isset( $save_result['save_method'] ) ? $save_result['save_method'] : null,
 			'meta_verified'  => $meta_verified,
 			'sections_saved' => $final_count,
 			'warnings'       => $warnings,
+			'debug'          => isset( $save_result['debug'] ) ? $save_result['debug'] : array(),
 		);
 	}
 
@@ -189,6 +174,170 @@ class Spai_Page_Builder {
 	 */
 	private function id() {
 		return substr( bin2hex( random_bytes( 4 ) ), 0, 8 );
+	}
+
+	// ---------------------------------------------------------------
+	// Blueprint Catalog + Single Section Builder
+	// ---------------------------------------------------------------
+
+	/**
+	 * Get the blueprint catalog — all supported section types with parameter schemas.
+	 *
+	 * @return array Array of blueprint type definitions.
+	 */
+	public static function get_blueprint_catalog() {
+		return array(
+			'hero'         => array(
+				'description' => 'Full-width hero banner with heading, subheading, CTA button, and background.',
+				'params'      => array(
+					'heading'    => array( 'type' => 'string', 'default' => 'Welcome' ),
+					'subheading' => array( 'type' => 'string', 'default' => '' ),
+					'cta_text'   => array( 'type' => 'string', 'default' => '' ),
+					'cta_url'    => array( 'type' => 'string', 'default' => '#' ),
+					'background' => array( 'type' => 'string', 'description' => 'Color hex (#1a1a2e), "gradient", or empty' ),
+					'image_url'  => array( 'type' => 'string', 'default' => '' ),
+				),
+			),
+			'features'     => array(
+				'description' => 'Multi-column feature grid with icons, titles, and descriptions.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'columns' => array( 'type' => 'integer', 'default' => 3, 'min' => 2, 'max' => 4 ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {icon, title, desc}' ),
+				),
+			),
+			'cta'          => array(
+				'description' => 'Call-to-action banner with heading, subheading, and button.',
+				'params'      => array(
+					'heading'     => array( 'type' => 'string', 'default' => '' ),
+					'subheading'  => array( 'type' => 'string', 'default' => '' ),
+					'button_text' => array( 'type' => 'string', 'default' => 'Get Started' ),
+					'button_url'  => array( 'type' => 'string', 'default' => '#' ),
+					'background'  => array( 'type' => 'string', 'default' => '' ),
+				),
+			),
+			'pricing'      => array(
+				'description' => 'Pricing comparison table with plan columns.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'plans'   => array( 'type' => 'array', 'description' => 'Array of {title, price, period, features[], button_text, button_url}' ),
+				),
+			),
+			'faq'          => array(
+				'description' => 'FAQ section with question/answer pairs.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {question, answer}' ),
+				),
+			),
+			'testimonials' => array(
+				'description' => 'Testimonial cards with quotes, names, and optional images.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {text, name, title, image}' ),
+				),
+			),
+			'text'         => array(
+				'description' => 'Simple text content section with heading and rich text.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'content' => array( 'type' => 'string', 'description' => 'HTML content' ),
+				),
+			),
+			'gallery'      => array(
+				'description' => 'Image gallery grid.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'images'  => array( 'type' => 'array', 'description' => 'Array of image URLs' ),
+					'columns' => array( 'type' => 'integer', 'default' => 3 ),
+				),
+			),
+			'contact_form' => array(
+				'description' => 'Contact form embed section.',
+				'params'      => array(
+					'heading'    => array( 'type' => 'string', 'default' => '' ),
+					'subheading' => array( 'type' => 'string', 'default' => '' ),
+					'form_id'    => array( 'type' => 'integer', 'description' => 'Form ID' ),
+					'plugin'     => array( 'type' => 'string', 'description' => 'wpforms, cf7, or gravity' ),
+				),
+			),
+			'map'          => array(
+				'description' => 'Google Maps embed.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'address' => array( 'type' => 'string', 'required' => true ),
+					'zoom'    => array( 'type' => 'integer', 'default' => 14, 'min' => 1, 'max' => 20 ),
+					'height'  => array( 'type' => 'integer', 'default' => 300 ),
+				),
+			),
+			'countdown'    => array(
+				'description' => 'Countdown timer to a target date.',
+				'params'      => array(
+					'heading'    => array( 'type' => 'string', 'default' => '' ),
+					'due_date'   => array( 'type' => 'string', 'description' => 'YYYY-MM-DD HH:MM', 'required' => true ),
+					'subheading' => array( 'type' => 'string', 'default' => '' ),
+				),
+			),
+			'stats'        => array(
+				'description' => 'Statistics/counter section with animated numbers.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'columns' => array( 'type' => 'integer', 'default' => 3 ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {number, title, suffix}' ),
+				),
+			),
+			'logo_grid'    => array(
+				'description' => 'Logo/partner grid with optional links.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => '' ),
+					'columns' => array( 'type' => 'integer', 'default' => 4 ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {image, url}' ),
+				),
+			),
+			'video'        => array(
+				'description' => 'Video embed section (YouTube, Vimeo, or hosted MP4).',
+				'params'      => array(
+					'heading'    => array( 'type' => 'string', 'default' => '' ),
+					'url'        => array( 'type' => 'string', 'required' => true, 'description' => 'YouTube/Vimeo/MP4 URL' ),
+					'subheading' => array( 'type' => 'string', 'default' => '' ),
+				),
+			),
+		);
+	}
+
+	/**
+	 * Build a single section from a blueprint type and params.
+	 *
+	 * Returns the raw Elementor element JSON (not a page).
+	 *
+	 * @param string $type   Blueprint type (hero, features, cta, etc.).
+	 * @param array  $params Section params.
+	 * @return array|WP_Error Elementor element(s) or error.
+	 */
+	public function build_single_section( $type, $params = array() ) {
+		if ( ! in_array( $type, self::$supported_types, true ) ) {
+			return new WP_Error(
+				'invalid_blueprint',
+				sprintf( 'Unknown blueprint type "%s". Supported: %s', $type, implode( ', ', self::$supported_types ) ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$use_containers = $this->use_containers();
+		$params['type'] = $type;
+		$method         = 'build_' . $type;
+		$result         = $this->$method( $params, $use_containers );
+
+		if ( ! $result ) {
+			return new WP_Error( 'build_failed', 'Blueprint build returned empty result.', array( 'status' => 500 ) );
+		}
+
+		// Normalize: some builders return a single element, others return an array of elements.
+		if ( isset( $result['id'] ) ) {
+			return array( 'elements' => array( $result ) );
+		}
+
+		return array( 'elements' => $result );
 	}
 
 	// ---------------------------------------------------------------
@@ -296,21 +445,70 @@ class Spai_Page_Builder {
 			);
 		}
 
+		// Card width per column count for flex-wrap grid (30% ≈ 3-col, 22% ≈ 4-col, 47% ≈ 2-col).
+		$card_widths = array( 2 => 47, 3 => 30, 4 => 22 );
+		$card_width  = isset( $card_widths[ $columns ] ) ? $card_widths[ $columns ] : 30;
+
 		// Build columns with icon-boxes.
 		if ( $use_containers ) {
 			$inner_containers = array();
 			foreach ( $items as $item ) {
+				$card_elements = array(
+					$this->widget( 'icon-box', array(
+						'selected_icon'              => array( 'value' => isset( $item['icon'] ) ? $item['icon'] : 'fas fa-star', 'library' => 'fa-solid' ),
+						'title_text'                 => isset( $item['title'] ) ? $item['title'] : '',
+						'description_text'           => isset( $item['desc'] ) ? $item['desc'] : ( isset( $item['description'] ) ? $item['description'] : '' ),
+						'position'                   => 'top',
+						'align'                      => 'left', // Fix #3: left-align icon + text
+						'title_typography_font_size' => array( 'size' => 18, 'unit' => 'px' ),
+					) ),
+				);
+
+				// Fix #2: render button when item provides text or URL.
+				$btn_text = isset( $item['button_text'] ) ? $item['button_text'] : ( isset( $item['cta'] ) ? $item['cta'] : '' );
+				if ( $btn_text ) {
+					$btn_url         = isset( $item['url'] ) ? $item['url'] : ( isset( $item['link'] ) ? $item['link'] : '#' );
+					$card_elements[] = $this->widget( 'button', array(
+						'text'                       => $btn_text,
+						'link'                       => array( 'url' => $btn_url, 'is_external' => false, 'nofollow' => false ),
+						'align'                      => 'left',
+						'size'                       => 'sm',
+						'background_color'           => '#0073aa',
+						'button_text_color'          => '#FFFFFF',
+						'border_radius'              => array( 'top_left' => '6', 'top_right' => '6', 'bottom_right' => '6', 'bottom_left' => '6', 'unit' => 'px', 'isLinked' => true ),
+						'hover_animation'            => 'float',
+					) );
+				}
+
 				$inner_containers[] = array(
 					'id'       => $this->id(),
 					'elType'   => 'container',
-					'settings' => array( 'content_width' => 'full' ),
-					'elements' => array( $this->widget( 'icon-box', array(
-						'selected_icon' => array( 'value' => isset( $item['icon'] ) ? $item['icon'] : 'fas fa-star', 'library' => 'fa-solid' ),
-						'title_text'    => isset( $item['title'] ) ? $item['title'] : '',
-						'description_text' => isset( $item['desc'] ) ? $item['desc'] : ( isset( $item['description'] ) ? $item['description'] : '' ),
-						'position'      => 'top',
-						'title_typography_font_size' => array( 'size' => 18, 'unit' => 'px' ),
-					) ) ),
+					'settings' => array(
+						'content_width'              => 'full',
+						'_element_width'             => 'initial',                                                   // Fix #1: explicit width so flex-wrap creates columns
+						'width'                      => array( 'size' => $card_width, 'unit' => '%' ),              // Fix #1
+						'background_background'      => 'classic',                                                   // Fix #4: card background
+						'background_color'           => '#FFFFFF',                                                   // Fix #4
+						'border_radius'              => array(                                                        // Fix #4: 12px corners
+							'top_left'     => '12',
+							'top_right'    => '12',
+							'bottom_right' => '12',
+							'bottom_left'  => '12',
+							'unit'         => 'px',
+							'isLinked'     => true,
+						),
+						'box_shadow_box_shadow_type' => 'yes',                                                       // Fix #4: shadow
+						'box_shadow_box_shadow'      => array(                                                       // Fix #4
+							'horizontal' => 0,
+							'vertical'   => 4,
+							'blur'       => 20,
+							'spread'     => 0,
+							'color'      => 'rgba(0,0,0,0.08)',
+						),
+						'padding'                    => array( 'top' => '30', 'bottom' => '30', 'left' => '30', 'right' => '30', 'unit' => 'px', 'isLinked' => true ),
+						'custom_css'                 => 'selector { transition: box-shadow 0.3s ease, transform 0.3s ease; } selector:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.15); transform: translateY(-4px); }', // Fix #4: hover
+					),
+					'elements' => $card_elements,
 				);
 			}
 

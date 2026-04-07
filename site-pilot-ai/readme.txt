@@ -5,15 +5,15 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.7.6
+Stable tag: 2.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, Elementor, SEO, WooCommerce, and more through natural language.
+Turn WordPress into a reusable AI production system. Connect Claude and other MCP-compatible assistants to pages, products, Elementor parts, archetypes, design references, and site character.
 
 == Description ==
 
-Mumega Site Pilot AI connects your WordPress site to AI assistants like Claude using the Model Context Protocol (MCP). Your AI assistant can create posts, manage pages, upload media, work with Elementor, manage SEO, control WooCommerce, and more — all through natural language. Every feature is free.
+Mumega Site Pilot AI connects your WordPress site to AI assistants like Claude using the Model Context Protocol (MCP). Instead of generating isolated one-off pages, it helps operators build with reusable structure: guided site character, Elementor parts, page archetypes, WooCommerce product archetypes, and design references from screenshots or Figma. Your AI assistant can create drafts, preserve brand patterns, save reusable sections back into the library, and manage the rest of WordPress through natural language. Every feature is free.
 
 = Key Features =
 
@@ -21,10 +21,13 @@ Mumega Site Pilot AI connects your WordPress site to AI assistants like Claude u
 * **Media Handling** - Upload files or import from URLs
 * **Draft Management** - List and bulk-delete drafts
 * **Full Elementor** - Get/set Elementor data, templates, landing pages, widget control
+* **Elementor 4 Ready** - Tested on WordPress 6.9.1 with Elementor 4.0.0, with verified fallback when Elementor's document save does not persist data
 * **SEO Tools** - Yoast, RankMath, AIOSEO, SEOPress integration
 * **Forms** - Contact Form 7, WPForms, Gravity Forms, Ninja Forms
 * **WooCommerce** - Products, orders, customers, categories, analytics
-* **AI Integrations** - Image generation, stock photos, text-to-speech, alt text
+* **AI Integrations** - Image generation, stock photos, text-to-speech, alt text, and Figma design intake
+* **Structured Design System** - Reusable Elementor parts, page archetypes, product archetypes, guided site character, and image-based design references
+* **Operator Workflow** - Onboarding, library curation, draft-first generation, provenance, and recovery-friendly update guidance
 * **Theme Builder** - Create and manage Elementor theme templates
 * **Secure API** - API key authentication with activity logging
 * **MCP Compatible** - Works with Claude Code and Claude Desktop
@@ -35,13 +38,15 @@ Mumega Site Pilot AI connects your WordPress site to AI assistants like Claude u
 1. Install and activate the plugin
 2. Copy your API key from Mumega Site Pilot AI in the admin menu
 3. Configure your MCP server with the API key
-4. Start controlling WordPress with natural language
+4. Define your site character and save reusable assets like archetypes, parts, and design references
+5. Start building draft pages and products with natural language
 
 = Example Commands =
 
 * "Create a blog post about summer recipes"
 * "Run an SEO audit on all published pages"
-* "Build a landing page with hero, features, and pricing sections"
+* "Build a landing page from our SaaS archetype and reuse the pricing proof section"
+* "Save this screenshot as a design reference, create a draft page from it, and keep strong sections as reusable parts"
 * "Upload this image and set it as the featured image for post 123"
 
 == Installation ==
@@ -98,7 +103,15 @@ No. Once configured, you control WordPress through natural language. The AI hand
 
 = What about Elementor? =
 
-Full Elementor support is included: get/set page data, templates, landing pages, widgets, and full page building capabilities. All features are free.
+Full Elementor support is included: get/set page data, templates, landing pages, widgets, reusable parts, page archetypes, and full page building capabilities. All features are free.
+
+= Who is this for? =
+
+Mumega Site Pilot AI is best for operators: founders, marketers, agencies, and site managers who ship pages or products repeatedly and want AI to work from approved structure instead of rebuilding everything from scratch.
+
+= Does it support Elementor 4? =
+
+Yes. The current stack has been tested on WordPress 6.9.1 with Elementor 4.0.0. Site Pilot AI verifies that Elementor saves actually persist `_elementor_data`, and automatically falls back to a direct meta save when Elementor reports success but stores nothing. Landing page generation was also verified on the local Elementor 4 test stack.
 
 = Can I use this on multiple sites? =
 
@@ -112,6 +125,81 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.2.3 =
+
+* Fix: features blueprint — inner card containers now have explicit width (30%/22%/47% by column count) so flex-wrap produces a 3x3 grid instead of a single row
+* Fix: features blueprint — icon-box widgets now left-align icon and text by default (align: left)
+* Fix: features blueprint — card containers now include white background, 12px border-radius, box-shadow, and CSS hover lift effect
+* Fix: features blueprint — button widget rendered with proper styling when item provides button_text/url
+* Fix: icon-box widget schema — added align and title_typography_font_size keys to prevent spurious "unknown key" validation warnings
+
+= 2.2.2 =
+
+* Fix: Elementor archetype and reusable-part updates now preserve existing metadata when a request only changes content
+* UI: Clarify in the Library that SPAI archetypes and reusable parts are Elementor templates with SPAI metadata layered on top
+* Carry forward the `2.2.1` shared-host-safe Elementor mutation path and operator workflow improvements
+
+= 2.2.1 =
+
+* Fix: Pro Elementor template, archetype, and part create/update routes now accept `elementor_data_base64` for shared-host compatibility
+* Docs: Added HostGator / ModSecurity guidance for Elementor mutations using form-encoded and base64 payloads
+* Carry forward the `2.2.0` operator workflow, design-reference, archetype, and library improvements
+
+= 2.2.0 =
+* Add operator-focused admin polish with onboarding, update recovery, Library health, lineage, and drill-down asset views
+* Extend design references so screenshots can generate Elementor draft pages and reusable parts directly from the Library
+* Update README and plugin messaging to position Site Pilot AI as a reusable AI production system for WordPress operators
+
+= 2.1.0 =
+* Add image-based design references so uploaded screenshots and mockups can be stored as reusable site assets
+* Add MCP and REST tools for storing, listing, reading, and updating design references
+* Add a structured build_from_design_reference workflow for turning approved design images into local pages, archetypes, and reusable parts
+* Update onboarding and media guidance so models preserve approved screenshots as design references before building
+
+= 2.0.0 =
+* Add structured site-building primitives with reusable Elementor parts, page archetypes, and WooCommerce product archetypes
+* Add guided site character authoring, public llms.txt output, and AI-facing context inheritance for page and product archetypes
+* Add Figma integration with personal token and OAuth configuration, plus REST and MCP design intake tools
+* Add Library and Integrations admin improvements for curating archetypes, parts, and design connections
+
+= 1.8.6 =
+* Test release: validate live auto-update from 1.8.5 with the filesystem-aware updater
+* Carry forward updater hardening and Elementor 4 save verification from 1.8.5
+
+= 1.8.5 =
+* Initialize the WordPress filesystem before self-updates and return actionable upgrader errors instead of a generic failure
+* Carry forward updater hardening and Elementor 4 save verification from 1.8.4
+
+= 1.8.4 =
+* Test release: validate end-to-end WordPress self-update from the canonical mumega.com manifest
+* Carry forward updater hardening and Elementor 4 save verification from 1.8.3
+
+= 1.8.3 =
+* Fix: updater now prefers the newer valid manifest instead of letting stale spai_update_info block releases
+* Fix: Elementor 4 save path now verifies Document::save() persistence and falls back automatically when Elementor stores zero sections
+* Enhancement: Section and widget edit flows now use the shared verified save helper
+
+= 1.8.2 =
+* Fix: Templates created via wp_save_section_as_template had empty content — Document::save() doesn't persist _elementor_data for elementor_library posts, now falls back to direct meta write with verification (#185)
+* Enhancement: Elementor 4 compatibility hardening — save paths now verify Document::save() persistence and fall back automatically when Elementor stores zero sections
+* Enhancement: Section and widget edit flows now use the shared verified save helper for more consistent Elementor 4 behavior
+
+= 1.8.1 =
+* Fix: Posts widget uses wrong setting keys — post_type auto-renamed to posts_post_type, columns to classic_columns, etc. (#182)
+* Fix: Posts widget schema rewritten with correct skin-prefixed keys (classic_columns, classic_posts_per_page, posts_post_type)
+* Enhancement: Posts, loop-grid, portfolio widgets now show key settings in wp_get_elementor_summary
+
+= 1.8.0 =
+* Add: wp_get_elementor_summary now includes element IDs and section index — agents can target sections for add/remove/replace (#181)
+* Add: Blueprint Registry — wp_list_blueprints + wp_get_blueprint for generating individual sections without creating pages
+* Add: wp_save_section_as_template — extract a section from a live page and save as reusable Elementor template
+* Enhancement: All Elementor save responses include next_step hints guiding agents to verify
+* Enhancement: Rewritten MCP tool descriptions with workflow guidance (wp_get_elementor_summary, wp_add_section, wp_set_elementor, wp_build_page, wp_apply_elementor_template, etc.)
+
+= 1.7.7 =
+* Fix: astra-settings option now accessible via wp_get_option/wp_update_option (hyphenated key wasn't matched by astra_ prefix rule)
+* Enhancement: Added generate_settings (GeneratePress) to exact-match allowed options
 
 = 1.7.6 =
 * Enhancement: Updater now checks Cloudflare Worker for version info — no SSH needed for deploys
