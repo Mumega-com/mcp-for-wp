@@ -52,6 +52,25 @@ Direct JSON-RPC 2.0 MCP endpoint. Supports `initialize`, `tools/list`, `tools/ca
 **Authentication:** `X-API-Key` header, `Authorization: Bearer` header, or `?api_key=` query parameter
 **Batch limit:** 10 requests per call
 
+### Recommended Model Startup Sequence
+
+When a new model connects to the MCP endpoint, it should follow this order before making changes:
+
+1. `wp_introspect`
+2. `wp_get_site_context`
+3. `wp_get_guide(topic="workflows")`
+4. `wp_get_guide(topic="elementor")` when working on pages/templates
+5. `wp_get_guide(topic="woocommerce")` when working on products
+
+Operational rules:
+
+- Prefer structured reuse over reinvention.
+- Use page archetypes for repeatable page classes like blog posts, service pages, landing pages, and case studies.
+- Use product archetypes for repeatable WooCommerce product classes.
+- Reuse existing Elementor parts before creating new sections.
+- If a new page or product flow creates a reusable section, save it back into the Elementor parts library before finishing.
+- Default new content to `draft` unless the user explicitly asks to publish.
+
 **Example Request:**
 
 ```bash
@@ -2207,6 +2226,9 @@ POST /theme-builder/templates
 
 After creation, open the `edit_url` in Elementor to design the template visually, or use `POST /elementor/{id}` to set Elementor data programmatically.
 
+Shared-host note:
+If a host WAF such as HostGator `ModSecurity` rejects nested JSON bodies on Elementor routes, send Elementor payloads as `elementor_data_base64` or use `application/x-www-form-urlencoded` requests instead of raw JSON.
+
 ---
 
 ### WooCommerce (Pro)
@@ -2929,7 +2951,7 @@ if (hash_equals($expected, $signature)) {
 
 ### AI Integrations
 
-*New in v1.1.0.* Third-party AI services (OpenAI, Gemini, ElevenLabs, Pexels) integrated directly into Site Pilot AI. Configure API keys via **WP Admin → Site Pilot AI → Integrations**. Generated assets are auto-uploaded to the WordPress media library.
+*New in v1.1.0.* Third-party AI services and design sources (OpenAI, Gemini, ElevenLabs, Pexels, Figma) integrate directly into Site Pilot AI. Configure API keys via **WP Admin → Site Pilot AI → Integrations**. Generated assets are auto-uploaded to the WordPress media library, while Figma is used as approved design context for archetypes and reusable parts.
 
 **Tier gating:** Stock photo tools are free. All AI generation tools require Pro.
 
@@ -2973,6 +2995,13 @@ Returns all supported providers and their configuration status.
     "configured": true,
     "tier": "free",
     "last_tested": "2026-02-19T10:25:00",
+    "test_status": "ok"
+  },
+  "figma": {
+    "name": "Figma",
+    "configured": true,
+    "tier": "pro",
+    "last_tested": "2026-04-01T00:00:00",
     "test_status": "ok"
   }
 }
@@ -3348,19 +3377,28 @@ When `provider` is omitted, the plugin auto-selects the first configured provide
 
 ## Auto-Updates
 
-Site Pilot AI supports automatic updates directly from GitHub releases, without requiring WordPress.org hosting.
+Site Pilot AI uses a self-hosted updater.
+
+### Canonical Sources
+
+- Version manifest: `https://mumega.com/spai-updates/version.json`
+- ZIP download: `https://mumega.com/spai-updates/mumega-site-pilot-ai-latest.zip`
 
 ### How It Works
 
-1. The plugin periodically checks the [GitHub releases page](https://github.com/Digidinc/wp-ai-operator/releases)
-2. If a newer version is found, WordPress displays an update notice
-3. Clicking "Update" downloads and installs the new version automatically
+1. The plugin checks the `spai_update_info` option first
+2. If that option is empty, it falls back to `spai_version_url`
+3. If `spai_version_url` is empty, it falls back to the built-in static `mumega.com` manifest URL
+4. If a newer version is found, WordPress displays an update notice and installs from `download_url`
 
-### Update Process
+### Important Behavior
 
-- **Check frequency:** Every 6 hours (cached)
-- **Source:** GitHub Releases API
-- **Both plugins:** Site Pilot AI (free) and Site Pilot AI Pro check independently
+`spai_update_info` is a site-level override. If it contains stale release data, it can block newer updates from the worker manifest.
+
+Recommended practice:
+
+- leave `spai_update_info` empty unless you explicitly need an override
+- if you do write `spai_update_info`, keep it identical to the static manifest
 
 ### Manual Update Check
 
@@ -3369,12 +3407,17 @@ To force an update check:
 1. Go to **Dashboard → Updates**
 2. Click **Check Again**
 
-Or clear the update transient:
+Or use the plugin REST route, which clears the update caches before checking:
 
-```php
-// Clear update cache (run in theme functions.php or plugin)
-delete_transient( 'spai_github_' . md5( 'site-pilot-ai' ) );
-delete_transient( 'spai_github_' . md5( 'site-pilot-ai-pro' ) );
+```bash
+curl -fsSL "https://SITE/wp-json/site-pilot-ai/v1/update" -H "X-API-Key: ..."
+```
+
+You can also inspect the update-related options:
+
+```bash
+curl -fsSL "https://SITE/wp-json/site-pilot-ai/v1/option?key=spai_version_url" -H "X-API-Key: ..."
+curl -fsSL "https://SITE/wp-json/site-pilot-ai/v1/option?key=spai_update_info" -H "X-API-Key: ..."
 ```
 
 ### Version Numbering
@@ -3387,12 +3430,27 @@ We follow semantic versioning: `MAJOR.MINOR.PATCH`
 
 ### Release Assets
 
-Each GitHub release includes:
+The current release artifacts are:
 
 | Asset | Description |
 |-------|-------------|
-| `site-pilot-ai.zip` | Free plugin (core features) |
-| `site-pilot-ai-pro.zip` | Pro add-on (requires free plugin) |
+| `version.json` | Worker-served update manifest |
+| `mumega-site-pilot-ai-latest.zip` | Canonical install/update ZIP |
+
+## Elementor 4 Compatibility
+
+The current Elementor save path is hardened for Elementor 4 behavior:
+
+- Site Pilot AI no longer assumes `Document::save()` means the data was persisted
+- after calling `Document::save()`, it verifies the stored `_elementor_data`
+- if Elementor reports success but stores zero sections, Site Pilot AI automatically falls back to direct meta write plus CSS regeneration
+
+Local validation completed on:
+
+- WordPress `6.9.1`
+- Elementor `4.0.0`
+
+Landing page generation was also verified on the local Elementor 4 test stack.
 
 ---
 

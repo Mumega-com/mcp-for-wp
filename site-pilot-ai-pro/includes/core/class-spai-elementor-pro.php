@@ -16,6 +16,96 @@ if ( ! defined( 'ABSPATH' ) ) {
  * landing pages, cloning, and widget management.
  */
 class Spai_Elementor_Pro {
+	/**
+	 * Post meta key: marks an Elementor template as a reusable part.
+	 *
+	 * @var string
+	 */
+	private $part_flag_meta_key = '_spai_is_part';
+
+	/**
+	 * Post meta key: reusable part intent/kind.
+	 *
+	 * @var string
+	 */
+	private $part_kind_meta_key = '_spai_part_kind';
+
+	/**
+	 * Post meta key: reusable part style/variant label.
+	 *
+	 * @var string
+	 */
+	private $part_style_meta_key = '_spai_part_style';
+
+	/**
+	 * Post meta key: reusable part tags.
+	 *
+	 * @var string
+	 */
+	private $part_tags_meta_key = '_spai_part_tags';
+
+	/**
+	 * Post meta key: normalized searchable tag index.
+	 *
+	 * @var string
+	 */
+	private $part_tags_index_meta_key = '_spai_part_tags_index';
+
+	/**
+	 * Post meta key: source page ID for extracted parts.
+	 *
+	 * @var string
+	 */
+	private $part_source_page_meta_key = '_spai_part_source_page_id';
+
+	/**
+	 * Post meta key: source element ID for extracted parts.
+	 *
+	 * @var string
+	 */
+	private $part_source_element_meta_key = '_spai_part_source_element_id';
+
+	/**
+	 * Post meta key: marks an Elementor template as a reusable archetype.
+	 *
+	 * @var string
+	 */
+	private $archetype_flag_meta_key = '_spai_is_archetype';
+
+	/**
+	 * Post meta key: archetype scope such as page or product.
+	 *
+	 * @var string
+	 */
+	private $archetype_scope_meta_key = '_spai_archetype_scope';
+
+	/**
+	 * Post meta key: archetype class such as blog_post or service_page.
+	 *
+	 * @var string
+	 */
+	private $archetype_class_meta_key = '_spai_archetype_class';
+
+	/**
+	 * Post meta key: archetype style/variant label.
+	 *
+	 * @var string
+	 */
+	private $archetype_style_meta_key = '_spai_archetype_style';
+
+	/**
+	 * Post meta key: archetype-specific override brief.
+	 *
+	 * @var string
+	 */
+	private $archetype_brief_meta_key = '_spai_archetype_brief';
+
+	/**
+	 * Shared basic Elementor handler.
+	 *
+	 * @var Spai_Elementor_Basic|null
+	 */
+	private $basic_handler = null;
 
 	/**
 	 * Check if Elementor is active.
@@ -60,6 +150,19 @@ class Spai_Elementor_Pro {
 	 */
 	public function supports_globals() {
 		return $this->is_elementor_pro_active();
+	}
+
+	/**
+	 * Get the shared basic Elementor handler.
+	 *
+	 * @return Spai_Elementor_Basic
+	 */
+	private function get_basic_handler() {
+		if ( null === $this->basic_handler ) {
+			$this->basic_handler = new Spai_Elementor_Basic();
+		}
+
+		return $this->basic_handler;
 	}
 
 	/**
@@ -134,6 +237,103 @@ class Spai_Elementor_Pro {
 	}
 
 	/**
+	 * List reusable Elementor parts.
+	 *
+	 * @param array $args Query arguments.
+	 * @return array Parts list.
+	 */
+	public function get_parts( $args = array() ) {
+		$args = is_array( $args ) ? $args : array();
+
+		$meta_query = array(
+			'relation' => 'AND',
+			array(
+				'key'   => $this->part_flag_meta_key,
+				'value' => 'yes',
+			),
+		);
+
+		if ( ! empty( $args['kind'] ) ) {
+			$meta_query[] = array(
+				'key'   => $this->part_kind_meta_key,
+				'value' => sanitize_text_field( $args['kind'] ),
+			);
+		}
+
+		if ( ! empty( $args['style'] ) ) {
+			$meta_query[] = array(
+				'key'   => $this->part_style_meta_key,
+				'value' => sanitize_text_field( $args['style'] ),
+			);
+		}
+
+		if ( ! empty( $args['tag'] ) ) {
+			$meta_query[] = array(
+				'relation' => 'OR',
+				array(
+					'key'     => $this->part_tags_index_meta_key,
+					'value'   => sanitize_text_field( $args['tag'] ),
+					'compare' => 'LIKE',
+				),
+				array(
+					'key'     => $this->part_tags_meta_key,
+					'value'   => sanitize_text_field( $args['tag'] ),
+					'compare' => 'LIKE',
+				),
+			);
+		}
+
+		unset( $args['kind'], $args['style'], $args['tag'] );
+		$args['meta_query'] = $meta_query;
+
+		return $this->get_templates( $args );
+	}
+
+	/**
+	 * List reusable Elementor archetypes.
+	 *
+	 * @param array $args Query arguments.
+	 * @return array Archetypes list.
+	 */
+	public function get_archetypes( $args = array() ) {
+		$args = is_array( $args ) ? $args : array();
+
+		$meta_query = array(
+			'relation' => 'AND',
+			array(
+				'key'   => $this->archetype_flag_meta_key,
+				'value' => 'yes',
+			),
+		);
+
+		if ( ! empty( $args['scope'] ) ) {
+			$meta_query[] = array(
+				'key'   => $this->archetype_scope_meta_key,
+				'value' => sanitize_key( $args['scope'] ),
+			);
+		}
+
+		if ( ! empty( $args['archetype_class'] ) ) {
+			$meta_query[] = array(
+				'key'   => $this->archetype_class_meta_key,
+				'value' => sanitize_key( $args['archetype_class'] ),
+			);
+		}
+
+		if ( ! empty( $args['style'] ) ) {
+			$meta_query[] = array(
+				'key'   => $this->archetype_style_meta_key,
+				'value' => sanitize_text_field( $args['style'] ),
+			);
+		}
+
+		unset( $args['scope'], $args['archetype_class'], $args['style'] );
+		$args['meta_query'] = $meta_query;
+
+		return $this->get_templates( $args );
+	}
+
+	/**
 	 * Get single template.
 	 *
 	 * @param int $template_id Template ID.
@@ -154,6 +354,44 @@ class Spai_Elementor_Pro {
 	}
 
 	/**
+	 * Get a reusable Elementor part by ID.
+	 *
+	 * @param int $part_id Part/template ID.
+	 * @return array|WP_Error Part data or error.
+	 */
+	public function get_part( $part_id ) {
+		$part = $this->get_template( $part_id );
+		if ( is_wp_error( $part ) ) {
+			return $part;
+		}
+
+		if ( empty( $part['is_part'] ) ) {
+			return new WP_Error( 'not_part', __( 'Template is not marked as a reusable part.', 'site-pilot-ai-pro' ) );
+		}
+
+		return $part;
+	}
+
+	/**
+	 * Get a reusable Elementor archetype by ID.
+	 *
+	 * @param int $archetype_id Archetype/template ID.
+	 * @return array|WP_Error Archetype data or error.
+	 */
+	public function get_archetype( $archetype_id ) {
+		$archetype = $this->get_template( $archetype_id );
+		if ( is_wp_error( $archetype ) ) {
+			return $archetype;
+		}
+
+		if ( empty( $archetype['is_archetype'] ) ) {
+			return new WP_Error( 'not_archetype', __( 'Template is not marked as an archetype.', 'site-pilot-ai-pro' ) );
+		}
+
+		return $archetype;
+	}
+
+	/**
 	 * Format template for API response.
 	 *
 	 * @param WP_Post $template    Template post.
@@ -161,6 +399,9 @@ class Spai_Elementor_Pro {
 	 * @return array Formatted template.
 	 */
 	private function format_template( $template, $include_data = false ) {
+		$part_meta      = $this->get_part_metadata( $template->ID );
+		$archetype_meta = $this->get_archetype_metadata( $template->ID );
+
 		$data = array(
 			'id'         => $template->ID,
 			'title'      => $template->post_title,
@@ -169,7 +410,24 @@ class Spai_Elementor_Pro {
 			'created'    => $template->post_date,
 			'modified'   => $template->post_modified,
 			'edit_url'   => admin_url( 'post.php?post=' . $template->ID . '&action=elementor' ),
+			'is_part'    => $part_meta['is_part'],
+			'part_kind'  => $part_meta['part_kind'],
+			'part_style' => $part_meta['part_style'],
+			'part_tags'  => $part_meta['part_tags'],
+			'is_archetype'    => $archetype_meta['is_archetype'],
+			'archetype_scope' => $archetype_meta['archetype_scope'],
+			'archetype_class' => $archetype_meta['archetype_class'],
+			'archetype_style' => $archetype_meta['archetype_style'],
+			'archetype_brief' => $archetype_meta['archetype_brief'],
 		);
+
+		if ( ! empty( $part_meta['source_page_id'] ) ) {
+			$data['source_page_id'] = $part_meta['source_page_id'];
+		}
+
+		if ( ! empty( $part_meta['source_element_id'] ) ) {
+			$data['source_element_id'] = $part_meta['source_element_id'];
+		}
 
 		if ( $include_data ) {
 			$data['elementor_data'] = get_post_meta( $template->ID, '_elementor_data', true );
@@ -224,6 +482,9 @@ class Spai_Elementor_Pro {
 			update_post_meta( $template_id, '_elementor_data', wp_slash( $elementor_data ) );
 		}
 
+		$this->save_part_metadata( $template_id, $data );
+		$this->save_archetype_metadata( $template_id, $data );
+
 		return $this->get_template( $template_id );
 	}
 
@@ -258,7 +519,168 @@ class Spai_Elementor_Pro {
 			update_post_meta( $template_id, '_elementor_data', wp_slash( $elementor_data ) );
 		}
 
+		$this->save_part_metadata( $template_id, $data );
+		$this->save_archetype_metadata( $template_id, $data );
+
 		return $this->get_template( $template_id );
+	}
+
+	/**
+	 * Create a reusable archetype directly from Elementor template data.
+	 *
+	 * @param array $data Archetype definition.
+	 * @return array|WP_Error
+	 */
+	public function create_archetype( $data ) {
+		$data['is_archetype'] = true;
+		$data['type']         = ! empty( $data['type'] ) ? $data['type'] : 'page';
+
+		return $this->create_template( $data );
+	}
+
+	/**
+	 * Create a reusable part directly from Elementor template data.
+	 *
+	 * @param array $data Part definition.
+	 * @return array|WP_Error
+	 */
+	public function create_part( $data ) {
+		$data['is_part'] = true;
+		$data['type']    = ! empty( $data['type'] ) ? $data['type'] : 'section';
+
+		return $this->create_template( $data );
+	}
+
+	/**
+	 * Create a reusable part by extracting a section from a live page.
+	 *
+	 * @param int    $page_id    Source page ID.
+	 * @param string $element_id Source section/container ID.
+	 * @param array  $data       Part metadata.
+	 * @return array|WP_Error
+	 */
+	public function create_part_from_section( $page_id, $element_id, $data = array() ) {
+		$page = get_post( $page_id );
+		if ( ! $page ) {
+			return new WP_Error( 'page_not_found', __( 'Source page not found.', 'site-pilot-ai-pro' ) );
+		}
+
+		$raw = get_post_meta( $page_id, '_elementor_data', true );
+		$tree = json_decode( $raw, true );
+		if ( ! is_array( $tree ) || empty( $tree ) ) {
+			return new WP_Error( 'no_elementor_data', __( 'Source page has no Elementor data.', 'site-pilot-ai-pro' ) );
+		}
+
+		$element = $this->find_element_by_id( $tree, $element_id );
+		if ( empty( $element ) || ! is_array( $element ) ) {
+			return new WP_Error( 'element_not_found', __( 'Element not found in source page.', 'site-pilot-ai-pro' ) );
+		}
+
+		$template = $this->create_part(
+			array(
+				'title'          => ! empty( $data['title'] ) ? $data['title'] : __( 'Reusable Part', 'site-pilot-ai-pro' ),
+				'type'           => 'section',
+				'elementor_data' => array( $element ),
+				'part_kind'      => isset( $data['part_kind'] ) ? $data['part_kind'] : '',
+				'part_style'     => isset( $data['part_style'] ) ? $data['part_style'] : '',
+				'part_tags'      => isset( $data['part_tags'] ) ? $data['part_tags'] : array(),
+				'source_page_id' => $page_id,
+				'source_element_id' => $element_id,
+			)
+		);
+
+		if ( is_wp_error( $template ) ) {
+			return $template;
+		}
+
+		return $this->get_part( $template['id'] );
+	}
+
+	/**
+	 * Apply a reusable part to a page.
+	 *
+	 * @param int $part_id Part/template ID.
+	 * @param int $page_id Target page ID.
+	 * @return bool|WP_Error
+	 */
+	public function apply_part_to_page( $part_id, $page_id ) {
+		$part = $this->get_part( $part_id );
+		if ( is_wp_error( $part ) ) {
+			return $part;
+		}
+
+		return $this->apply_template_to_page( $page_id, $part_id );
+	}
+
+	/**
+	 * Apply a reusable archetype to a page.
+	 *
+	 * @param int $archetype_id Archetype/template ID.
+	 * @param int $page_id      Target page ID.
+	 * @return bool|WP_Error
+	 */
+	public function apply_archetype_to_page( $archetype_id, $page_id ) {
+		$archetype = $this->get_archetype( $archetype_id );
+		if ( is_wp_error( $archetype ) ) {
+			return $archetype;
+		}
+
+		return $this->apply_template_to_page( $page_id, $archetype_id );
+	}
+
+	/**
+	 * Insert a reusable part into an existing page without replacing all content.
+	 *
+	 * @param int    $part_id  Part/template ID.
+	 * @param int    $page_id  Target page ID.
+	 * @param string $position Insert position.
+	 * @return array|WP_Error
+	 */
+	public function insert_part_into_page( $part_id, $page_id, $position = 'end' ) {
+		$part = $this->get_part( $part_id );
+		if ( is_wp_error( $part ) ) {
+			return $part;
+		}
+
+		$elements = $part['elementor_data'];
+		if ( is_string( $elements ) ) {
+			$decoded = json_decode( $elements, true );
+			$elements = is_array( $decoded ) ? $decoded : array();
+		}
+
+		if ( ! is_array( $elements ) || empty( $elements ) ) {
+			return new WP_Error( 'empty_part', __( 'Reusable part has no Elementor elements.', 'site-pilot-ai-pro' ) );
+		}
+
+		$basic   = $this->get_basic_handler();
+		$results = array();
+
+		foreach ( array_values( $elements ) as $index => $element ) {
+			$current_position = ( 0 === $index ) ? $position : 'end';
+			$result           = $basic->add_section(
+				$page_id,
+				array(
+					'element'  => $element,
+					'position' => $current_position,
+				)
+			);
+
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			$results[] = $result;
+		}
+
+		return array(
+			'inserted'       => true,
+			'part_id'        => (int) $part_id,
+			'page_id'        => (int) $page_id,
+			'position'       => $position,
+			'inserted_count' => count( $results ),
+			'inserted_ids'   => wp_list_pluck( $results, 'element_id' ),
+			'last_operation' => end( $results ),
+		);
 	}
 
 	/**
@@ -496,6 +918,209 @@ class Spai_Elementor_Pro {
 		update_post_meta( $page_id, '_wp_page_template', 'elementor_header_footer' );
 
 		return true;
+	}
+
+	/**
+	 * Save reusable part metadata.
+	 *
+	 * @param int   $template_id Template ID.
+	 * @param array $data        Metadata payload.
+	 * @return void
+	 */
+	private function save_part_metadata( $template_id, $data ) {
+		$is_part = ! empty( $data['is_part'] ) ? 'yes' : '';
+
+		if ( $is_part ) {
+			update_post_meta( $template_id, $this->part_flag_meta_key, $is_part );
+		} else {
+			delete_post_meta( $template_id, $this->part_flag_meta_key );
+		}
+
+		if ( array_key_exists( 'part_kind', $data ) ) {
+			$kind = sanitize_key( (string) $data['part_kind'] );
+			if ( '' !== $kind ) {
+				update_post_meta( $template_id, $this->part_kind_meta_key, $kind );
+			} else {
+				delete_post_meta( $template_id, $this->part_kind_meta_key );
+			}
+		}
+
+		if ( array_key_exists( 'part_style', $data ) ) {
+			$style = sanitize_text_field( (string) $data['part_style'] );
+			if ( '' !== $style ) {
+				update_post_meta( $template_id, $this->part_style_meta_key, $style );
+			} else {
+				delete_post_meta( $template_id, $this->part_style_meta_key );
+			}
+		}
+
+		if ( array_key_exists( 'part_tags', $data ) ) {
+			$tags = $this->normalize_part_tags( $data['part_tags'] );
+			if ( ! empty( $tags ) ) {
+				update_post_meta( $template_id, $this->part_tags_meta_key, $tags );
+				update_post_meta( $template_id, $this->part_tags_index_meta_key, implode( ' ', array_map( 'sanitize_title', $tags ) ) );
+			} else {
+				delete_post_meta( $template_id, $this->part_tags_meta_key );
+				delete_post_meta( $template_id, $this->part_tags_index_meta_key );
+			}
+		}
+
+		if ( array_key_exists( 'source_page_id', $data ) ) {
+			$page_id = absint( $data['source_page_id'] );
+			if ( $page_id ) {
+				update_post_meta( $template_id, $this->part_source_page_meta_key, $page_id );
+			} else {
+				delete_post_meta( $template_id, $this->part_source_page_meta_key );
+			}
+		}
+
+		if ( array_key_exists( 'source_element_id', $data ) ) {
+			$element_id = sanitize_text_field( (string) $data['source_element_id'] );
+			if ( '' !== $element_id ) {
+				update_post_meta( $template_id, $this->part_source_element_meta_key, $element_id );
+			} else {
+				delete_post_meta( $template_id, $this->part_source_element_meta_key );
+			}
+		}
+	}
+
+	/**
+	 * Read reusable part metadata.
+	 *
+	 * @param int $template_id Template ID.
+	 * @return array
+	 */
+	private function get_part_metadata( $template_id ) {
+		$tags = get_post_meta( $template_id, $this->part_tags_meta_key, true );
+		if ( ! is_array( $tags ) ) {
+			$tags = $this->normalize_part_tags( $tags );
+		}
+
+		return array(
+			'is_part'           => 'yes' === get_post_meta( $template_id, $this->part_flag_meta_key, true ),
+			'part_kind'         => (string) get_post_meta( $template_id, $this->part_kind_meta_key, true ),
+			'part_style'        => (string) get_post_meta( $template_id, $this->part_style_meta_key, true ),
+			'part_tags'         => $tags,
+			'source_page_id'    => absint( get_post_meta( $template_id, $this->part_source_page_meta_key, true ) ),
+			'source_element_id' => (string) get_post_meta( $template_id, $this->part_source_element_meta_key, true ),
+		);
+	}
+
+	/**
+	 * Save archetype metadata.
+	 *
+	 * @param int   $template_id Template ID.
+	 * @param array $data        Metadata payload.
+	 * @return void
+	 */
+	private function save_archetype_metadata( $template_id, $data ) {
+		$is_archetype = ! empty( $data['is_archetype'] ) ? 'yes' : '';
+
+		if ( $is_archetype ) {
+			update_post_meta( $template_id, $this->archetype_flag_meta_key, $is_archetype );
+		} else {
+			delete_post_meta( $template_id, $this->archetype_flag_meta_key );
+		}
+
+		$meta_map = array(
+			'archetype_scope' => $this->archetype_scope_meta_key,
+			'archetype_class' => $this->archetype_class_meta_key,
+			'archetype_style' => $this->archetype_style_meta_key,
+			'archetype_brief' => $this->archetype_brief_meta_key,
+		);
+
+		foreach ( $meta_map as $input_key => $meta_key ) {
+			if ( ! array_key_exists( $input_key, $data ) ) {
+				continue;
+			}
+
+			$value = 'archetype_brief' === $input_key
+				? sanitize_textarea_field( (string) $data[ $input_key ] )
+				: sanitize_text_field( (string) $data[ $input_key ] );
+			if ( in_array( $input_key, array( 'archetype_scope', 'archetype_class' ), true ) ) {
+				$value = sanitize_key( $value );
+			}
+
+			if ( '' === $value ) {
+				delete_post_meta( $template_id, $meta_key );
+			} else {
+				update_post_meta( $template_id, $meta_key, $value );
+			}
+		}
+	}
+
+	/**
+	 * Read archetype metadata.
+	 *
+	 * @param int $template_id Template ID.
+	 * @return array
+	 */
+	private function get_archetype_metadata( $template_id ) {
+		return array(
+			'is_archetype'    => 'yes' === get_post_meta( $template_id, $this->archetype_flag_meta_key, true ),
+			'archetype_scope' => (string) get_post_meta( $template_id, $this->archetype_scope_meta_key, true ),
+			'archetype_class' => (string) get_post_meta( $template_id, $this->archetype_class_meta_key, true ),
+			'archetype_style' => (string) get_post_meta( $template_id, $this->archetype_style_meta_key, true ),
+			'archetype_brief' => (string) get_post_meta( $template_id, $this->archetype_brief_meta_key, true ),
+		);
+	}
+
+	/**
+	 * Normalize part tags to a clean unique array.
+	 *
+	 * @param mixed $tags Raw tag input.
+	 * @return array
+	 */
+	private function normalize_part_tags( $tags ) {
+		if ( is_string( $tags ) ) {
+			$tags = preg_split( '/[\s,]+/', $tags );
+		}
+
+		if ( ! is_array( $tags ) ) {
+			return array();
+		}
+
+		$normalized = array();
+		foreach ( $tags as $tag ) {
+			$tag = sanitize_text_field( (string) $tag );
+			if ( '' !== $tag ) {
+				$normalized[] = $tag;
+			}
+		}
+
+		return array_values( array_unique( $normalized ) );
+	}
+
+	/**
+	 * Find an Elementor element by ID within a nested tree.
+	 *
+	 * @param array  $elements   Elementor elements tree.
+	 * @param string $element_id Element ID to find.
+	 * @return array|null
+	 */
+	private function find_element_by_id( $elements, $element_id ) {
+		if ( ! is_array( $elements ) ) {
+			return null;
+		}
+
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) ) {
+				continue;
+			}
+
+			if ( isset( $element['id'] ) && (string) $element['id'] === (string) $element_id ) {
+				return $element;
+			}
+
+			if ( ! empty( $element['elements'] ) ) {
+				$found = $this->find_element_by_id( $element['elements'], $element_id );
+				if ( null !== $found ) {
+					return $found;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	/**

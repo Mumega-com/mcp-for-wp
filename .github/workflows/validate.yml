@@ -86,6 +86,34 @@ jobs:
 
           echo "✓ All required plugin headers present"
 
+      - name: Verify Release Metadata Consistency
+        run: |
+          echo "Checking release metadata consistency..."
+
+          HEADER_VERSION=$(grep -E "^\s+\* Version:\s+" site-pilot-ai/site-pilot-ai.php | sed -E 's/.*Version:\s+//' | tr -d '[:space:]')
+          DEFINE_VERSION=$(grep -E "^define\( 'SPAI_VERSION'" site-pilot-ai/site-pilot-ai.php | sed -E "s/.*'([0-9.]+)'.*/\1/")
+          README_VERSION=$(grep -m1 '^Stable tag:' site-pilot-ai/readme.txt | sed 's/Stable tag:[[:space:]]*//')
+          MANIFEST_VERSION=$(python3 -c 'import json; print(json.load(open("version.json"))["version"])')
+          MANIFEST_URL=$(python3 -c 'import json; print(json.load(open("version.json"))["download_url"])')
+
+          echo "Header version:   ${HEADER_VERSION}"
+          echo "Define version:   ${DEFINE_VERSION}"
+          echo "Readme version:   ${README_VERSION}"
+          echo "Manifest version: ${MANIFEST_VERSION}"
+          echo "Download URL:     ${MANIFEST_URL}"
+
+          if [ "${HEADER_VERSION}" != "${DEFINE_VERSION}" ] || [ "${HEADER_VERSION}" != "${README_VERSION}" ] || [ "${HEADER_VERSION}" != "${MANIFEST_VERSION}" ]; then
+            echo "::error::Release metadata mismatch across plugin header, SPAI_VERSION, readme Stable tag, and version.json"
+            exit 1
+          fi
+
+          if [ "${MANIFEST_URL}" != "https://mumega.com/spai-updates/mumega-site-pilot-ai-latest.zip" ]; then
+            echo "::error::version.json download_url must point at the canonical mumega.com ZIP"
+            exit 1
+          fi
+
+          echo "✓ Release metadata consistent"
+
       - name: Verify Required Files
         run: |
           echo "Checking required files..."

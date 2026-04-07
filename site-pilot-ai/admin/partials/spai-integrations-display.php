@@ -12,15 +12,25 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+$integrations_admin = new Spai_Integrations_Admin();
+$figma_oauth_notice = isset( $_GET['spai_figma_oauth'] ) ? sanitize_key( wp_unslash( $_GET['spai_figma_oauth'] ) ) : '';
+$figma_oauth_message = isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash( $_GET['message'] ) ) : '';
 ?>
 <div class="wrap spai-wrap">
 	<h1><?php esc_html_e( 'AI Integrations', 'site-pilot-ai' ); ?></h1>
 	<p class="description">
-		<?php esc_html_e( 'Connect third-party AI services to unlock image generation, vision analysis, text-to-speech, screenshots, and stock photos via MCP tools.', 'site-pilot-ai' ); ?>
+		<?php esc_html_e( 'Connect third-party AI and design services to unlock image generation, vision analysis, text-to-speech, screenshots, stock photos, and design-context intake via MCP tools.', 'site-pilot-ai' ); ?>
 	</p>
 	<p class="description" style="margin-top:4px;">
 		<?php esc_html_e( 'AI assistants can also configure these integrations via the wp_configure_integration MCP tool.', 'site-pilot-ai' ); ?>
 	</p>
+
+	<?php if ( in_array( $figma_oauth_notice, array( 'success', 'error' ), true ) && '' !== $figma_oauth_message ) : ?>
+		<div class="notice <?php echo 'success' === $figma_oauth_notice ? 'notice-success' : 'notice-error'; ?> is-dismissible">
+			<p><?php echo esc_html( $figma_oauth_message ); ?></p>
+		</div>
+	<?php endif; ?>
 
 	<div class="spai-integrations-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px;margin-top:20px;">
 		<?php foreach ( $providers as $slug => $provider ) : ?>
@@ -29,6 +39,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 			$locked           = $is_pro_provider && ! $is_pro;
 			$is_multi_field   = ! empty( $provider['fields'] );
 			$has_description  = ! empty( $provider['description'] );
+			$is_figma         = 'figma' === $slug;
+			$figma_auth_mode  = $is_figma && ! empty( $provider['auth_mode'] ) ? (string) $provider['auth_mode'] : '';
+			$figma_mode_label = 'oauth' === $figma_auth_mode ? __( 'OAuth Connected', 'site-pilot-ai' ) : ( 'personal_token' === $figma_auth_mode ? __( 'Personal Token Active', 'site-pilot-ai' ) : __( 'Not Connected Yet', 'site-pilot-ai' ) );
 			?>
 			<div class="spai-integration-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:20px;position:relative;">
 				<?php if ( $is_pro_provider ) : ?>
@@ -56,6 +69,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<?php echo $is_multi_field ? esc_html__( 'Setup Guide', 'site-pilot-ai' ) : esc_html__( 'Get API Key', 'site-pilot-ai' ); ?> &rarr;
 					</a>
 				</p>
+
+				<?php if ( $is_figma ) : ?>
+					<div class="spai-figma-panel">
+						<div class="spai-figma-panel__row">
+							<strong><?php esc_html_e( 'Use Case', 'site-pilot-ai' ); ?></strong>
+							<span><?php esc_html_e( 'Approved design intake for archetypes, parts, and site briefs.', 'site-pilot-ai' ); ?></span>
+						</div>
+						<div class="spai-figma-panel__row">
+							<strong><?php esc_html_e( 'Auth Status', 'site-pilot-ai' ); ?></strong>
+							<span><?php echo esc_html( $figma_mode_label ); ?></span>
+						</div>
+						<div class="spai-figma-panel__row">
+							<strong><?php esc_html_e( 'OAuth Redirect URI', 'site-pilot-ai' ); ?></strong>
+							<code><?php echo esc_html( admin_url( 'admin-post.php?action=spai_figma_oauth_callback' ) ); ?></code>
+						</div>
+						<div class="spai-figma-panel__row">
+							<strong><?php esc_html_e( 'Model Flow', 'site-pilot-ai' ); ?></strong>
+							<span><?php esc_html_e( 'Inspect Figma, then translate it into local archetypes and reusable parts.', 'site-pilot-ai' ); ?></span>
+						</div>
+					</div>
+				<?php endif; ?>
 
 				<?php if ( $locked ) : ?>
 					<p style="color:#666;font-style:italic;">
@@ -87,8 +121,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<button type="button" class="button spai-remove-integration" data-provider="<?php echo esc_attr( $slug ); ?>" style="color:#d63638;">
 									<?php esc_html_e( 'Remove', 'site-pilot-ai' ); ?>
 								</button>
+								<?php if ( $is_figma && ! empty( $provider['oauth_ready'] ) ) : ?>
+									<a href="<?php echo esc_url( $integrations_admin->get_figma_oauth_start_url() ); ?>" class="button">
+										<?php esc_html_e( 'Reconnect OAuth', 'site-pilot-ai' ); ?>
+									</a>
+								<?php endif; ?>
 							</div>
 							<div style="margin-top:10px;">
+								<?php if ( $is_figma && ! empty( $provider['auth_mode'] ) ) : ?>
+									<p class="description" style="margin:0 0 10px;">
+										<?php
+										if ( 'personal_token' === $figma_auth_mode ) {
+											esc_html_e( 'Using a personal token. OAuth is ready if you want the cleaner long-term setup.', 'site-pilot-ai' );
+										} elseif ( 'oauth' === $figma_auth_mode ) {
+											esc_html_e( 'Using OAuth. Models can rely on this connection for approved Figma design context.', 'site-pilot-ai' );
+										} else {
+											esc_html_e( 'Figma credentials are stored, but the connection is not complete yet.', 'site-pilot-ai' );
+										}
+										?>
+									</p>
+								<?php endif; ?>
 								<?php if ( $is_multi_field ) : ?>
 									<div class="spai-multi-field-inputs" style="display:none;">
 										<?php foreach ( $provider['fields'] as $field_key => $field_info ) : ?>
@@ -112,6 +164,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 								</button>
 							</div>
 						<?php else : ?>
+							<?php if ( $is_figma && ! empty( $provider['oauth_ready'] ) ) : ?>
+								<p style="margin:0 0 8px;">
+									<a href="<?php echo esc_url( $integrations_admin->get_figma_oauth_start_url() ); ?>" class="button">
+										<?php esc_html_e( 'Connect with Figma OAuth', 'site-pilot-ai' ); ?>
+									</a>
+								</p>
+								<p class="description" style="margin:0 0 12px;">
+									<?php esc_html_e( 'Recommended for production. Use a personal token only for quick testing or temporary access.', 'site-pilot-ai' ); ?>
+								</p>
+							<?php endif; ?>
 							<?php if ( $is_multi_field ) : ?>
 								<div class="spai-multi-field-inputs">
 									<?php foreach ( $provider['fields'] as $field_key => $field_info ) : ?>
@@ -166,6 +228,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>wp_describe_image</code></td><td>OpenAI / Gemini</td><td>Pro</td></tr>
 				<tr><td><code>wp_generate_excerpt</code></td><td>OpenAI / Gemini</td><td>Pro</td></tr>
 				<tr><td><code>wp_text_to_speech</code></td><td>ElevenLabs</td><td>Pro</td></tr>
+				<tr><td><code>wp_figma_status</code></td><td>Figma</td><td>Pro</td></tr>
+				<tr><td><code>wp_get_figma_file</code></td><td>Figma</td><td>Pro</td></tr>
+				<tr><td><code>wp_get_figma_node</code></td><td>Figma</td><td>Pro</td></tr>
 			</tbody>
 		</table>
 		<h4 style="margin:15px 0 8px;"><?php esc_html_e( 'Integration Management Tools', 'site-pilot-ai' ); ?></h4>

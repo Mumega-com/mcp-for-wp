@@ -97,22 +97,26 @@ class Spai_Loader {
 		$this->add_action( 'wp_ajax_spai_save_integration_key', $integrations_admin, 'ajax_save_key' );
 		$this->add_action( 'wp_ajax_spai_remove_integration_key', $integrations_admin, 'ajax_remove_key' );
 		$this->add_action( 'wp_ajax_spai_test_integration', $integrations_admin, 'ajax_test_connection' );
+		$this->add_action( 'admin_post_spai_figma_oauth_start', $integrations_admin, 'handle_figma_oauth_start' );
+		$this->add_action( 'admin_post_spai_figma_oauth_callback', $integrations_admin, 'handle_figma_oauth_callback' );
+		$this->add_action( 'admin_post_nopriv_spai_figma_oauth_callback', $integrations_admin, 'handle_figma_oauth_callback' );
 
 		// Plugin action links.
 		$this->add_filter( 'plugin_action_links_' . SPAI_PLUGIN_BASENAME, $admin, 'add_action_links', 100 );
 
-		// Register AI integration with MCP via the spai_integrations filter.
-		$this->add_filter( 'spai_integrations', $this, 'register_ai_integration' );
+		// Register built-in MCP integrations via the spai_integrations filter.
+		$this->add_filter( 'spai_integrations', $this, 'register_builtin_integrations' );
 	}
 
 	/**
-	 * Register the built-in AI integration.
+	 * Register built-in MCP integrations.
 	 *
 	 * @param array $integrations Existing integrations.
 	 * @return array
 	 */
-	public function register_ai_integration( $integrations ) {
+	public function register_builtin_integrations( $integrations ) {
 		$integrations[] = new Spai_MCP_AI_Integration();
+		$integrations[] = new Spai_MCP_Figma_Integration();
 		return $integrations;
 	}
 
@@ -120,8 +124,11 @@ class Spai_Loader {
 	 * Register API hooks.
 	 */
 	private function define_api_hooks() {
+		$ai_presence = new Spai_AI_Presence();
+
 		// Initialize REST API
 		$this->add_action( 'rest_api_init', $this, 'register_rest_routes' );
+		$this->add_action( 'init', $ai_presence, 'register' );
 		// Attach rate-limit headers to both success and error responses.
 		$this->add_filter( 'rest_post_dispatch', $this, 'add_spai_rate_limit_headers', 10, 3 );
 		// Ensure log cleanup cron is scheduled and executed.

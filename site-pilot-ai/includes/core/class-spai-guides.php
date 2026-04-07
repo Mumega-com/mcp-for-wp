@@ -87,6 +87,12 @@ class Spai_Guides {
 				'requires'    => null,
 			),
 			array(
+				'topic'       => 'onboarding',
+				'title'       => 'MCP Onboarding',
+				'description' => 'Required startup sequence for a newly connected model: introspection, site context, archetypes, reusable parts, and execution rules.',
+				'requires'    => null,
+			),
+			array(
 				'topic'       => 'troubleshooting',
 				'title'       => 'Troubleshooting',
 				'description' => 'Common errors, debugging tips, and fixes for frequent issues with Site Pilot AI tools.',
@@ -249,6 +255,7 @@ class Spai_Guides {
 					'content' => "- `wp_get_elementor(id)` — Get Elementor data for a page\n"
 						. "- `wp_get_elementor_summary(id)` — Get a compact summary of the page structure\n"
 						. "- `wp_set_elementor(id, elementor_data)` — Set full Elementor data for a page\n"
+						. "- For large Elementor payloads on shared hosts, prefer `elementor_data_base64` or form-encoded requests to avoid WAF issues\n"
 						. "- `wp_edit_section(id, section_id, elements)` — Replace a single section/container\n"
 						. "- `wp_edit_widget(id, widget_id, settings)` — Update a single widget's settings\n"
 						. "- `wp_get_elementor_widgets()` — List all registered widgets\n"
@@ -257,6 +264,74 @@ class Spai_Guides {
 						. "- `wp_preview_elementor(id)` — Get a rendered preview of the page\n"
 						. "- `wp_regenerate_elementor_css()` — Force CSS regeneration after changes\n"
 						. "- `wp_bulk_find_replace(id, search, replace)` — Find and replace in Elementor data",
+				),
+				array(
+					'heading' => 'Reusable Parts Library',
+					'content' => "Use Elementor professionally by treating sections as reusable parts rather than rebuilding every page from scratch.\n\n"
+						. "**Recommended part categories:**\n"
+						. "- Hero\n"
+						. "- Social proof / logo strip\n"
+						. "- Features grid\n"
+						. "- Pricing block\n"
+						. "- FAQ\n"
+						. "- CTA band\n"
+						. "- Footer promo strip\n\n"
+						. "**Recommended naming pattern:**\n"
+						. "- `Hero / SaaS / Dark`\n"
+						. "- `Features / 3 Card / Light`\n"
+						. "- `CTA / Trial / Centered`\n\n"
+						. "**Professional workflow:**\n"
+						. "1. Build or identify a strong section on a live page\n"
+						. "2. Save it as a reusable part with kind/style metadata\n"
+						. "3. Apply that part to new pages\n"
+						. "4. Change only copy, media, and links for the new context\n"
+						. "5. Promote good customizations back into the library as new variants\n\n"
+						. "This keeps structure consistent, speeds up page creation, and reduces layout drift across the site.",
+				),
+				array(
+					'heading' => 'Page Archetypes',
+					'content' => "Treat repeatable page classes as stable archetypes.\n\n"
+						. "**Examples of page archetypes:**\n"
+						. "- Blog Post\n"
+						. "- Service Page\n"
+						. "- Landing Page\n"
+						. "- About Page\n"
+						. "- Case Study\n"
+						. "- Contact Page\n\n"
+						. "**Rule:** use one canonical full-page Elementor template for each page class instead of redesigning the whole page every time.\n\n"
+						. "**Useful archetype tools:**\n"
+						. "- `wp_list_elementor_archetypes()`\n"
+						. "- `wp_get_elementor_archetype(id)`\n"
+						. "- `wp_create_elementor_archetype(title, archetype_scope, archetype_class, archetype_style)`\n"
+						. "- `wp_apply_elementor_archetype(id, page_id)`\n\n"
+						. "**Professional model:**\n"
+						. "- Archetype = the full-page skeleton and section order\n"
+						. "- Part = a reusable section inside or across archetypes\n\n"
+						. "For example, a blog post archetype might define hero/title area, author block, featured image area, table of contents, article body wrapper, CTA band, and related posts block. A service page archetype might define hero, proof, problem/solution, features, FAQ, and CTA.",
+				),
+				array(
+					'heading' => 'Parts Workflow',
+					'content' => "Use these tools together when building from reusable parts:\n"
+						. "- `wp_list_elementor_parts()` — inspect the current parts library\n"
+						. "- `wp_get_elementor_part(id)` — inspect a saved part and its metadata\n"
+						. "- `wp_get_elementor_summary(id)` — inspect source pages and find section IDs\n"
+						. "- `wp_create_elementor_part_from_section(page_id, element_id, title, part_kind, part_style, part_tags)` — extract a reusable part from a live page\n"
+						. "- `wp_create_elementor_part(title, elementor_data, part_kind, part_style, part_tags)` — create a canonical part directly from Elementor JSON\n"
+						. "- `wp_create_page(title, status)` — create the destination page\n"
+						. "- `wp_apply_elementor_part(id, page_id, mode, position)` — insert a reusable part into a page or replace the full page from the part\n"
+						. "- `wp_edit_widget(id, widget_id, settings)` — adapt copy and links without rebuilding structure\n"
+						. "- `wp_preview_elementor(id)` — verify the assembled page before publishing\n\n"
+						. "The goal is not just to generate pages. The goal is to build a growing library of stable, reusable sections that make future pages faster and more consistent.",
+				),
+				array(
+					'heading' => 'Structured Creation Rules',
+					'content' => "When creating pages with Elementor, follow these rules:\n"
+						. "1. Choose the page archetype first. Do not invent the page structure from zero if the page belongs to an existing class.\n"
+						. "2. Reuse the canonical archetype template for that page class.\n"
+						. "3. Reuse existing parts before creating new ones.\n"
+						. "4. If a new or improved section is reusable, save it to the parts library before finishing the page.\n"
+						. "5. Name both archetypes and parts clearly by intent and style.\n\n"
+						. "The system should get more structured over time, not less. Every good page should either reuse a known structure or improve the library for future pages.",
 				),
 			),
 		);
@@ -462,11 +537,22 @@ class Spai_Guides {
 						. "Use `wp_integrations_status()` to check if these integrations are configured.",
 				),
 				array(
+					'heading' => 'Design References',
+					'content' => "When a human shares a screenshot, exported mockup, or approved design image, store it as a reusable design reference instead of treating it like ordinary media.\n\n"
+						. "- `wp_upload_design_reference(...)` — Create a reusable design reference from an image URL, base64 image, or existing media item\n"
+						. "- `wp_list_design_references()` — Review stored references\n"
+						. "- `wp_get_design_reference(id)` — Read the image, intent, style, and reuse notes\n"
+						. "- `wp_update_design_reference(id, ...)` — Link resulting archetypes or parts back to the source image\n\n"
+						. "Design references are the right intake path for screenshots from ChatGPT, Gemini, Figma exports, Stitch exports, or client-provided mockups.",
+				),
+				array(
 					'heading' => 'Relevant Tools',
 					'content' => "- `wp_list_media(per_page, page, mime_type)` — List media library items\n"
 						. "- `wp_upload_media_from_url(url)` — Upload from URL\n"
 						. "- `wp_upload_media_b64(data, filename, mime_type)` — Upload from base64\n"
 						. "- `wp_upload_media(file)` — Upload file\n"
+						. "- `wp_upload_design_reference(...)` — Store a design screenshot as a reusable reference\n"
+						. "- `wp_list_design_references()` — List stored design references\n"
 						. "- `wp_delete_media(id)` — Delete media item\n"
 						. "- `wp_set_featured_image(id, image_id)` — Set featured image\n"
 						. "- `wp_screenshot_url(url)` — Take a screenshot of a URL",
@@ -657,6 +743,32 @@ class Spai_Guides {
 						. "```",
 				),
 				array(
+					'heading' => 'Product Archetypes',
+					'content' => "Treat repeatable product classes as stable archetypes, just like repeatable page classes.\n\n"
+						. "**Examples of product archetypes:**\n"
+						. "- Simple physical product\n"
+						. "- Variable apparel product\n"
+						. "- Digital download\n"
+						. "- Course / membership product\n"
+						. "- Bundle / kit\n\n"
+						. "**Rule:** do not reinvent product structure every time. Reuse a canonical shape for title style, short description pattern, long description sections, specs, proof, FAQ, shipping/returns, and CTA placement.\n\n"
+						. "**Useful product archetype tools:**\n"
+						. "- `wc_list_product_archetypes()`\n"
+						. "- `wc_get_product_archetype(id)`\n"
+						. "- `wc_create_product_archetype(name, archetype_class, product_type, ...)`\n"
+						. "- `wc_apply_product_archetype(id, product_id|name, ...)`\n\n"
+						. "When a product page uses Elementor, the same parts-library rule applies: strong product-specific sections like feature bands, comparison tables, guarantee strips, and FAQs should be saved as reusable Elementor parts.",
+				),
+				array(
+					'heading' => 'Structured Product Rules',
+					'content' => "When creating or updating products:\n"
+						. "1. Identify the product archetype first.\n"
+						. "2. Reuse the canonical field structure for that archetype.\n"
+						. "3. Keep titles, benefit bullets, specs, pricing blocks, and FAQ structure consistent across similar products.\n"
+						. "4. If the product page introduces a reusable section in Elementor, save it back into the parts library.\n"
+						. "5. Do not quietly fork a product archetype without naming the new variant.",
+				),
+				array(
 					'heading' => 'Relevant Tools',
 					'content' => "- `wp_list_content(post_type=\"product\")` — List products\n"
 						. "- `wp_delete_content(post_type=\"product\", id)` — Delete a product\n"
@@ -664,6 +776,67 @@ class Spai_Guides {
 						. "- `wp_set_post_meta(id, meta_key, meta_value)` — Update product meta\n"
 						. "- `wp_create_term(taxonomy=\"product_cat\", ...)` — Create product category\n"
 						. "- `wp_set_featured_image(id, image_id)` — Set product image",
+				),
+			),
+		);
+	}
+
+	/**
+	 * MCP onboarding guide.
+	 *
+	 * @return array Guide content.
+	 */
+	public static function guide_onboarding() {
+		return array(
+			'topic'    => 'onboarding',
+			'title'    => 'MCP Onboarding Guide',
+			'sections' => array(
+				array(
+					'heading' => 'Startup Sequence',
+					'content' => "When a new model connects through MCP, follow this order:\n"
+						. "1. `wp_introspect()` — discover capabilities, enabled plugins, layout mode, and available tools\n"
+						. "2. `wp_get_site_context()` — read the site's operating brief, design system, and content rules\n"
+						. "3. `wp_get_guide(topic=\"workflows\")` — inspect the available structured workflows\n"
+						. "4. If Figma is configured, call `wp_figma_status()` and then pull the approved file/frame with `wp_get_figma_file()` or `wp_get_figma_node()`\n"
+						. "5. If the human supplied a screenshot or design image, store it with `wp_upload_design_reference()` and inspect it with `wp_get_design_reference()`\n"
+						. "6. If working with Elementor, read `wp_get_guide(topic=\"elementor\")`\n"
+						. "7. If working with products, read `wp_get_guide(topic=\"woocommerce\")`\n\n"
+						. "Do not start building blind. Introspect first, then follow the relevant guide.",
+				),
+				array(
+					'heading' => 'Operating Model',
+					'content' => "The system is designed around structure reuse:\n"
+						. "- Site context defines the site-level rules\n"
+						. "- Page archetypes define repeatable full-page classes\n"
+						. "- Product archetypes define repeatable product classes\n"
+						. "- Elementor parts define reusable sections across those archetypes\n\n"
+						. "The model should prefer reuse over reinvention. New work should either follow an existing archetype or improve the library for future work.",
+				),
+				array(
+					'heading' => 'Required Rules',
+					'content' => "Always follow these rules:\n"
+						. "1. Read the site context before building or editing pages/products.\n"
+						. "2. If an approved Figma source exists, inspect it before choosing structure.\n"
+						. "3. If an approved design image exists, store it as a design reference before building.\n"
+						. "4. Choose the correct archetype before writing structure.\n"
+						. "5. Reuse existing Elementor parts before creating new ones.\n"
+						. "6. Save strong new reusable sections back into Elementor parts before finishing.\n"
+						. "7. Default new content to draft unless explicitly asked to publish.",
+				),
+				array(
+					'heading' => 'Useful Tools',
+					'content' => "- `wp_introspect()` — startup capability check\n"
+						. "- `wp_get_site_context()` — site-level brief and rules\n"
+						. "- `wp_figma_status()` — verify whether design context is available from Figma\n"
+						. "- `wp_get_figma_file()` / `wp_get_figma_node()` — inspect approved Figma structure before building\n"
+						. "- `wp_upload_design_reference()` / `wp_get_design_reference()` — preserve approved screenshots and design images as reusable site assets\n"
+						. "- `wp_get_guide(topic)` — detailed domain guide\n"
+						. "- `wp_get_workflow(name)` — structured task flow\n"
+						. "- `wp_list_elementor_archetypes()` — discover canonical archetypes\n"
+						. "- `wp_list_elementor_templates()` — full-page archetypes and templates\n"
+						. "- `wp_list_elementor_parts()` — reusable sections\n"
+						. "- `wc_list_products()` / `wc_get_product(id)` — product inspection\n"
+						. "- `wp_get_elementor_summary(id)` — inspect reusable sections on a page",
 				),
 			),
 		);

@@ -22,10 +22,18 @@ class Spai_REST_Site extends Spai_REST_API {
 	private $core;
 
 	/**
+	 * Design reference library.
+	 *
+	 * @var Spai_Design_References
+	 */
+	private $design_references;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->core = new Spai_Core();
+		$this->core              = new Spai_Core();
+		$this->design_references = new Spai_Design_References();
 	}
 
 	/**
@@ -66,6 +74,66 @@ class Spai_REST_Site extends Spai_REST_API {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_onboard' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		// Design references library.
+		register_rest_route(
+			$this->namespace,
+			'/design-references',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_design_references' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array_merge(
+						$this->get_pagination_args(),
+						array(
+							'query' => array(
+								'description' => __( 'Optional text query.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+							'page_intent' => array(
+								'description' => __( 'Optional page intent filter.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+							'archetype_class' => array(
+								'description' => __( 'Optional archetype class filter.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+							'style' => array(
+								'description' => __( 'Optional style filter.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+							'source_type' => array(
+								'description' => __( 'Optional source type filter.', 'site-pilot-ai' ),
+								'type'        => 'string',
+							),
+						)
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_design_reference' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/design-references/(?P<id>[A-Za-z0-9_-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_design_reference' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_design_reference' ),
 					'permission_callback' => array( $this, 'check_permission' ),
 				),
 			)
@@ -647,6 +715,20 @@ class Spai_REST_Site extends Spai_REST_API {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_site_context' ),
 					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => array(
+						'scope' => array(
+							'description' => __( 'Optional context scope such as page or product.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'archetype_class' => array(
+							'description' => __( 'Optional archetype class for inherited context lookup.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+						'style' => array(
+							'description' => __( 'Optional archetype style for inherited context lookup.', 'site-pilot-ai' ),
+							'type'        => 'string',
+						),
+					),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
@@ -1053,6 +1135,16 @@ class Spai_REST_Site extends Spai_REST_API {
 			);
 		}
 		$inventory['recent_updates'] = $recent_updates;
+		$design_reference_inventory  = $this->design_references->list_references(
+			array(
+				'per_page' => 3,
+				'page'     => 1,
+			)
+		);
+		$inventory['design_references'] = array(
+			'total'  => (int) ( $design_reference_inventory['total'] ?? 0 ),
+			'recent' => $design_reference_inventory['references'] ?? array(),
+		);
 
 		// 3. Active integrations.
 		$integrations = array();
@@ -1237,17 +1329,174 @@ class Spai_REST_Site extends Spai_REST_API {
 	public function get_site_context( $request ) {
 		$this->log_activity( 'get_site_context', $request );
 
-		$context = get_option( 'spai_site_context', '' );
+		$context         = get_option( 'spai_site_context', '' );
+		$scope           = sanitize_key( (string) $request->get_param( 'scope' ) );
+		$archetype_class = sanitize_key( (string) $request->get_param( 'archetype_class' ) );
+		$style           = sanitize_text_field( (string) $request->get_param( 'style' ) );
+		$effective       = $this->build_effective_site_context( $context, $scope, $archetype_class, $style );
 
 		return $this->success_response(
 			array(
-				'context'    => $context,
-				'updated_at' => get_option( 'spai_site_context_updated', '' ),
-				'hint'       => '' === $context
+				'context'           => $context,
+				'effective_context' => $effective['effective_context'],
+				'inheritance'       => $effective['inheritance'],
+				'updated_at'        => get_option( 'spai_site_context_updated', '' ),
+				'hint'              => '' === $context
 					? 'No site context configured. Use wp_set_site_context to define your site style guide, header/footer rules, predefined sections, and page structure guidelines. This will be included in wp_introspect so AI assistants automatically follow your design rules.'
 					: null,
 			)
 		);
+	}
+
+	/**
+	 * Build an effective site context from the global brief and an optional archetype override.
+	 *
+	 * @param string $base_context    Global site context.
+	 * @param string $scope           Optional scope.
+	 * @param string $archetype_class Optional archetype class.
+	 * @param string $style           Optional style.
+	 * @return array
+	 */
+	private function build_effective_site_context( $base_context, $scope, $archetype_class, $style ) {
+		$inheritance = array(
+			'scope'           => $scope,
+			'archetype_class' => $archetype_class,
+			'style'           => $style,
+			'matched'         => false,
+		);
+
+		if ( '' === $scope || '' === $archetype_class ) {
+			return array(
+				'effective_context' => $base_context,
+				'inheritance'       => $inheritance,
+			);
+		}
+
+		$matched = $this->find_context_override( $scope, $archetype_class, $style );
+		if ( empty( $matched['brief'] ) ) {
+			return array(
+				'effective_context' => $base_context,
+				'inheritance'       => $inheritance,
+			);
+		}
+
+		$effective = trim( (string) $base_context );
+		if ( '' !== $effective ) {
+			$effective .= "\n\n";
+		}
+
+		$effective .= "## Page-Type Override\n";
+		$effective .= '- Scope: ' . $scope . "\n";
+		$effective .= '- Class: ' . $archetype_class . "\n";
+		if ( '' !== $style ) {
+			$effective .= '- Style: ' . $style . "\n";
+		}
+		if ( ! empty( $matched['title'] ) ) {
+			$effective .= '- Source: ' . $matched['title'] . "\n";
+		}
+		$effective .= "\n" . trim( (string) $matched['brief'] );
+
+		$inheritance['matched'] = true;
+		$inheritance['source']  = $matched;
+
+		return array(
+			'effective_context' => $effective,
+			'inheritance'       => $inheritance,
+		);
+	}
+
+	/**
+	 * Resolve a matching override source by scope.
+	 *
+	 * @param string $scope           Scope such as page or product.
+	 * @param string $archetype_class Archetype class.
+	 * @param string $style           Optional style.
+	 * @return array
+	 */
+	private function find_context_override( $scope, $archetype_class, $style ) {
+		if ( 'product' === $scope ) {
+			return $this->find_product_context_override( $archetype_class, $style );
+		}
+
+		return $this->find_page_context_override( $scope, $archetype_class, $style );
+	}
+
+	/**
+	 * Find a matching Elementor page archetype with override brief.
+	 *
+	 * @param string $scope           Scope.
+	 * @param string $archetype_class Archetype class.
+	 * @param string $style           Optional style.
+	 * @return array
+	 */
+	private function find_page_context_override( $scope, $archetype_class, $style ) {
+		if ( ! class_exists( 'Spai_Elementor_Pro' ) ) {
+			return array();
+		}
+
+		$elementor  = new Spai_Elementor_Pro();
+		$archetypes = $elementor->get_archetypes(
+			array(
+				'scope'           => $scope,
+				'archetype_class' => $archetype_class,
+				'style'           => $style,
+				'posts_per_page'  => 1,
+			)
+		);
+
+		if ( empty( $archetypes ) || ! is_array( $archetypes ) ) {
+			return array();
+		}
+
+		$item = reset( $archetypes );
+		if ( empty( $item['archetype_brief'] ) ) {
+			return array();
+		}
+
+		return array(
+			'type'  => 'elementor_archetype',
+			'id'    => isset( $item['id'] ) ? (int) $item['id'] : 0,
+			'title' => isset( $item['title'] ) ? (string) $item['title'] : '',
+			'brief' => (string) $item['archetype_brief'],
+		);
+	}
+
+	/**
+	 * Find a matching Woo product archetype with override brief.
+	 *
+	 * @param string $archetype_class Archetype class.
+	 * @param string $style           Optional style.
+	 * @return array
+	 */
+	private function find_product_context_override( $archetype_class, $style ) {
+		$items = get_option( 'spai_wc_product_archetypes', array() );
+		if ( ! is_array( $items ) ) {
+			return array();
+		}
+
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			if ( $archetype_class !== (string) ( $item['archetype_class'] ?? '' ) ) {
+				continue;
+			}
+			if ( '' !== $style && $style !== (string) ( $item['archetype_style'] ?? '' ) ) {
+				continue;
+			}
+			if ( empty( $item['brief'] ) ) {
+				continue;
+			}
+
+			return array(
+				'type'  => 'product_archetype',
+				'id'    => isset( $item['id'] ) ? (int) $item['id'] : 0,
+				'title' => isset( $item['name'] ) ? (string) $item['name'] : '',
+				'brief' => (string) $item['brief'],
+			);
+		}
+
+		return array();
 	}
 
 	/**
@@ -2294,6 +2543,37 @@ class Spai_REST_Site extends Spai_REST_API {
 		$this->log_activity( 'check_update', $request );
 
 		$current_version = defined( 'SPAI_VERSION' ) ? SPAI_VERSION : '0.0.0';
+		$option_version  = null;
+		$remote_version  = null;
+		$selected_source = null;
+
+		$option_data = get_option( 'spai_update_info' );
+		if ( is_string( $option_data ) ) {
+			$option_data = json_decode( $option_data, true );
+		}
+		if ( is_array( $option_data ) && ! empty( $option_data['version'] ) ) {
+			$option_version = (string) $option_data['version'];
+		}
+
+		$version_url = get_option( 'spai_version_url', 'https://mumega.com/spai-updates/version.json' );
+		if ( empty( $version_url ) ) {
+			$version_url = 'https://mumega.com/spai-updates/version.json';
+		}
+		$remote_response = wp_remote_get(
+			$version_url,
+			array(
+				'timeout' => 10,
+				'headers' => array(
+					'Accept' => 'application/json',
+				),
+			)
+		);
+		if ( ! is_wp_error( $remote_response ) && 200 === wp_remote_retrieve_response_code( $remote_response ) ) {
+			$remote_body = json_decode( wp_remote_retrieve_body( $remote_response ), true );
+			if ( is_array( $remote_body ) && ! empty( $remote_body['version'] ) ) {
+				$remote_version = (string) $remote_body['version'];
+			}
+		}
 
 		// Clear update caches and force a fresh check.
 		delete_site_transient( 'update_plugins' );
@@ -2317,12 +2597,29 @@ class Spai_REST_Site extends Spai_REST_API {
 			$update_available = ! empty( $new_version ) && version_compare( $new_version, $current_version, '>' );
 		}
 
+		if ( ! empty( $new_version ) ) {
+			if ( ! empty( $remote_version ) && version_compare( $new_version, $remote_version, '=' ) ) {
+				$selected_source = 'remote';
+			} elseif ( ! empty( $option_version ) && version_compare( $new_version, $option_version, '=' ) ) {
+				$selected_source = 'option';
+			}
+		} elseif ( ! empty( $remote_version ) || ! empty( $option_version ) ) {
+			if ( ! empty( $remote_version ) && ( empty( $option_version ) || version_compare( $remote_version, $option_version, '>=' ) ) ) {
+				$selected_source = 'remote';
+			} else {
+				$selected_source = 'option';
+			}
+		}
+
 		return $this->success_response(
 			array(
 				'current_version'  => $current_version,
 				'update_available' => $update_available,
 				'new_version'      => $new_version,
 				'has_package'      => ! empty( $package ),
+				'source'           => $selected_source,
+				'option_version'   => $option_version,
+				'remote_version'   => $remote_version,
 			)
 		);
 	}
@@ -2349,6 +2646,12 @@ class Spai_REST_Site extends Spai_REST_API {
 
 		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+		$clear_update_state = static function () {
+			delete_option( 'spai_update_info' );
+			delete_transient( 'spai_update_check' );
+			delete_site_transient( 'update_plugins' );
+		};
 
 		// If a package_url is provided, install directly from that URL.
 		if ( ! empty( $package_url ) ) {
@@ -2381,6 +2684,8 @@ class Spai_REST_Site extends Spai_REST_API {
 			if ( ! is_plugin_active( $plugin_file ) ) {
 				activate_plugin( $plugin_file );
 			}
+
+			$clear_update_state();
 
 			return $this->success_response(
 				array(
@@ -2443,6 +2748,8 @@ class Spai_REST_Site extends Spai_REST_API {
 		if ( ! is_plugin_active( $plugin_file ) ) {
 			activate_plugin( $plugin_file );
 		}
+
+		$clear_update_state();
 
 		return $this->success_response(
 			array(
@@ -2727,6 +3034,9 @@ class Spai_REST_Site extends Spai_REST_API {
 			'large_size_w',
 			'large_size_h',
 			'site_icon',
+			// Theme settings (hyphenated keys that don't match prefix rules).
+			'astra-settings',
+			'generate_settings',
 			// Site Pilot AI.
 			'spai_site_context',
 			'spai_site_context_updated',
@@ -3207,6 +3517,81 @@ class Spai_REST_Site extends Spai_REST_API {
 		$response['verification'] = $verification;
 
 		return $this->success_response( $response );
+	}
+
+	/**
+	 * List design references.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response
+	 */
+	public function list_design_references( $request ) {
+		$this->log_activity( 'list_design_references', $request );
+
+		$result = $this->design_references->list_references(
+			array(
+				'query'           => $request->get_param( 'query' ),
+				'page_intent'     => $request->get_param( 'page_intent' ),
+				'archetype_class' => $request->get_param( 'archetype_class' ),
+				'style'           => $request->get_param( 'style' ),
+				'source_type'     => $request->get_param( 'source_type' ),
+				'per_page'        => $request->get_param( 'per_page' ),
+				'page'            => $request->get_param( 'page' ),
+			)
+		);
+
+		return $this->success_response( $result );
+	}
+
+	/**
+	 * Get one design reference.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_design_reference( $request ) {
+		$this->log_activity( 'get_design_reference', $request );
+
+		$result = $this->design_references->get_reference( $request['id'] );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
+	}
+
+	/**
+	 * Create a design reference.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_design_reference( $request ) {
+		$this->log_activity( 'create_design_reference', $request );
+
+		$result = $this->design_references->create_reference( $request->get_json_params() ?: $request->get_params() );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result, 201 );
+	}
+
+	/**
+	 * Update a design reference.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function update_design_reference( $request ) {
+		$this->log_activity( 'update_design_reference', $request );
+
+		$result = $this->design_references->update_reference( $request['id'], $request->get_json_params() ?: $request->get_params() );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->success_response( $result );
 	}
 
 	/**

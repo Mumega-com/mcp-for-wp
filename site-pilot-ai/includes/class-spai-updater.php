@@ -2,8 +2,8 @@
 /**
  * Self-hosted Plugin Updater
  *
- * Checks spai_update_info option first (set via MCP deploy), then
- * falls back to the spai_version_url option or the default version.json URL.
+ * Merges the optional site override (`spai_update_info`) with the
+ * worker-served manifest and prefers the newer valid release.
  *
  * @package SitePilotAI
  */
@@ -22,7 +22,7 @@ class Spai_Updater {
 	 *
 	 * @var string
 	 */
-	private $version_url = 'https://spai-updates.weathered-scene-2272.workers.dev/version.json';
+	private $version_url = 'https://mumega.com/spai-updates/version.json';
 
 	/**
 	 * Plugin basename (e.g. site-pilot-ai/site-pilot-ai.php).
@@ -80,10 +80,132 @@ class Spai_Updater {
 	}
 
 	/**
-	 * Fetch remote version data.
+	 * Normalize manifest data into a comparable object.
 	 *
-	 * Checks the `spai_update_info` option first (set via MCP deploy),
-	 * then falls back to the remote version.json URL.
+	 * @param mixed  $data   Raw manifest data.
+	 * @param string $source Source label.
+	 * @return object|false Normalized object or false.
+	 */
+	private function normalize_manifest_data( $data, $source ) {
+		if ( empty( $data ) ) {
+			return false;
+		}
+
+		if ( is_string( $data ) ) {
+			$data = json_decode( $data, true );
+		}
+
+		if ( is_object( $data ) ) {
+			$data = (array) $data;
+		}
+
+		if ( ! is_array( $data ) || empty( $data['version'] ) || empty( $data['download_url'] ) ) {
+			return false;
+		}
+
+		$data['_source'] = $source;
+
+		return (object) $data;
+	}
+
+	/**
+	 * Fetch the site-level override manifest.
+	 *
+	 * @return object|false Override manifest or false.
+	 */
+	private function get_option_manifest() {
+		$option_data = get_option( 'spai_update_info' );
+		$manifest    = $this->normalize_manifest_data( $option_data, 'option' );
+
+		if ( false === $manifest ) {
+			return false;
+		}
+
+		// Ignore stale overrides older than the installed plugin.
+		if ( version_compare( $manifest->version, $this->current_version, '<' ) ) {
+			return false;
+		}
+
+		return $manifest;
+	}
+
+	/**
+	 * Fetch the worker/remote manifest.
+	 *
+	 * @return object|false Remote manifest or false.
+	 */
+	private function get_remote_manifest() {
+		$url = get_option( 'spai_version_url', $this->version_url );
+		if ( empty( $url ) ) {
+			$url = $this->version_url;
+		}
+
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 10,
+				'headers' => array(
+					'Accept' => 'application/json',
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return false;
+		}
+
+		$body     = wp_remote_retrieve_body( $response );
+		$manifest = $this->normalize_manifest_data( $body, 'remote' );
+
+		if ( false === $manifest ) {
+			return false;
+		}
+
+		$manifest->_url = $url;
+
+		return $manifest;
+	}
+
+	/**
+	 * Select the best manifest candidate.
+	 *
+	 * @param object|false $option_manifest Option manifest.
+	 * @param object|false $remote_manifest Remote manifest.
+	 * @return object|false Selected manifest or false.
+	 */
+	private function select_manifest( $option_manifest, $remote_manifest ) {
+		if ( false === $option_manifest && false === $remote_manifest ) {
+			return false;
+		}
+
+		if ( false === $option_manifest ) {
+			$remote_manifest->_option_version = null;
+			$remote_manifest->_remote_version = $remote_manifest->version;
+			return $remote_manifest;
+		}
+
+		if ( false === $remote_manifest ) {
+			$option_manifest->_option_version = $option_manifest->version;
+			$option_manifest->_remote_version = null;
+			return $option_manifest;
+		}
+
+		$comparison = version_compare( $option_manifest->version, $remote_manifest->version );
+		$selected   = $comparison > 0 ? $option_manifest : $remote_manifest;
+
+		// Prefer the remote manifest when both versions are equal.
+		if ( 0 === $comparison ) {
+			$selected = $remote_manifest;
+		}
+
+		$selected->_option_version = $option_manifest->version;
+		$selected->_remote_version = $remote_manifest->version;
+
+		return $selected;
+	}
+
+	/**
+	 * Fetch remote version data.
 	 *
 	 * @param bool $force_refresh Force a fresh check.
 	 * @return object|false Remote data object or false on failure.
@@ -101,42 +223,9 @@ class Spai_Updater {
 			}
 		}
 
-		$data = null;
-
-		// Check option-based override first (set via MCP wp_update_option).
-		$option_data = get_option( 'spai_update_info' );
-		if ( ! empty( $option_data ) ) {
-			if ( is_string( $option_data ) ) {
-				$option_data = json_decode( $option_data, true );
-			}
-			if ( is_array( $option_data ) && ! empty( $option_data['version'] ) ) {
-				$data = (object) $option_data;
-			}
-		}
-
-		// Fall back to remote version.json (check option override first).
-		if ( empty( $data ) ) {
-			$url = get_option( 'spai_version_url', $this->version_url );
-			if ( empty( $url ) ) {
-				$url = $this->version_url;
-			}
-			$response = wp_remote_get(
-				$url,
-				array(
-					'timeout' => 10,
-					'headers' => array(
-						'Accept' => 'application/json',
-					),
-				)
-			);
-
-			if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-				return false;
-			}
-
-			$body = wp_remote_retrieve_body( $response );
-			$data = json_decode( $body );
-		}
+		$option_manifest = $this->get_option_manifest();
+		$remote_manifest = $this->get_remote_manifest();
+		$data            = $this->select_manifest( $option_manifest, $remote_manifest );
 
 		if ( empty( $data ) || empty( $data->version ) ) {
 			return false;

@@ -94,6 +94,35 @@ class Spai_Integration_Manager {
 				),
 			),
 		),
+		'figma' => array(
+			'name'        => 'Figma',
+			'url'         => 'https://developers.figma.com/docs/figma-mcp-server/',
+			'key_prefix'  => '',
+			'tier'        => 'pro',
+			'description' => 'Read Figma design context into Site Pilot AI so models can inspect approved frames and then turn them into archetypes, parts, and site briefs. Supports either a personal access token or a Figma OAuth app.',
+			'fields'      => array(
+				'personal_access_token' => array(
+					'label'       => 'Personal Access Token',
+					'type'        => 'password',
+					'placeholder' => 'Optional: paste a Figma personal access token',
+				),
+				'oauth_client_id'       => array(
+					'label'       => 'OAuth Client ID',
+					'type'        => 'text',
+					'placeholder' => 'Optional: Figma OAuth app client ID',
+				),
+				'oauth_client_secret'   => array(
+					'label'       => 'OAuth Client Secret',
+					'type'        => 'password',
+					'placeholder' => 'Optional: Figma OAuth app client secret',
+				),
+				'default_file_key'      => array(
+					'label'       => 'Default File Key',
+					'type'        => 'text',
+					'placeholder' => 'Optional default file key for this site',
+				),
+			),
+		),
 	);
 
 	/**
@@ -109,6 +138,7 @@ class Spai_Integration_Manager {
 		'stock_photos'     => array( 'pexels' ),
 		'screenshots'      => array( 'screenshot' ),
 		'indexing'          => array( 'google_indexing' ),
+		'design_context'   => array( 'figma' ),
 	);
 
 	/**
@@ -288,6 +318,10 @@ class Spai_Integration_Manager {
 			return $this->test_google_indexing_provider();
 		}
 
+		if ( 'figma' === $provider ) {
+			return $this->test_figma_provider();
+		}
+
 		$key = $this->get_provider_key( $provider );
 		if ( false === $key ) {
 			return array(
@@ -404,6 +438,32 @@ class Spai_Integration_Manager {
 	}
 
 	/**
+	 * Test the Figma API connection.
+	 *
+	 * @return array{success: bool, message: string}
+	 */
+	private function test_figma_provider() {
+		if ( ! class_exists( 'Spai_Figma' ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Figma support is not available in this build.', 'site-pilot-ai' ),
+			);
+		}
+
+		$figma  = new Spai_Figma();
+		$result = $figma->test_connection();
+
+		$data = get_option( self::OPTION_NAME, array() );
+		if ( is_array( $data ) && isset( $data['figma'] ) ) {
+			$data['figma']['last_tested'] = current_time( 'mysql' );
+			$data['figma']['test_status'] = $result['success'] ? 'ok' : 'failed';
+			update_option( self::OPTION_NAME, $data );
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Get list of available providers with status.
 	 *
 	 * @return array
@@ -429,6 +489,15 @@ class Spai_Integration_Manager {
 			}
 			if ( isset( $info['fields'] ) ) {
 				$provider_data['fields'] = $info['fields'];
+			}
+
+			if ( 'figma' === $slug ) {
+				$config = $this->get_provider_config( 'figma' );
+				$config = is_array( $config ) ? $config : array();
+
+				$provider_data['oauth_ready']     = ! empty( $config['oauth_client_id'] ) && ! empty( $config['oauth_client_secret'] );
+				$provider_data['oauth_connected'] = ! empty( $config['access_token'] ) || ! empty( $config['refresh_token'] );
+				$provider_data['auth_mode']       = ! empty( $config['personal_access_token'] ) ? 'personal_token' : ( $provider_data['oauth_connected'] ? 'oauth' : 'unconfigured' );
 			}
 
 			$providers[ $slug ] = $provider_data;

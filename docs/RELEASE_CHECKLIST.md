@@ -1,309 +1,214 @@
 # Release Checklist
 
-Quick reference for releasing a new version of Site Pilot AI.
+Current release flow for Site Pilot AI.
 
-## Pre-Release Checklist
+This project no longer uses GitHub releases, Freemius, or the Cloudflare worker as the source of truth for plugin updates. The canonical update path is:
 
-- [ ] All features/fixes committed to `main`
-- [ ] All tests passing locally
-- [ ] Version number decided (semantic versioning)
-- [ ] CHANGELOG.md updated (if exists)
-- [ ] README.md updated (if needed)
+- Static manifest: `https://mumega.com/spai-updates/version.json`
+- Download ZIP: `https://mumega.com/spai-updates/mumega-site-pilot-ai-latest.zip`
 
-## Version Update
+## Pre-Release
 
-1. **Update plugin version** in `/site-pilot-ai/site-pilot-ai.php`:
+- [ ] All update-related changes committed to `main`
+- [ ] Local tests passing
+- [ ] Version number decided
+- [ ] `site-pilot-ai/site-pilot-ai.php` updated
+- [ ] `version.json` updated
+- [ ] `readme.txt` updated if needed
+- [ ] `site-pilot-ai/CHANGELOG.md` updated if needed
 
-```php
-/**
- * Version: 1.0.XX  // ← Update this
- */
+## Version Bump
 
-define( 'SPAI_VERSION', '1.0.XX' ); // ← Update this too
-```
+Update these locations together:
 
-2. **Verify both versions match:**
+1. [site-pilot-ai.php](/home/mumega/projects/sitepilotai/wp-ai-operator/site-pilot-ai/site-pilot-ai.php)
+   - plugin header `Version`
+   - `SPAI_VERSION`
+2. [version.json](/home/mumega/projects/sitepilotai/wp-ai-operator/version.json)
+   - `version`
+   - `download_url`
+   - compatibility fields
+3. `readme.txt`
+   - stable tag / changelog if relevant
+
+Quick check:
 
 ```bash
-# Quick check
 grep -E "(Version:|SPAI_VERSION)" site-pilot-ai/site-pilot-ai.php
+cat version.json
+```
+
+## Build
+
+```bash
+bash scripts/build-wporg.sh
 ```
 
 Expected output:
-```
- * Version:           1.0.XX
-define( 'SPAI_VERSION', '1.0.XX' );
-```
 
-## Create Release
+- `scripts/mumega-site-pilot-ai-X.Y.Z.zip`
 
-### Option A: Automated (Recommended)
+## Publish
+
+### 1. Publish release artifacts
+
+Preferred:
 
 ```bash
-# 1. Commit version change
-git add site-pilot-ai/site-pilot-ai.php
-git commit -m "release: 1.0.XX - brief description"
+bash scripts/publish_update_release.sh --build
+```
 
-# 2. Push to main
+This does all of the following:
+
+- verifies version consistency across plugin header, `SPAI_VERSION`, `readme.txt`, and `version.json`
+- builds `mumega-site-pilot-ai-X.Y.Z.zip`
+- publishes the ZIP to `/var/www/spai-updates/mumega-site-pilot-ai-latest.zip`
+- publishes `version.json` to `/var/www/spai-updates/version.json`
+- verifies the live `mumega.com` artifact URLs
+
+Manual fallback:
+
+```bash
+sudo cp scripts/mumega-site-pilot-ai-X.Y.Z.zip /var/www/spai-updates/mumega-site-pilot-ai-latest.zip
+sudo cp version.json /var/www/spai-updates/version.json
+```
+
+### 2. Optional: Sync the legacy worker
+
+```bash
+bash scripts/publish_update_release.sh --deploy-worker --verify-only
+```
+
+The worker is no longer part of the critical update path. Only sync it if you still want the legacy worker URL to mirror the static manifest.
+
+### 3. Commit and push repo changes
+
+```bash
+git add -A
+git commit -m "Bump version to X.Y.Z"
 git push origin main
-
-# 3. Create and push tag
-git tag v1.0.XX
-git push origin v1.0.XX
-
-# 4. Wait for GitHub Actions (2-3 minutes)
-# Check: https://github.com/themusicalunicorn/wp-ai-operator/actions
-
-# 5. Verify release created
-# Check: https://github.com/themusicalunicorn/wp-ai-operator/releases
 ```
 
-### Option B: Manual (Fallback)
+## Canonical Update Rules
 
-```bash
-# 1-2. Same as above (commit + push)
+- The static `mumega.com` manifest and ZIP are the only canonical release artifacts.
+- `spai_update_info` is an optional site-level override, not the source of truth.
+- If `spai_update_info` is used during deploys, it must match the static manifest exactly.
+- If no override is required, leave `spai_update_info` empty.
 
-# 3. Build distributions locally
-./build.sh 1.0.XX
+### Critical Warning
 
-# 4. Create release manually on GitHub
-# Upload: site-pilot-ai-1.0.XX-free.zip
-# Upload: site-pilot-ai-1.0.XX.zip
-```
+A stale `spai_update_info` option can block future updates even when `spai_version_url` is correct.
+
+The updater currently checks:
+
+1. `spai_update_info`
+2. `spai_version_url`
+3. built-in worker URL fallback
+
+That means stale override data can hide newer static-manifest releases.
 
 ## Post-Release Verification
 
-- [ ] GitHub release created successfully
-- [ ] Two zip files attached to release
-  - [ ] `site-pilot-ai-1.0.XX-free.zip` (smaller, no Pro)
-  - [ ] `site-pilot-ai-1.0.XX.zip` (larger, with Pro)
-- [ ] Release notes generated
-- [ ] Download and test free zip
-- [ ] Download and test premium zip
-- [ ] Verify free zip has NO `includes/pro/` directory
-- [ ] Verify premium zip has `includes/pro/` directory
+### Artifact checks
 
-## Testing Checklist
+- [ ] `https://mumega.com/spai-updates/version.json` returns the new version
+- [ ] `https://mumega.com/spai-updates/mumega-site-pilot-ai-latest.zip` exists
+- [ ] ZIP and manifest versions match
 
-### Test Free Distribution
+### Site checks
 
-```bash
-# Download free zip
-wget https://github.com/themusicalunicorn/wp-ai-operator/releases/download/v1.0.XX/site-pilot-ai-1.0.XX-free.zip
+On a target site:
 
-# Extract and verify
-unzip site-pilot-ai-1.0.XX-free.zip
-cd site-pilot-ai-temp
+- [ ] `spai_version_url` points at `https://mumega.com/spai-updates/version.json`
+- [ ] `spai_update_info` is empty or matches the worker manifest exactly
+- [ ] `/wp-json/site-pilot-ai/v1/update` reports the expected result
 
-# Check: NO Pro directory
-[ ! -d "includes/pro" ] && echo "✓ Pro correctly removed" || echo "✗ Pro directory found!"
-
-# Check: NO dev files
-[ ! -d ".git" ] && [ ! -d "tests" ] && echo "✓ Dev files removed" || echo "✗ Dev files found!"
-
-# Install in WordPress test site
-# Verify: Only free MCP tools available
-```
-
-### Test Premium Distribution
+Example checks:
 
 ```bash
-# Download premium zip
-wget https://github.com/themusicalunicorn/wp-ai-operator/releases/download/v1.0.XX/site-pilot-ai-1.0.XX.zip
-
-# Extract and verify
-unzip site-pilot-ai-1.0.XX.zip
-cd site-pilot-ai-premium
-
-# Check: Pro directory exists
-[ -d "includes/pro" ] && echo "✓ Pro included" || echo "✗ Pro missing!"
-
-# Check: Pro bootstrap exists
-[ -f "includes/pro/class-spai-pro-bootstrap.php" ] && echo "✓ Pro bootstrap found" || echo "✗ Missing!"
-
-# Install in WordPress test site with license
-# Verify: All Pro MCP tools available
+curl -fsSL "https://SITE/wp-json/site-pilot-ai/v1/option?key=spai_version_url" -H "X-API-Key: ..."
+curl -fsSL "https://SITE/wp-json/site-pilot-ai/v1/option?key=spai_update_info" -H "X-API-Key: ..."
+curl -fsSL "https://SITE/wp-json/site-pilot-ai/v1/update" -H "X-API-Key: ..."
 ```
 
-## Common Issues
+### If a site is already on the new version
 
-### Issue: Version Mismatch
+Expected:
 
-**Symptom:**
-```
-Error: Version mismatch! Plugin file has 1.0.44 but tag is v1.0.45
-```
-
-**Fix:**
-```bash
-# Update both version locations
-vim site-pilot-ai/site-pilot-ai.php
-
-# Commit and re-tag
-git add site-pilot-ai/site-pilot-ai.php
-git commit -m "fix: correct version to 1.0.45"
-git push
-
-# Delete old tag
-git tag -d v1.0.45
-git push origin :refs/tags/v1.0.45
-
-# Create new tag
-git tag v1.0.45
-git push origin v1.0.45
-```
-
-### Issue: Workflow Failed
-
-**Symptom:** GitHub Actions shows red X
-
-**Fix:**
-1. Click "Actions" tab on GitHub
-2. Click failed workflow run
-3. Read error logs
-4. Fix issue in code
-5. Push fix (workflow re-runs if tag)
-
-### Issue: Wrong Files in Zip
-
-**Symptom:** Free zip contains Pro files or dev files
-
-**Fix:**
-1. Check `.github/workflows/release.yml` file list
-2. Update exclusion patterns
-3. Delete bad release on GitHub
-4. Delete and recreate tag
-
-## Quick Commands
-
-```bash
-# View current version
-grep "Version:" site-pilot-ai/site-pilot-ai.php
-
-# View latest tag
-git describe --tags --abbrev=0
-
-# List all releases
-gh release list
-
-# Delete release (if needed)
-gh release delete v1.0.XX
-
-# Delete tag (if needed)
-git tag -d v1.0.XX
-git push origin :refs/tags/v1.0.XX
-```
-
-## Release Cadence
-
-Recommended schedule:
-- **Patch releases (1.0.x):** As needed for bug fixes
-- **Minor releases (1.x.0):** Monthly for new features
-- **Major releases (x.0.0):** Annually for breaking changes
-
-## Freemius Integration
-
-After GitHub release:
-1. Log in to Freemius dashboard
-2. Upload premium zip: `site-pilot-ai-1.0.XX.zip`
-3. Set as latest version
-4. Mark as stable (not beta)
-5. Trigger update for licensed users
-
-### Freemius Opt-in Requirement (Critical)
-
-**WordPress will NOT show plugin updates unless the site has completed the Freemius opt-in.**
-
-The Freemius SDK (`_fetch_latest_version` in `class-freemius.php`) exits early if `is_registered() === false`:
-```php
-if ( ! $this->is_registered() || ! is_essentials_tracking_allowed() ) {
-    return false; // No update check performed
+```json
+{
+  "current_version": "X.Y.Z",
+  "update_available": false,
+  "new_version": null,
+  "has_package": false
 }
 ```
 
-**If a site skipped the opt-in ("Skip" on first activation), updates are permanently blocked.**
+## Updating Target Sites
 
-#### Fix for blocked sites
+### Preferred
 
-**Option A: WP Admin UI**
-Visit Site Pilot AI in WP admin. If a Freemius consent banner appears, click "Allow & Continue".
+Let WordPress discover updates naturally from the static `mumega.com` manifest.
 
-**Option B: Reset anonymous flag via WP-CLI**
-```bash
-wp eval '
-$accounts = get_option("fs_accounts", []);
-if (isset($accounts["plugin_data"]["site-pilot-ai"]["is_anonymous"])) {
-    unset($accounts["plugin_data"]["site-pilot-ai"]["is_anonymous"]);
-    update_option("fs_accounts", $accounts);
-    echo "Cleared. Visit WP admin to re-trigger opt-in.\n";
-}
-' --allow-root
-```
+Requirements:
 
-**Option C: Reset via PHP (for Docker / no WP-CLI)**
-```bash
-docker exec CONTAINER bash -c 'php -r "
-require_once \"/var/www/html/wp-load.php\";
-\$a = get_option(\"fs_accounts\", []);
-unset(\$a[\"plugin_data\"][\"site-pilot-ai\"][\"is_anonymous\"]);
-update_option(\"fs_accounts\", \$a);
-echo \"Done. Visit WP admin to complete opt-in.\\n\";
-"'
-```
+- target site plugin version is recent enough to use the self-update flow
+- `spai_version_url` is correct
+- `spai_update_info` is empty or current
+- `wp-content/upgrade` is writable by the actual web/PHP user on the host
 
-#### Verify update checks work
-```bash
-wp eval '
-require_once ABSPATH . "wp-content/plugins/site-pilot-ai/site-pilot-ai.php";
-$fs = spa_fs();
-echo "Registered: " . ($fs->is_registered() ? "YES" : "NO") . "\n";
-echo "Anonymous: " . ($fs->is_anonymous() ? "YES" : "NO") . "\n";
-$update = $fs->get_update(false, false);
-echo "Update: " . (is_object($update) ? "v" . $update->version : "none/up-to-date") . "\n";
-' --allow-root
-```
+### Forced
 
-#### Post-deploy checklist
-- [ ] Run `release_freemius.sh` with `--release-mode released`
-- [ ] Verify on a registered site that update appears in WP admin > Updates
-- [ ] If update doesn't appear, check `fs_accounts` for `is_anonymous` flag
-
-## Rollback Procedure
-
-If release has critical issues:
+If needed, trigger a direct package install via the REST update route:
 
 ```bash
-# 1. Create hotfix
-git checkout main
-git pull
-
-# 2. Fix issue
-vim site-pilot-ai/...
-
-# 3. Bump version (e.g., 1.0.45 → 1.0.46)
-vim site-pilot-ai/site-pilot-ai.php
-
-# 4. Commit and tag
-git add .
-git commit -m "hotfix: critical issue description"
-git push
-git tag v1.0.46
-git push origin v1.0.46
-
-# 5. Mark bad release as pre-release on GitHub
-gh release edit v1.0.45 --prerelease
-
-# 6. Notify users via release notes
+curl -fsSL -X POST "https://SITE/wp-json/site-pilot-ai/v1/update" \
+  -H "X-API-Key: ..." \
+  -H "Content-Type: application/json" \
+  --data '{"package_url":"https://mumega.com/spai-updates/mumega-site-pilot-ai-latest.zip"}'
 ```
 
-## Support
+## Failure Mode: Update Not Appearing
 
-- **GitHub Actions Issues:** Check workflow logs under "Actions" tab
-- **Build Issues:** Review build script and workflow YAML
-- **Distribution Issues:** Verify file exclusion patterns
-- **Freemius Issues:** Contact Freemius support
+Check these in order:
+
+1. `spai_update_info` is stale
+2. static manifest version is wrong
+3. ZIP URL is wrong or unreachable
+4. `wp-content/upgrade` or the plugin directory is not writable by the runtime PHP user
+5. site is still on an older plugin build with weaker self-update behavior
+6. `update_plugins` / `spai_update_check` caches need clearing
+
+Useful reset:
+
+```bash
+curl -fsSL "https://SITE/wp-json/site-pilot-ai/v1/update" -H "X-API-Key: ..."
+```
+
+That route clears update caches before checking.
+
+## Rollback
+
+If a release is bad:
+
+1. Fix the issue locally
+2. Bump to a newer version
+3. Rebuild the ZIP
+4. Replace the `mumega.com` ZIP
+5. Verify static manifest + ZIP + site update checks again
+
+Do not roll back by leaving mismatched manifests or stale `spai_update_info` on sites.
+
+## Notes From 2026-03-31
+
+- Live site `sitepilotai.mumega.com` was manually updated from `1.7.4` to `1.8.2`
+- The site had a stale `spai_update_info` pinned to `1.7.6`
+- Clearing `spai_update_info` restored normal worker-based update detection
+- The permanent fix is to default all sites to `https://mumega.com/spai-updates/version.json` so the worker is no longer required for auto-updates
+- A bind-mounted plugin directory is not a valid auto-update test environment because WordPress cannot replace the mounted plugin path during upgrade
+- A clean local volume-backed WordPress install successfully self-updated from `1.8.4` to `1.8.5` once the updater ran as the plugin service user and `wp-content/upgrade` was writable
 
 ---
 
-**Last Updated:** 2026-02-10
-**Next Review:** 2026-03-10
+**Last Updated:** 2026-03-31

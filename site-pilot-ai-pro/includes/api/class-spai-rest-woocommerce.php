@@ -17,6 +17,20 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 	use Spai_API_Auth;
 
 	/**
+	 * Option key storing product archetype definitions.
+	 *
+	 * @var string
+	 */
+	private $product_archetypes_option_key = 'spai_wc_product_archetypes';
+
+	/**
+	 * Option key storing next product archetype ID.
+	 *
+	 * @var string
+	 */
+	private $product_archetypes_next_id_option_key = 'spai_wc_product_archetypes_next_id';
+
+	/**
 	 * WooCommerce handler instance.
 	 *
 	 * @var Spai_WooCommerce
@@ -114,6 +128,50 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_product_tags' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
+		register_rest_route(
+			$namespace,
+			'/woocommerce/archetypes',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_product_archetypes' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_product_archetype' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$namespace,
+			'/woocommerce/archetypes/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_product_archetype' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_product_archetype' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$namespace,
+			'/woocommerce/archetypes/(?P<id>\d+)/apply',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'apply_product_archetype' ),
 				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
@@ -605,6 +663,128 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 		return rest_ensure_response( $this->handler->get_product_tags() );
 	}
 
+	public function get_product_archetypes( $request ) {
+		$items = $this->load_product_archetypes();
+
+		$archetype_class = sanitize_key( (string) $request->get_param( 'archetype_class' ) );
+		$product_type    = sanitize_key( (string) $request->get_param( 'product_type' ) );
+		$style           = sanitize_text_field( (string) $request->get_param( 'archetype_style' ) );
+
+		$items = array_values(
+			array_filter(
+				$items,
+				function ( $item ) use ( $archetype_class, $product_type, $style ) {
+					if ( $archetype_class && $archetype_class !== $item['archetype_class'] ) {
+						return false;
+					}
+					if ( $product_type && $product_type !== $item['product_type'] ) {
+						return false;
+					}
+					if ( $style && $style !== $item['archetype_style'] ) {
+						return false;
+					}
+					return true;
+				}
+			)
+		);
+
+		return rest_ensure_response(
+			array(
+				'archetypes' => $items,
+				'total'      => count( $items ),
+			)
+		);
+	}
+
+	public function get_product_archetype( $request ) {
+		$item = $this->get_product_archetype_by_id( absint( $request->get_param( 'id' ) ) );
+		if ( is_wp_error( $item ) ) {
+			return $item;
+		}
+
+		return rest_ensure_response( $item );
+	}
+
+	public function create_product_archetype( $request ) {
+		$data = $this->normalize_product_archetype_payload( $request->get_params() );
+		if ( is_wp_error( $data ) ) {
+			return $data;
+		}
+
+		$id                  = (int) get_option( $this->product_archetypes_next_id_option_key, 1 );
+		$data['id']          = $id;
+		$data['created_gmt'] = current_time( 'mysql', true );
+		$data['updated_gmt'] = $data['created_gmt'];
+
+		$items   = $this->load_product_archetypes();
+		$items[] = $data;
+
+		update_option( $this->product_archetypes_option_key, $items, false );
+		update_option( $this->product_archetypes_next_id_option_key, $id + 1, false );
+
+		return rest_ensure_response( $data );
+	}
+
+	public function update_product_archetype( $request ) {
+		$id    = absint( $request->get_param( 'id' ) );
+		$items = $this->load_product_archetypes();
+		$index = $this->find_product_archetype_index( $items, $id );
+
+		if ( -1 === $index ) {
+			return new WP_Error( 'not_found', __( 'Product archetype not found.', 'site-pilot-ai-pro' ), array( 'status' => 404 ) );
+		}
+
+		$current = $items[ $index ];
+		$merged  = $this->normalize_product_archetype_payload( array_merge( $current, $request->get_params() ), true );
+		if ( is_wp_error( $merged ) ) {
+			return $merged;
+		}
+
+		$merged['id']          = $id;
+		$merged['created_gmt'] = $current['created_gmt'];
+		$merged['updated_gmt'] = current_time( 'mysql', true );
+
+		$items[ $index ] = $merged;
+		update_option( $this->product_archetypes_option_key, $items, false );
+
+		return rest_ensure_response( $merged );
+	}
+
+	public function apply_product_archetype( $request ) {
+		$archetype = $this->get_product_archetype_by_id( absint( $request->get_param( 'id' ) ) );
+		if ( is_wp_error( $archetype ) ) {
+			return $archetype;
+		}
+
+		$payload = $archetype['product_data'];
+		$payload = array_merge( $payload, $this->extract_product_override_payload( $request->get_params() ) );
+
+		if ( ! empty( $request->get_param( 'product_id' ) ) ) {
+			$product_id = absint( $request->get_param( 'product_id' ) );
+			$result     = $this->handler->update_product( $product_id, $payload );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			return rest_ensure_response( array( 'mode' => 'updated', 'archetype_id' => $archetype['id'], 'product' => $result ) );
+		}
+
+		if ( empty( $payload['name'] ) ) {
+			return new WP_Error( 'missing_name', __( 'Applying a product archetype to a new product requires a name.', 'site-pilot-ai-pro' ), array( 'status' => 400 ) );
+		}
+
+		if ( empty( $payload['status'] ) ) {
+			$payload['status'] = 'draft';
+		}
+
+		$result = $this->handler->create_product( $payload );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( array( 'mode' => 'created', 'archetype_id' => $archetype['id'], 'product' => $result ) );
+	}
+
 	/**
 	 * Get orders.
 	 *
@@ -726,5 +906,92 @@ class Spai_REST_WooCommerce extends Spai_REST_API {
 		}
 
 		return rest_ensure_response( $result );
+	}
+
+	private function load_product_archetypes() {
+		$items = get_option( $this->product_archetypes_option_key, array() );
+		return is_array( $items ) ? $items : array();
+	}
+
+	private function get_product_archetype_by_id( $id ) {
+		$items = $this->load_product_archetypes();
+		$index = $this->find_product_archetype_index( $items, $id );
+
+		if ( -1 === $index ) {
+			return new WP_Error( 'not_found', __( 'Product archetype not found.', 'site-pilot-ai-pro' ), array( 'status' => 404 ) );
+		}
+
+		return $items[ $index ];
+	}
+
+	private function find_product_archetype_index( $items, $id ) {
+		foreach ( $items as $index => $item ) {
+			if ( isset( $item['id'] ) && (int) $item['id'] === (int) $id ) {
+				return (int) $index;
+			}
+		}
+
+		return -1;
+	}
+
+	private function normalize_product_archetype_payload( $data, $partial = false ) {
+		$name = isset( $data['name'] ) ? sanitize_text_field( (string) $data['name'] ) : '';
+		if ( ! $partial && '' === $name ) {
+			return new WP_Error( 'missing_name', __( 'Archetype name is required.', 'site-pilot-ai-pro' ), array( 'status' => 400 ) );
+		}
+
+		$product_type = isset( $data['product_type'] ) ? sanitize_key( (string) $data['product_type'] ) : 'simple';
+		if ( '' === $product_type ) {
+			$product_type = 'simple';
+		}
+
+		$record = array(
+			'name'            => $name,
+			'archetype_class' => isset( $data['archetype_class'] ) ? sanitize_key( (string) $data['archetype_class'] ) : '',
+			'archetype_style' => isset( $data['archetype_style'] ) ? sanitize_text_field( (string) $data['archetype_style'] ) : '',
+			'product_type'    => $product_type,
+			'product_data'    => $this->extract_product_override_payload( $data ),
+		);
+
+		if ( empty( $record['product_data']['type'] ) ) {
+			$record['product_data']['type'] = $product_type;
+		}
+
+		return $record;
+	}
+
+	private function extract_product_override_payload( $data ) {
+		$allowed_keys = array(
+			'name',
+			'type',
+			'status',
+			'description',
+			'short_description',
+			'sku',
+			'regular_price',
+			'sale_price',
+			'manage_stock',
+			'stock_quantity',
+			'stock_status',
+			'categories',
+			'tags',
+			'image_id',
+			'gallery_image_ids',
+			'virtual',
+			'downloadable',
+			'weight',
+			'length',
+			'width',
+			'height',
+		);
+
+		$payload = array();
+		foreach ( $allowed_keys as $key ) {
+			if ( array_key_exists( $key, $data ) ) {
+				$payload[ $key ] = $data[ $key ];
+			}
+		}
+
+		return $payload;
 	}
 }

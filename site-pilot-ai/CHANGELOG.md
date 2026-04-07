@@ -5,6 +5,85 @@ All notable changes to Site Pilot AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-04-01
+
+### Changed
+- Admin Library copy now makes the storage model explicit: SPAI archetypes and reusable parts are Elementor templates with SPAI metadata layered on top.
+
+### Fixed
+- Preserve existing archetype metadata on partial updates when only Elementor content changes.
+- Preserve existing reusable-part metadata on partial updates when only Elementor content changes.
+- Carry forward the `2.2.1` shared-host-safe Elementor mutation path and operator workflow improvements.
+
+## [2.2.1] - 2026-04-01
+### Added
+- Shared-host-safe `elementor_data_base64` support for pro Elementor template, archetype, and part create/update routes.
+
+### Changed
+- API and guide docs now describe HostGator / ModSecurity-safe Elementor mutation patterns using form-encoded and base64 payloads.
+
+### Fixed
+- Reduce shared-host request-body incompatibilities that blocked archetype and part management on live sites protected by WAF rules.
+
+## [2.2.0] - 2026-04-01
+
+### Added
+- Operator-focused admin polish with onboarding, update recovery, Library health, lineage counts, and drill-down asset views.
+- Design-reference-driven draft generation from the admin Library, including automatic reusable-part creation and linkage.
+
+### Changed
+- README and plugin readme now position Site Pilot AI as a reusable AI production system for WordPress operators.
+- Library workflow guidance now better reflects site character, archetypes, parts, and design-reference usage.
+
+### Fixed
+- Carry forward the `2.1.0` feature set, including design references, structured archetypes, guided site character, Figma integration, updater hardening, and Elementor 4 save persistence verification.
+
+## [2.1.0] - 2026-04-01
+
+### Added
+- Image-based design references so uploaded screenshots and mockups can be stored as reusable site assets.
+- MCP and REST tools for storing, listing, reading, and updating design references.
+- A structured `build_from_design_reference` workflow for turning uploaded design images into local pages, archetypes, and reusable parts.
+
+### Changed
+- Media and onboarding guidance now tells models to preserve approved screenshots as design references before building.
+
+### Fixed
+- Carry forward the `2.0.0` feature set, including archetypes, guided site character, Figma integration, updater hardening, and Elementor 4 save persistence verification.
+
+## [2.0.0] - 2026-04-01
+
+### Added
+- Structured site-building primitives with reusable Elementor parts, page archetypes, and WooCommerce product archetypes.
+- Guided site character authoring, public `llms.txt` output, and AI-facing context inheritance for page and product archetypes.
+- Figma integration with personal token and OAuth configuration, plus REST and MCP design intake tools.
+- Library and Integrations admin improvements for curating archetypes, parts, and design connections.
+
+### Fixed
+- Carry forward updater hardening and Elementor 4 save persistence verification from the `1.8.x` series.
+
+## [1.8.6] - 2026-03-31
+
+### Changed
+- Test release to validate live auto-update from `1.8.5` with the filesystem-aware updater.
+
+### Fixed
+- Carry forward updater filesystem initialization, diagnostics, manifest hardening, and Elementor 4 save verification from `1.8.5`.
+
+## [1.8.5] - 2026-03-31
+
+### Fixed
+- Initialize the WordPress filesystem before self-updates and surface actionable upgrader errors when plugin installs fail.
+- Carry forward updater manifest selection hardening and Elementor 4 save persistence verification from `1.8.4`.
+
+## [1.8.4] - 2026-03-31
+
+### Changed
+- Test release to validate end-to-end WordPress self-update from the canonical `mumega.com` manifest and ZIP.
+
+### Fixed
+- Carry forward updater hardening and Elementor 4 save persistence verification from `1.8.3`.
+
 ## [1.0.43] - 2026-02-07
 
 ### Fixed

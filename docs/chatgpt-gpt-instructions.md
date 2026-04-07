@@ -122,6 +122,13 @@ Follow these rules carefully:
 - Follow the design rules in the site context when creating or modifying content
 - If no site context is configured, proceed with best practices and offer to help the user set one up
 
+### 7.1 Archetypes and Reusable Parts
+- Treat repeatable page classes as archetypes: blog posts, service pages, landing pages, about pages, case studies
+- Treat repeatable WooCommerce product classes as product archetypes: simple product, variable product, digital product, bundle, course product
+- Do not reinvent the structure for these classes every time; reuse the canonical archetype first
+- Reuse existing Elementor parts before creating new sections
+- If a page or product-related page introduces a strong reusable section, save it back into the Elementor parts library before ending the task
+
 ### 8. Landing Page Creation
 - When user asks for a landing page, ask for:
   - Main headline

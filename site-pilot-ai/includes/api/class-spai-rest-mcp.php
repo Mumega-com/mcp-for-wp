@@ -237,6 +237,8 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 */
 	public function get_introspection_data() {
 		$core = class_exists( 'Spai_Core' ) ? new Spai_Core() : null;
+		$figma_status = class_exists( 'Spai_Figma' ) ? ( new Spai_Figma() )->get_status() : array();
+		$figma_configured = ! empty( $figma_status['configured'] );
 
 		$site_info = is_object( $core ) && method_exists( $core, 'get_site_info' )
 			? $core->get_site_info()
@@ -304,12 +306,41 @@ class Spai_REST_MCP extends Spai_REST_API {
 				'transport' => 'JSON-RPC 2.0 over HTTP POST',
 				'methods'   => array( 'initialize', 'tools/list', 'tools/call' ),
 			),
+			'recommended_guides'    => array_values(
+				array_filter(
+					array(
+						'onboarding',
+						'workflows',
+						! empty( $capabilities['elementor'] ) ? 'elementor' : '',
+						! empty( $capabilities['woocommerce'] ) ? 'woocommerce' : '',
+					)
+				)
+			),
 			'tools'                 => $tools,
 			'workflows'             => $workflows,
-			'quick_start'           => array(
-				'1. Call wp_introspect to discover capabilities.',
-				'2. Call wp_detect_plugins to confirm integrations.',
-				'3. Use workflows above based on detected features.',
+			'operating_rules'       => array_values(
+				array_filter(
+					array(
+						'Read site context before changing content structure.',
+						$figma_configured ? 'If an approved Figma source is available, inspect it before translating the design into local structure.' : '',
+						'Prefer archetypes and reusable parts over one-off page or product structures.',
+						'For repeatable page classes, use page archetypes first.',
+						'For repeatable product classes, use product archetypes first.',
+						'If you create a reusable Elementor section, save it back into the parts library before finishing.',
+						'Default new content to draft unless explicitly asked to publish.',
+					)
+				)
+			),
+			'quick_start'           => array_values(
+				array_filter(
+					array(
+						'1. Call wp_introspect to discover capabilities.',
+						'2. Call wp_get_site_context to read site-level rules.',
+						'3. Call wp_get_guide(topic="onboarding") and wp_get_guide(topic="workflows").',
+						$figma_configured ? '4. If the site uses Figma, call wp_figma_status and inspect the approved file or frame before building.' : '',
+						'5. Use page/product archetypes and reusable parts before creating new structure.',
+					)
+				)
 			),
 		);
 	}
@@ -1189,7 +1220,8 @@ class Spai_REST_MCP extends Spai_REST_API {
 		// Setup (always present)
 		$workflows['Setup'] = array(
 			'Call wp_introspect to discover capabilities and version.',
-			'Call wp_detect_plugins to learn available integrations (Elementor/SEO/forms/etc.).',
+			'Call wp_get_site_context to read the site brief and design/content rules.',
+			'Call wp_get_guide(topic="onboarding") and wp_get_guide(topic="workflows") before making structural changes.',
 			'Use wp_create_api_key for scoped keys (admin only).',
 		);
 
@@ -1214,8 +1246,11 @@ class Spai_REST_MCP extends Spai_REST_API {
 		// Elementor (conditional)
 		if ( ! empty( $capabilities['elementor'] ) ) {
 			$workflows['Elementor'] = array(
+				'Use wp_list_elementor_archetypes to find canonical page archetypes before building from scratch.',
+				'Use wp_list_elementor_parts to reuse saved sections before creating new sections.',
 				'Use wp_get_elementor to retrieve Elementor JSON data for a page.',
 				'Use wp_set_elementor to update Elementor page builder content.',
+				'Use wp_create_elementor_part_from_section to save strong reusable sections back into the library.',
 				'Use wp_regenerate_elementor_css to rebuild CSS after template changes.',
 			);
 		}
@@ -1223,7 +1258,8 @@ class Spai_REST_MCP extends Spai_REST_API {
 		// eCommerce (conditional)
 		if ( ! empty( $capabilities['woocommerce'] ) ) {
 			$workflows['eCommerce'] = array(
-				'Use WooCommerce tools to manage products and inventory.',
+				'Use wc_list_product_archetypes to find the correct product archetype before creating similar products.',
+				'Use wc_apply_product_archetype to create or update products from a canonical structure.',
 				'Monitor orders and customer data.',
 				'Update product descriptions, pricing, and categories.',
 			);

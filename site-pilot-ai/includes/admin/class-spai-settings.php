@@ -745,6 +745,7 @@ class Spai_Settings {
 	 */
 	public function render_site_context_section() {
 		echo '<p>' . esc_html__( 'Define your site\'s design rules, style guide, and page structure. This is served to AI assistants when they connect, so they know how to build pages that match your brand.', 'site-pilot-ai' ) . '</p>';
+		echo '<p>' . esc_html__( 'This same context is also published publicly at /llms.txt so external AI crawlers and assistants can pick up the site\'s character, key pages, and preferred framing.', 'site-pilot-ai' ) . '</p>';
 	}
 
 	/**
@@ -761,7 +762,7 @@ class Spai_Settings {
 		);
 
 		echo '<p class="description">';
-		esc_html_e( 'Write in Markdown. This text is included in the wp_introspect response and available via wp_get_site_context. AI assistants will use this as their design reference when building or editing pages.', 'site-pilot-ai' );
+		esc_html_e( 'Write in Markdown. This text is included in the wp_introspect response, available via wp_get_site_context, and published in a public llms.txt summary. AI assistants will use this as their design reference when building or editing pages.', 'site-pilot-ai' );
 		echo '</p>';
 
 		if ( '' !== $updated ) {

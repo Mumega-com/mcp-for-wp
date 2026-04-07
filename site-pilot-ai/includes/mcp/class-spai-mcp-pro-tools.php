@@ -80,6 +80,15 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_elementor_template'       => 'elementor',
 			'wp_delete_elementor_template'       => 'elementor',
 			'wp_apply_elementor_template'        => 'elementor',
+			'wp_list_elementor_archetypes'       => 'elementor',
+			'wp_get_elementor_archetype'         => 'elementor',
+			'wp_create_elementor_archetype'      => 'elementor',
+			'wp_apply_elementor_archetype'       => 'elementor',
+			'wp_list_elementor_parts'            => 'elementor',
+			'wp_get_elementor_part'              => 'elementor',
+			'wp_create_elementor_part'           => 'elementor',
+			'wp_create_elementor_part_from_section' => 'elementor',
+			'wp_apply_elementor_part'            => 'elementor',
 			'wp_create_landing_page'             => 'elementor',
 			'wp_clone_elementor_page'            => 'elementor',
 			'wp_get_elementor_globals'           => 'elementor',
@@ -97,6 +106,9 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_assign_template'                 => 'elementor',
 			'wp_create_theme_template'           => 'elementor',
 			'wp_build_page'                      => 'elementor',
+			'wp_list_blueprints'                 => 'elementor',
+			'wp_get_blueprint'                   => 'elementor',
+			'wp_save_section_as_template'        => 'elementor',
 
 			// Menu Management (Pro)
 			'wp_get_menu'                        => 'site',
@@ -107,6 +119,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wc_status'                          => 'woocommerce',
 			'wc_list_products'                   => 'woocommerce',
 			'wc_get_product'                     => 'woocommerce',
+			'wc_list_product_archetypes'         => 'woocommerce',
+			'wc_get_product_archetype'           => 'woocommerce',
+			'wc_create_product_archetype'        => 'woocommerce',
+			'wc_apply_product_archetype'         => 'woocommerce',
 			'wc_create_product'                  => 'woocommerce',
 			'wc_update_product'                  => 'woocommerce',
 			'wc_delete_product'                  => 'woocommerce',
@@ -195,6 +211,15 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_elementor_template'        => 'elementor',
 			'wp_delete_elementor_template'        => 'elementor',
 			'wp_apply_elementor_template'         => 'elementor',
+			'wp_list_elementor_archetypes'        => 'elementor',
+			'wp_get_elementor_archetype'          => 'elementor',
+			'wp_create_elementor_archetype'       => 'elementor',
+			'wp_apply_elementor_archetype'        => 'elementor',
+			'wp_list_elementor_parts'             => 'elementor',
+			'wp_get_elementor_part'               => 'elementor',
+			'wp_create_elementor_part'            => 'elementor',
+			'wp_create_elementor_part_from_section' => 'elementor',
+			'wp_apply_elementor_part'             => 'elementor',
 			'wp_create_landing_page'              => 'elementor',
 			'wp_clone_elementor_page'             => 'elementor',
 			'wp_get_elementor_globals'            => 'elementor',
@@ -207,6 +232,10 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wc_status'                          => 'woocommerce',
 			'wc_list_products'                   => 'woocommerce',
 			'wc_get_product'                     => 'woocommerce',
+			'wc_list_product_archetypes'         => 'woocommerce',
+			'wc_get_product_archetype'           => 'woocommerce',
+			'wc_create_product_archetype'        => 'woocommerce',
+			'wc_apply_product_archetype'         => 'woocommerce',
 			'wc_create_product'                  => 'woocommerce',
 			'wc_update_product'                  => 'woocommerce',
 			'wc_delete_product'                  => 'woocommerce',
@@ -229,6 +258,9 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_assign_template'                  => 'elementor',
 			'wp_create_theme_template'            => 'elementor',
 			'wp_build_page'                       => 'elementor',
+			'wp_list_blueprints'                  => 'elementor',
+			'wp_get_blueprint'                    => 'elementor',
+			'wp_save_section_as_template'         => 'elementor',
 			// LearnPress tools.
 			'wp_list_courses'                    => 'learnpress',
 			'wp_get_course'                      => 'learnpress',
@@ -628,7 +660,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 
 		$pro_tools[] = $this->define_tool(
 			'wp_apply_elementor_template',
-			'Apply an Elementor template to a page',
+			'Apply an Elementor template to a page. WARNING: This COPIES the template data and REPLACES all existing page content. For non-destructive insertion, get the template data via wp_get_elementor_template then use wp_add_section to insert specific sections.',
 			array(
 				'template_id' => array(
 					'type'        => 'number',
@@ -639,6 +671,220 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'number',
 					'description' => 'Page ID to apply template to',
 					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_list_elementor_archetypes',
+			'List reusable Elementor archetypes. Archetypes are full-page or product-layout templates marked by scope and class, such as blog_post, service_page, landing_page, or simple_product.',
+			array(
+				'scope' => array(
+					'type'        => 'string',
+					'description' => 'Optional archetype scope such as page or product',
+				),
+				'archetype_class' => array(
+					'type'        => 'string',
+					'description' => 'Optional archetype class such as blog_post, service_page, landing_page, simple_product, variable_product',
+				),
+				'style' => array(
+					'type'        => 'string',
+					'description' => 'Optional style or variant label',
+				),
+				'search' => array(
+					'type'        => 'string',
+					'description' => 'Optional text search over archetype titles',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_elementor_archetype',
+			'Get a single reusable Elementor archetype with its Elementor data and archetype metadata.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Archetype/template post ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_create_elementor_archetype',
+			'Create a reusable Elementor archetype. Use this for canonical full-page structures like blog posts, service pages, landing pages, or product-layout archetypes.',
+			array(
+				'title' => array(
+					'type'        => 'string',
+					'description' => 'Archetype title',
+					'required'    => true,
+				),
+				'elementor_data' => array(
+					'type'        => 'array',
+					'description' => 'Optional Elementor data JSON for the archetype',
+				),
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Optional Elementor template type. Defaults to page.',
+				),
+				'archetype_scope' => array(
+					'type'        => 'string',
+					'description' => 'Archetype scope, typically page or product',
+					'required'    => true,
+				),
+				'archetype_class' => array(
+					'type'        => 'string',
+					'description' => 'Archetype class such as blog_post, service_page, landing_page, simple_product, variable_product',
+					'required'    => true,
+				),
+				'archetype_style' => array(
+					'type'        => 'string',
+					'description' => 'Optional archetype style or variant label',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_apply_elementor_archetype',
+			'Apply an Elementor archetype to a page. This is intended for page-scoped archetypes and replaces the page content with the canonical archetype structure.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Archetype/template ID',
+					'required'    => true,
+				),
+				'page_id' => array(
+					'type'        => 'number',
+					'description' => 'Target page ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_list_elementor_parts',
+			'List reusable Elementor parts from the parts library. Parts are metadata-backed Elementor templates meant for reuse across pages, such as heroes, FAQs, CTAs, pricing sections, and proof bands. Optional filters: kind, style, tag, search.',
+			array(
+				'kind'   => array(
+					'type'        => 'string',
+					'description' => 'Optional part kind, such as hero, faq, cta, pricing, features, proof, testimonial, footer_promo',
+				),
+				'style'  => array(
+					'type'        => 'string',
+					'description' => 'Optional style or variant label, such as dark, minimal, editorial, saas',
+				),
+				'tag'    => array(
+					'type'        => 'string',
+					'description' => 'Optional tag to filter by',
+				),
+				'search' => array(
+					'type'        => 'string',
+					'description' => 'Optional text search over part titles',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_elementor_part',
+			'Get a single reusable Elementor part with its Elementor data and metadata.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Part/template post ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_create_elementor_part',
+			'Create a reusable Elementor part directly from Elementor JSON. Use this for canonical building blocks you want to reuse across many pages.',
+			array(
+				'title'          => array(
+					'type'        => 'string',
+					'description' => 'Part title',
+					'required'    => true,
+				),
+				'elementor_data' => array(
+					'type'        => 'array',
+					'description' => 'Elementor data JSON for the part',
+					'required'    => true,
+				),
+				'type'           => array(
+					'type'        => 'string',
+					'description' => 'Optional template type. Defaults to section.',
+				),
+				'part_kind'      => array(
+					'type'        => 'string',
+					'description' => 'Part kind such as hero, faq, cta, pricing, features, proof, testimonial',
+				),
+				'part_style'     => array(
+					'type'        => 'string',
+					'description' => 'Optional style/variant label',
+				),
+				'part_tags'      => array(
+					'type'        => 'array',
+					'description' => 'Optional list of part tags',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_create_elementor_part_from_section',
+			'Extract a live Elementor section or container from a page and save it as a reusable part in the parts library. This is the professional way to promote a good live section into a canonical reusable asset.',
+			array(
+				'page_id'    => array(
+					'type'        => 'integer',
+					'description' => 'Page ID containing the source section',
+					'required'    => true,
+				),
+				'element_id' => array(
+					'type'        => 'string',
+					'description' => 'Element ID of the source section/container from wp_get_elementor_summary',
+					'required'    => true,
+				),
+				'title'      => array(
+					'type'        => 'string',
+					'description' => 'Optional title for the saved part',
+				),
+				'part_kind'  => array(
+					'type'        => 'string',
+					'description' => 'Part kind such as hero, faq, cta, pricing, features, proof, testimonial',
+				),
+				'part_style' => array(
+					'type'        => 'string',
+					'description' => 'Optional style/variant label',
+				),
+				'part_tags'  => array(
+					'type'        => 'array',
+					'description' => 'Optional list of part tags',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_apply_elementor_part',
+			'Apply a reusable Elementor part to a page. Use mode=\"replace\" to stamp the page from the part, or mode=\"insert\" to append/insert the part into an existing page without replacing other top-level sections.',
+			array(
+				'id'      => array(
+					'type'        => 'number',
+					'description' => 'Part/template ID',
+					'required'    => true,
+				),
+				'page_id' => array(
+					'type'        => 'number',
+					'description' => 'Page ID to apply the part to',
+					'required'    => true,
+				),
+				'mode'    => array(
+					'type'        => 'string',
+					'description' => 'replace (default) or insert',
+					'default'     => 'replace',
+				),
+				'position' => array(
+					'type'        => 'string',
+					'description' => 'For mode=insert: start, end, before:{section_id}, after:{section_id}',
+					'default'     => 'end',
 				),
 			)
 		);
@@ -678,7 +924,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 
 		$pro_tools[] = $this->define_tool(
 			'wp_build_page',
-			'Build a page from semantic section blueprints. Generates valid Elementor data automatically. Supported section types: hero, features, cta, pricing, faq, testimonials, text, gallery, contact_form, map, countdown, stats, logo_grid, video.',
+			'Creates a NEW page from semantic section blueprints. Generates valid Elementor data automatically. For adding sections to EXISTING pages, use wp_get_blueprint + wp_add_section instead. Supported section types: hero, features, cta, pricing, faq, testimonials, text, gallery, contact_form, map, countdown, stats, logo_grid, video.',
 			array(
 				'title' => array(
 					'type'        => 'string',
@@ -694,6 +940,63 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'string',
 					'description' => 'Page status: draft (default), publish, private',
 					'default'     => 'draft',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_list_blueprints',
+			'List all available section blueprint types with their parameter schemas. Use this to discover what section types can be generated with wp_get_blueprint. WORKFLOW: 1) wp_list_blueprints → see types + params 2) wp_get_blueprint(type, params) → get JSON 3) wp_add_section(page_id, element, position) → insert on page.',
+			array()
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_get_blueprint',
+			'Generate a single Elementor section from a blueprint type. Returns ready-to-use Elementor JSON that can be inserted into any page via wp_add_section. WORKFLOW: 1) wp_list_blueprints → discover types 2) wp_get_blueprint(type, params) → generate section JSON 3) wp_add_section(page_id, element=<json>.elements[0], position) → insert 4) wp_get_elementor_summary → verify.',
+			array(
+				'type' => array(
+					'type'        => 'string',
+					'description' => 'Blueprint type: hero, features, cta, pricing, faq, testimonials, text, gallery, contact_form, map, countdown, stats, logo_grid, video',
+					'required'    => true,
+				),
+				'heading'     => array( 'type' => 'string', 'description' => 'Section heading text' ),
+				'subheading'  => array( 'type' => 'string', 'description' => 'Section subheading text' ),
+				'cta_text'    => array( 'type' => 'string', 'description' => 'CTA button text (hero/cta)' ),
+				'cta_url'     => array( 'type' => 'string', 'description' => 'CTA button URL (hero/cta)' ),
+				'button_text' => array( 'type' => 'string', 'description' => 'Button text (cta/pricing)' ),
+				'button_url'  => array( 'type' => 'string', 'description' => 'Button URL (cta/pricing)' ),
+				'background'  => array( 'type' => 'string', 'description' => 'Color hex or "gradient" (hero/cta)' ),
+				'image_url'   => array( 'type' => 'string', 'description' => 'Background image URL (hero)' ),
+				'columns'     => array( 'type' => 'integer', 'description' => 'Number of columns (features/stats/gallery/logo_grid)' ),
+				'items'       => array( 'type' => 'array', 'description' => 'Array of items (type-specific, see wp_list_blueprints for schemas)' ),
+				'plans'       => array( 'type' => 'array', 'description' => 'Pricing plans array (pricing type)' ),
+				'content'     => array( 'type' => 'string', 'description' => 'HTML content (text type)' ),
+				'images'      => array( 'type' => 'array', 'description' => 'Image URLs array (gallery type)' ),
+				'url'         => array( 'type' => 'string', 'description' => 'Video URL (video type)' ),
+				'address'     => array( 'type' => 'string', 'description' => 'Address (map type)' ),
+				'due_date'    => array( 'type' => 'string', 'description' => 'YYYY-MM-DD HH:MM (countdown type)' ),
+				'form_id'     => array( 'type' => 'integer', 'description' => 'Form ID (contact_form type)' ),
+				'plugin'      => array( 'type' => 'string', 'description' => 'Form plugin: wpforms, cf7, gravity (contact_form type)' ),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wp_save_section_as_template',
+			'Extract a section/container from a live page and save it as a reusable Elementor template. WORKFLOW: 1) wp_get_elementor_summary → get section IDs 2) wp_save_section_as_template(page_id, element_id, title) → save as template 3) wp_list_elementor_templates → verify. The template can then be applied to other pages via wp_apply_elementor_template or its data retrieved via wp_get_elementor_template.',
+			array(
+				'page_id'    => array(
+					'type'        => 'integer',
+					'description' => 'Page ID containing the section',
+					'required'    => true,
+				),
+				'element_id' => array(
+					'type'        => 'string',
+					'description' => 'Element ID of the section to save (from wp_get_elementor_summary)',
+					'required'    => true,
+				),
+				'title'      => array(
+					'type'        => 'string',
+					'description' => 'Title for the saved template. Defaults to "Section from Page {id}"',
 				),
 			)
 		);
@@ -1176,6 +1479,143 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'number',
 					'description' => 'Product ID',
 					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wc_list_product_archetypes',
+			'List stored WooCommerce product archetypes. Use archetypes to standardize repeatable product classes like simple products, variable products, digital products, bundles, or course products.',
+			array(
+				'archetype_class' => array(
+					'type'        => 'string',
+					'description' => 'Optional archetype class such as simple_product, variable_product, digital_product, bundle',
+				),
+				'product_type' => array(
+					'type'        => 'string',
+					'description' => 'Optional WooCommerce product type filter: simple, variable, grouped, external',
+				),
+				'archetype_style' => array(
+					'type'        => 'string',
+					'description' => 'Optional archetype style or variant label',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wc_get_product_archetype',
+			'Get a single WooCommerce product archetype with its stored field pattern.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Product archetype ID',
+					'required'    => true,
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wc_create_product_archetype',
+			'Create a WooCommerce product archetype. Archetypes store a canonical product field pattern that can later be applied to a new or existing product.',
+			array(
+				'name' => array(
+					'type'        => 'string',
+					'description' => 'Archetype name',
+					'required'    => true,
+				),
+				'archetype_class' => array(
+					'type'        => 'string',
+					'description' => 'Archetype class such as simple_product, variable_product, digital_product, bundle',
+					'required'    => true,
+				),
+				'archetype_style' => array(
+					'type'        => 'string',
+					'description' => 'Optional style or variant label',
+				),
+				'product_type' => array(
+					'type'        => 'string',
+					'description' => 'WooCommerce product type: simple, variable, grouped, external',
+					'default'     => 'simple',
+				),
+				'description' => array(
+					'type'        => 'string',
+					'description' => 'Default long description',
+				),
+				'short_description' => array(
+					'type'        => 'string',
+					'description' => 'Default short description',
+				),
+				'regular_price' => array(
+					'type'        => 'string',
+					'description' => 'Default regular price',
+				),
+				'sale_price' => array(
+					'type'        => 'string',
+					'description' => 'Default sale price',
+				),
+				'categories' => array(
+					'type'        => 'array',
+					'description' => 'Default categories',
+				),
+				'tags' => array(
+					'type'        => 'array',
+					'description' => 'Default tags',
+				),
+				'virtual' => array(
+					'type'        => 'boolean',
+					'description' => 'Default virtual flag',
+				),
+				'downloadable' => array(
+					'type'        => 'boolean',
+					'description' => 'Default downloadable flag',
+				),
+			)
+		);
+
+		$pro_tools[] = $this->define_tool(
+			'wc_apply_product_archetype',
+			'Apply a stored WooCommerce product archetype to a new or existing product. Pass product_id to update an existing product, or pass name to create a new draft product from the archetype.',
+			array(
+				'id' => array(
+					'type'        => 'number',
+					'description' => 'Product archetype ID',
+					'required'    => true,
+				),
+				'product_id' => array(
+					'type'        => 'number',
+					'description' => 'Existing product ID to update from the archetype',
+				),
+				'name' => array(
+					'type'        => 'string',
+					'description' => 'Product name when creating a new product from the archetype',
+				),
+				'status' => array(
+					'type'        => 'string',
+					'description' => 'Optional status override, defaults to draft for new products',
+				),
+				'description' => array(
+					'type'        => 'string',
+					'description' => 'Optional description override',
+				),
+				'short_description' => array(
+					'type'        => 'string',
+					'description' => 'Optional short description override',
+				),
+				'regular_price' => array(
+					'type'        => 'string',
+					'description' => 'Optional regular price override',
+				),
+				'sale_price' => array(
+					'type'        => 'string',
+					'description' => 'Optional sale price override',
+				),
+				'categories' => array(
+					'type'        => 'array',
+					'description' => 'Optional category override',
+				),
+				'tags' => array(
+					'type'        => 'array',
+					'description' => 'Optional tag override',
 				),
 			)
 		);
@@ -2349,6 +2789,42 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				'method' => 'POST',
 				'route'  => '/elementor/templates/{template_id}/apply',
 			),
+			'wp_list_elementor_archetypes'   => array(
+				'method' => 'GET',
+				'route'  => '/elementor/archetypes',
+			),
+			'wp_get_elementor_archetype'     => array(
+				'method' => 'GET',
+				'route'  => '/elementor/archetypes/{id}',
+			),
+			'wp_create_elementor_archetype'  => array(
+				'method' => 'POST',
+				'route'  => '/elementor/archetypes',
+			),
+			'wp_apply_elementor_archetype'   => array(
+				'method' => 'POST',
+				'route'  => '/elementor/archetypes/{id}/apply',
+			),
+			'wp_list_elementor_parts'        => array(
+				'method' => 'GET',
+				'route'  => '/elementor/parts',
+			),
+			'wp_get_elementor_part'          => array(
+				'method' => 'GET',
+				'route'  => '/elementor/parts/{id}',
+			),
+			'wp_create_elementor_part'       => array(
+				'method' => 'POST',
+				'route'  => '/elementor/parts',
+			),
+			'wp_create_elementor_part_from_section' => array(
+				'method' => 'POST',
+				'route'  => '/elementor/parts/from-section',
+			),
+			'wp_apply_elementor_part'        => array(
+				'method' => 'POST',
+				'route'  => '/elementor/parts/{id}/apply',
+			),
 			'wp_create_landing_page'         => array(
 				'method' => 'POST',
 				'route'  => '/elementor/landing-page',
@@ -2360,6 +2836,18 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wp_build_page'                  => array(
 				'method' => 'POST',
 				'route'  => '/elementor/build-page',
+			),
+			'wp_list_blueprints'             => array(
+				'method' => 'GET',
+				'route'  => '/elementor/blueprints',
+			),
+			'wp_get_blueprint'               => array(
+				'method' => 'POST',
+				'route'  => '/elementor/blueprints/build',
+			),
+			'wp_save_section_as_template'    => array(
+				'method' => 'POST',
+				'route'  => '/elementor/save-section-as-template',
 			),
 			'wp_get_elementor_globals'       => array(
 				'method' => 'GET',
@@ -2480,6 +2968,22 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 			'wc_get_product'             => array(
 				'method' => 'GET',
 				'route'  => '/woocommerce/products/{id}',
+			),
+			'wc_list_product_archetypes' => array(
+				'method' => 'GET',
+				'route'  => '/woocommerce/archetypes',
+			),
+			'wc_get_product_archetype'   => array(
+				'method' => 'GET',
+				'route'  => '/woocommerce/archetypes/{id}',
+			),
+			'wc_create_product_archetype' => array(
+				'method' => 'POST',
+				'route'  => '/woocommerce/archetypes',
+			),
+			'wc_apply_product_archetype' => array(
+				'method' => 'POST',
+				'route'  => '/woocommerce/archetypes/{id}/apply',
 			),
 			'wc_create_product'          => array(
 				'method' => 'POST',

@@ -45,6 +45,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	protected function get_open_world_tools() {
 		return array(
 			'wp_upload_media_from_url',
+			'wp_upload_design_reference',
 			'wp_test_webhook',
 			'wp_screenshot_url',
 		);
@@ -89,6 +90,10 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_theme_info'          => 'site',
 			'wp_flush_permalinks'        => 'site',
 			'wp_get_site_health'         => 'site',
+			'wp_list_design_references'  => 'site',
+			'wp_get_design_reference'    => 'site',
+			'wp_upload_design_reference' => 'site',
+			'wp_update_design_reference' => 'site',
 
 			// Content
 			'wp_list_content'            => 'content',
@@ -253,6 +258,182 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_onboard',
 			'Get a complete first-connection briefing for this WordPress site. Returns site identity, content inventory, active integrations, available tools grouped by category, site context, recommended first actions, and a quick reference card. Call this first when connecting to a new site.',
 			array()
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_list_design_references',
+			'List stored design references that models can reuse when building pages, archetypes, and Elementor parts from uploaded screenshots or approved design images.',
+			array(
+				'query' => array(
+					'type'        => 'string',
+					'description' => 'Optional text query.',
+				),
+				'page_intent' => array(
+					'type'        => 'string',
+					'description' => 'Optional page intent such as landing_page, blog_post, product_page, or service_page.',
+				),
+				'archetype_class' => array(
+					'type'        => 'string',
+					'description' => 'Optional archetype class filter.',
+				),
+				'style' => array(
+					'type'        => 'string',
+					'description' => 'Optional style filter.',
+				),
+				'source_type' => array(
+					'type'        => 'string',
+					'description' => 'Optional source type filter such as upload, url, figma, or stitch.',
+				),
+				'per_page' => array(
+					'type'        => 'number',
+					'description' => 'Results per page.',
+					'default'     => 20,
+				),
+				'page' => array(
+					'type'        => 'number',
+					'description' => 'Page number.',
+					'default'     => 1,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_get_design_reference',
+			'Get one stored design reference, including its image, intent, style, reuse notes, and linked archetypes or parts.',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Design reference ID.',
+					'required'    => true,
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_upload_design_reference',
+			'Create a reusable design reference from an uploaded image, external image URL, or existing media library image. Use this when a human shares a screenshot or design image that should guide future page creation.',
+			array(
+				'title' => array(
+					'type'        => 'string',
+					'description' => 'Reference title.',
+				),
+				'media_id' => array(
+					'type'        => 'number',
+					'description' => 'Existing image attachment ID to use instead of uploading a new file.',
+				),
+				'image_url' => array(
+					'type'        => 'string',
+					'description' => 'External image URL to import into the media library.',
+				),
+				'image_base64' => array(
+					'type'        => 'string',
+					'description' => 'Base64-encoded image data.',
+				),
+				'filename' => array(
+					'type'        => 'string',
+					'description' => 'Filename when using image_base64 or importing from URL.',
+				),
+				'page_intent' => array(
+					'type'        => 'string',
+					'description' => 'Target page type such as landing_page, blog_post, service_page, or product_page.',
+				),
+				'archetype_class' => array(
+					'type'        => 'string',
+					'description' => 'Archetype class the design best maps to.',
+				),
+				'style' => array(
+					'type'        => 'string',
+					'description' => 'Style label, for example editorial, premium, showcase, or minimal.',
+				),
+				'notes' => array(
+					'type'        => 'string',
+					'description' => 'Freeform design notes.',
+				),
+				'analysis_summary' => array(
+					'type'        => 'string',
+					'description' => 'Short summary of what matters in the design.',
+				),
+				'tags' => array(
+					'type'        => 'array',
+					'description' => 'Array of short tags.',
+				),
+				'must_keep' => array(
+					'type'        => 'array',
+					'description' => 'Array of elements that should be preserved.',
+				),
+				'avoid' => array(
+					'type'        => 'array',
+					'description' => 'Array of design choices to avoid when recreating this reference.',
+				),
+				'section_outline' => array(
+					'type'        => 'array',
+					'description' => 'Ordered list of sections inferred from the design.',
+				),
+				'source_type' => array(
+					'type'        => 'string',
+					'description' => 'Optional source type override: upload, url, base64, figma, stitch, manual, or media.',
+				),
+			)
+		);
+
+		$tools[] = $this->define_tool(
+			'wp_update_design_reference',
+			'Update metadata for a stored design reference. Use this to refine intent, style, notes, section outline, or linked archetypes after review.',
+			array(
+				'id' => array(
+					'type'        => 'string',
+					'description' => 'Design reference ID.',
+					'required'    => true,
+				),
+				'title' => array(
+					'type'        => 'string',
+					'description' => 'Reference title.',
+				),
+				'page_intent' => array(
+					'type'        => 'string',
+					'description' => 'Target page type.',
+				),
+				'archetype_class' => array(
+					'type'        => 'string',
+					'description' => 'Archetype class.',
+				),
+				'style' => array(
+					'type'        => 'string',
+					'description' => 'Style label.',
+				),
+				'notes' => array(
+					'type'        => 'string',
+					'description' => 'Freeform notes.',
+				),
+				'analysis_summary' => array(
+					'type'        => 'string',
+					'description' => 'Short analysis summary.',
+				),
+				'tags' => array(
+					'type'        => 'array',
+					'description' => 'Array of short tags.',
+				),
+				'must_keep' => array(
+					'type'        => 'array',
+					'description' => 'Array of design requirements to preserve.',
+				),
+				'avoid' => array(
+					'type'        => 'array',
+					'description' => 'Array of design constraints to avoid.',
+				),
+				'section_outline' => array(
+					'type'        => 'array',
+					'description' => 'Ordered section list.',
+				),
+				'linked_archetype_ids' => array(
+					'type'        => 'array',
+					'description' => 'Array of related Elementor archetype template IDs.',
+				),
+				'linked_part_ids' => array(
+					'type'        => 'array',
+					'description' => 'Array of related Elementor part template IDs.',
+				),
+			)
 		);
 
 		$tools[] = $this->define_tool(
@@ -1245,7 +1426,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_get_elementor_summary',
-			'Get a lightweight structural summary of Elementor page data (section types, widget types, key settings). Use this instead of wp_get_elementor when you only need to understand the page structure.',
+			'ALWAYS call this first before editing Elementor pages. Returns a lightweight structural summary with element IDs (needed for add/remove/replace/edit), section types, widget types, and key settings. Every element includes its ID and top-level sections include their index. Use this instead of wp_get_elementor when you only need to understand the page structure.',
 			array(
 				'id' => array(
 					'type'        => 'number',
@@ -1314,7 +1495,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_add_section',
-			'Add a new section/container to an Elementor page at a specific position. No need to send the full page — just the new section.',
+			'Add a new section/container to an Elementor page at a specific position. No need to send the full page — just the new section. WORKFLOW: 1) wp_get_elementor_summary → get IDs for positioning 2) Build JSON manually or via wp_get_blueprint 3) wp_add_section(page_id, element, position) 4) Verify response has meta_verified=true.',
 			array(
 				'page_id'  => array(
 					'type'        => 'integer',
@@ -1352,7 +1533,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_replace_section',
-			'Replace an entire section/container in an Elementor page by its element ID. The new element takes the position of the old one.',
+			'Replace an entire section/container in an Elementor page by its element ID. The new element takes the position of the old one. Get the target element ID from wp_get_elementor_summary first.',
 			array(
 				'page_id'    => array(
 					'type'        => 'integer',
@@ -1374,7 +1555,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_patch_elementor',
-			'Apply multiple operations to an Elementor page in a single request. Reads data once, applies all ops, writes once. Operations: add, remove, replace, settings.',
+			'Apply multiple operations to an Elementor page in a single read-write cycle (max 20 ops). More efficient than calling add/remove/replace individually. Operations: add, remove, replace, settings. Get element IDs from wp_get_elementor_summary first.',
 			array(
 				'page_id'    => array(
 					'type'        => 'integer',
@@ -1391,7 +1572,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 
 		$tools[] = $this->define_tool(
 			'wp_set_elementor',
-			'Set Elementor page data for a specific page or post. Use dry_run=true to validate data without saving — returns warnings and validation fixes without modifying the page. For large payloads with HTML content, use elementor_data_base64 (base64-encoded JSON) instead of elementor_data to avoid quoting/escaping issues.',
+			'FULL PAGE REPLACEMENT — overwrites all Elementor data on the page. For surgical edits, prefer wp_add_section, wp_replace_section, wp_edit_section, or wp_edit_widget instead. Use dry_run=true to validate data without saving. For large payloads with HTML content, use elementor_data_base64 (base64-encoded JSON) instead of elementor_data to avoid quoting/escaping issues.',
 			array(
 				'id'             => array(
 					'type'        => 'number',
@@ -1704,19 +1885,19 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Integration Management
 		$tools[] = $this->define_tool(
 			'wp_integrations_status',
-			'List all available integrations and their configuration status. Shows which providers are configured, when they were set up, and their last test result. Providers include: pexels (stock photos), openai/gemini (AI image gen, vision), elevenlabs (TTS), screenshot (Cloudflare Browser Rendering for screenshots).',
+			'List all available integrations and their configuration status. Shows which providers are configured, when they were set up, and their last test result. Providers include: pexels (stock photos), openai/gemini (AI image gen, vision), elevenlabs (TTS), screenshot (Cloudflare Browser Rendering for screenshots), google_indexing, and figma (design context intake).',
 			array()
 		);
 
 		$tools[] = $this->define_tool(
 			'wp_configure_integration',
-			'Configure a third-party integration. For single-key providers (pexels, openai, gemini, elevenlabs), pass "key". For multi-field providers like "screenshot", pass "config" with {url, token}. Example: provider="screenshot", config={"url":"https://spai-screenshot.example.workers.dev","token":"your-token"}',
+			'Configure a third-party integration. For single-key providers (pexels, openai, gemini, elevenlabs), pass "key". For multi-field providers like "screenshot", "google_indexing", and "figma", pass "config". Example: provider="figma", config={"access_token":"your-token","default_file_key":"abc123"}',
 			array(
 				'provider' => array(
 					'type'        => 'string',
-					'description' => 'Provider slug: pexels, openai, gemini, elevenlabs, screenshot',
+					'description' => 'Provider slug: pexels, openai, gemini, elevenlabs, screenshot, google_indexing, figma',
 					'required'    => true,
-					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot' ),
+					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot', 'google_indexing', 'figma' ),
 				),
 				'key' => array(
 					'type'        => 'string',
@@ -1724,20 +1905,20 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				),
 				'config' => array(
 					'type'        => 'object',
-					'description' => 'Configuration object for multi-field providers. For screenshot: {"url": "worker_url", "token": "auth_token"}',
+					'description' => 'Configuration object for multi-field providers. For screenshot: {"url": "worker_url", "token": "auth_token"}. For figma: {"access_token": "personal_access_token", "default_file_key": "optional_file_key"}.',
 				),
 			)
 		);
 
 		$tools[] = $this->define_tool(
 			'wp_test_integration',
-			'Test a configured integration connection. For screenshot, sends a test request to the worker. For API providers, validates the API key.',
+			'Test a configured integration connection. For screenshot, sends a test request to the worker. For figma, validates the API token and optional default file access. For API providers, validates the API key.',
 			array(
 				'provider' => array(
 					'type'        => 'string',
 					'description' => 'Provider slug to test',
 					'required'    => true,
-					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot' ),
+					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot', 'google_indexing', 'figma' ),
 				),
 			)
 		);
@@ -1750,7 +1931,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 					'type'        => 'string',
 					'description' => 'Provider slug to remove',
 					'required'    => true,
-					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot' ),
+					'enum'        => array( 'pexels', 'openai', 'gemini', 'elevenlabs', 'screenshot', 'google_indexing', 'figma' ),
 				),
 			)
 		);
@@ -2209,22 +2390,22 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Guides & Workflows
 		$tools[] = $this->define_tool(
 			'wp_get_guide',
-			'Get a detailed guide on a specific topic. Call with no topic to list all available topics. Topics include: elementor, seo, menus, media, content, forms, woocommerce, workflows, troubleshooting. Only shows topics relevant to active plugins.',
+			'Get a detailed guide on a specific topic. Call with no topic to list all available topics. Topics include: onboarding, elementor, seo, menus, media, content, forms, woocommerce, workflows, troubleshooting. Only shows topics relevant to active plugins.',
 			array(
 				'topic' => array(
 					'type'        => 'string',
-					'description' => 'Guide topic slug (e.g., "elementor", "seo", "menus", "workflows"). Omit to list all available topics.',
+					'description' => 'Guide topic slug (e.g., "onboarding", "elementor", "woocommerce", "workflows"). Omit to list all available topics.',
 				),
 			)
 		);
 
 		$tools[] = $this->define_tool(
 			'wp_get_workflow',
-			'Get a step-by-step workflow template for a common task. Each workflow includes tool names, parameters, and tips. Available workflows: build_landing_page, seo_audit, content_migration, site_redesign, menu_setup, media_management, form_setup.',
+			'Get a step-by-step workflow template for a common task. Each workflow includes tool names, parameters, and tips. Available workflows include: build_landing_page, build_from_parts_library, build_from_page_archetype, build_product_from_archetype, seo_audit, content_migration, site_redesign, menu_setup, media_management, form_setup.',
 			array(
 				'name' => array(
 					'type'        => 'string',
-					'description' => 'Workflow name (e.g., "build_landing_page", "seo_audit")',
+					'description' => 'Workflow name (e.g., "build_from_page_archetype", "build_product_from_archetype")',
 					'required'    => true,
 				),
 			)
@@ -2450,6 +2631,22 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_upload_media_b64'      => array(
 				'method' => 'POST',
 				'route'  => '/media/from-base64',
+			),
+			'wp_list_design_references' => array(
+				'method' => 'GET',
+				'route'  => '/design-references',
+			),
+			'wp_get_design_reference' => array(
+				'method' => 'GET',
+				'route'  => '/design-references/{id}',
+			),
+			'wp_upload_design_reference' => array(
+				'method' => 'POST',
+				'route'  => '/design-references',
+			),
+			'wp_update_design_reference' => array(
+				'method' => 'POST',
+				'route'  => '/design-references/{id}',
 			),
 			'wp_delete_media'          => array(
 				'method' => 'DELETE',

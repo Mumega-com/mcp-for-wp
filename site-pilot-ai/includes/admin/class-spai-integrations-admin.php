@@ -40,6 +40,19 @@ class Spai_Integrations_Admin {
 	}
 
 	/**
+	 * Get the admin URL used to start Figma OAuth.
+	 *
+	 * @return string
+	 */
+	public function get_figma_oauth_start_url() {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=spai_figma_oauth_start' ),
+			'spai_figma_oauth_start',
+			'spai_nonce'
+		);
+	}
+
+	/**
 	 * Enqueue admin assets for integrations page.
 	 *
 	 * @param string $hook Current admin page hook.
@@ -172,5 +185,74 @@ class Spai_Integrations_Admin {
 		} else {
 			wp_send_json_error( $result );
 		}
+	}
+
+	/**
+	 * Start the Figma OAuth handshake.
+	 *
+	 * @return void
+	 */
+	public function handle_figma_oauth_start() {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
+		}
+
+		check_admin_referer( 'spai_figma_oauth_start', 'spai_nonce' );
+
+		$figma = new Spai_Figma();
+		$url   = $figma->get_oauth_authorize_url();
+		if ( is_wp_error( $url ) ) {
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'page'            => self::PAGE_SLUG,
+						'spai_figma_oauth' => 'error',
+						'message'         => rawurlencode( $url->get_error_message() ),
+					),
+					admin_url( 'admin.php' )
+				)
+			);
+			exit;
+		}
+
+		wp_safe_redirect( $url );
+		exit;
+	}
+
+	/**
+	 * Complete the Figma OAuth callback.
+	 *
+	 * @return void
+	 */
+	public function handle_figma_oauth_callback() {
+		$code  = isset( $_GET['code'] ) ? sanitize_text_field( wp_unslash( $_GET['code'] ) ) : '';
+		$state = isset( $_GET['state'] ) ? sanitize_text_field( wp_unslash( $_GET['state'] ) ) : '';
+		$error = isset( $_GET['error'] ) ? sanitize_text_field( wp_unslash( $_GET['error'] ) ) : '';
+
+		if ( '' !== $error ) {
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'page'            => self::PAGE_SLUG,
+						'spai_figma_oauth' => 'error',
+						'message'         => rawurlencode( $error ),
+					),
+					admin_url( 'admin.php' )
+				)
+			);
+			exit;
+		}
+
+		$figma  = new Spai_Figma();
+		$result = $figma->exchange_oauth_code( $code, $state );
+
+		$args = array(
+			'page'             => self::PAGE_SLUG,
+			'spai_figma_oauth' => is_wp_error( $result ) ? 'error' : 'success',
+			'message'          => rawurlencode( is_wp_error( $result ) ? $result->get_error_message() : $result['message'] ),
+		);
+
+		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+		exit;
 	}
 }

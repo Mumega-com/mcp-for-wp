@@ -210,9 +210,10 @@ class Spai_Elementor_Basic {
 		$widget_count  = 0;
 		$section_count = 0;
 
-		foreach ( $elements as $element ) {
+		foreach ( $elements as $index => $element ) {
 			$section_summary = $this->summarize_element( $element, $widget_count );
 			if ( $section_summary ) {
+				$section_summary['index'] = $index;
 				$sections[] = $section_summary;
 				$section_count++;
 			}
@@ -241,6 +242,7 @@ class Spai_Elementor_Basic {
 		}
 
 		$summary = array(
+			'id'   => isset( $element['id'] ) ? $element['id'] : null,
 			'type' => $element['elType'],
 		);
 
@@ -323,6 +325,9 @@ class Spai_Elementor_Basic {
 			'share-buttons' => array(),
 			'blockquote'    => array( 'blockquote_content' ),
 			'template'      => array( 'template_id' ),
+			'posts'         => array( 'posts_post_type', 'classic_posts_per_page', 'classic_columns' ),
+			'loop-grid'     => array( 'query_post_type', 'template_id', 'columns', 'posts_per_page' ),
+			'portfolio'     => array( 'posts_per_page', 'columns' ),
 		);
 
 		return isset( $map[ $widget_type ] ) ? $map[ $widget_type ] : array( 'title', 'text', 'heading' );
@@ -499,6 +504,17 @@ class Spai_Elementor_Basic {
 			$dry_json   = $elementor_json; // work on a copy
 			$validation = $this->validate_and_fix_elements( $dry_json );
 
+			if ( ! empty( $validation['errors'] ) ) {
+				return new WP_Error(
+					'invalid_elementor_structure',
+					implode( ' | ', $validation['errors'] ),
+					array(
+						'status'            => 400,
+						'validation_errors' => $validation['errors'],
+					)
+				);
+			}
+
 			$all_warnings = array_merge(
 				$validation['warnings'],
 				$validation['fixes']
@@ -570,6 +586,16 @@ class Spai_Elementor_Basic {
 		$save_debug['sections_submitted'] = $input_count;
 
 		$validation = $this->validate_and_fix_elements( $elementor_json );
+		if ( ! empty( $validation['errors'] ) ) {
+			return new WP_Error(
+				'invalid_elementor_structure',
+				implode( ' | ', $validation['errors'] ),
+				array(
+					'status'            => 400,
+					'validation_errors' => $validation['errors'],
+				)
+			);
+		}
 		if ( ! empty( $validation['fixes'] ) || ! empty( $validation['warnings'] ) ) {
 			$save_debug['validation_fixes']    = $validation['fixes'];
 			$save_debug['validation_warnings'] = $validation['warnings'];
@@ -614,9 +640,22 @@ class Spai_Elementor_Basic {
 					$save_result = $document->save( array( 'elements' => $post_validation_decoded ) );
 
 					if ( ! is_wp_error( $save_result ) ) {
-						$document_saved = true;
-						$save_method    = 'document_save';
-						$save_debug['document_save'] = true;
+						wp_cache_delete( $page_id, 'post_meta' );
+						clean_post_cache( $page_id );
+						$stored_after_document = get_post_meta( $page_id, '_elementor_data', true );
+						$decoded_after_document = json_decode( $stored_after_document, true );
+						$stored_after_count     = is_array( $decoded_after_document ) ? count( $decoded_after_document ) : 0;
+
+						if ( $stored_after_count === $input_count ) {
+							$document_saved              = true;
+							$save_method                 = 'document_save';
+							$save_debug['document_save'] = true;
+						} else {
+							$save_debug['document_save_persist_mismatch'] = array(
+								'sections_expected' => $input_count,
+								'sections_saved'    => $stored_after_count,
+							);
+						}
 					} else {
 						$save_debug['document_save_error'] = $save_result->get_error_message();
 					}
@@ -762,6 +801,7 @@ class Spai_Elementor_Basic {
 			'css_regenerated'    => ! empty( $save_debug['css_regenerated'] ),
 			'debug'              => $save_debug,
 			'edit_url'           => admin_url( "post.php?post={$page_id}&action=elementor" ),
+			'next_step'          => sprintf( 'Call wp_get_elementor_summary(id=%d) to verify the page structure.', $page_id ),
 		);
 
 		if ( ! empty( $all_warnings ) ) {
@@ -938,6 +978,22 @@ class Spai_Elementor_Basic {
 			'dropdown_color'   => 'color_dropdown_item',
 			'dropdown_hover'   => 'color_dropdown_item_hover',
 		),
+		'posts' => array(
+			'post_type'      => 'posts_post_type',
+			'columns'        => 'classic_columns',
+			'posts_per_page' => 'classic_posts_per_page',
+			'show_title'     => 'classic_show_title',
+			'show_excerpt'   => 'classic_show_excerpt',
+			'excerpt_length' => 'classic_excerpt_length',
+			'show_read_more' => 'classic_show_read_more',
+			'read_more_text' => 'classic_read_more_text',
+			'show_date'      => 'classic_show_date',
+			'show_author'    => 'classic_show_author',
+			'show_comments'  => 'classic_show_comments',
+			'thumbnail_size' => 'classic_thumbnail_size_size',
+			'orderby'        => 'posts_orderby',
+			'order'          => 'posts_order',
+		),
 	);
 
 	/**
@@ -1054,6 +1110,55 @@ class Spai_Elementor_Basic {
 	}
 
 	/**
+	 * Get valid widget setting keys, preferring the live Elementor widget schema.
+	 *
+	 * Falls back to the static reference registry when live controls are unavailable.
+	 *
+	 * @param string $widget_type Widget type name.
+	 * @return array Setting key names.
+	 */
+	private function get_valid_widget_keys( $widget_type ) {
+		$keys = array();
+
+		if ( class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->widgets_manager ) ) {
+			$manager = \Elementor\Plugin::$instance->widgets_manager;
+			if ( method_exists( $manager, 'get_widget_types' ) ) {
+				$types = $manager->get_widget_types();
+				if ( isset( $types[ $widget_type ] ) && method_exists( $types[ $widget_type ], 'get_controls' ) ) {
+					$controls = $types[ $widget_type ]->get_controls();
+					if ( is_array( $controls ) ) {
+						$keys = array_keys( $controls );
+					}
+				}
+			}
+		}
+
+		if ( empty( $keys ) ) {
+			$keys = Spai_Elementor_Widgets::get_valid_keys( $widget_type );
+		}
+
+		return array_values( array_unique( $keys ) );
+	}
+
+	/**
+	 * Check whether a setting key is a valid responsive variant of a base control.
+	 *
+	 * Elementor commonly expands responsive controls into suffixed keys such as
+	 * `_tablet` and `_mobile` even when the base control name is the canonical one.
+	 *
+	 * @param string $key        Candidate setting key.
+	 * @param array  $valid_keys Known valid base keys.
+	 * @return bool True if the key is a recognized responsive variant.
+	 */
+	private function is_valid_responsive_setting_key( $key, $valid_keys ) {
+		if ( ! preg_match( '/^(.+?)_(mobile|mobile_extra|tablet|tablet_extra|laptop|widescreen)$/', $key, $matches ) ) {
+			return false;
+		}
+
+		return in_array( $matches[1], $valid_keys, true );
+	}
+
+	/**
 	 * Validate and fix element tree.
 	 *
 	 * Performs 5 validation passes:
@@ -1066,7 +1171,7 @@ class Spai_Elementor_Basic {
 	 * Modifies $elementor_json in-place (reference).
 	 *
 	 * @param string &$elementor_json JSON string (modified in-place).
-	 * @return array Associative array with 'warnings' and 'fixes' arrays.
+	 * @return array Associative array with 'warnings', 'fixes', and 'errors' arrays.
 	 */
 	private function validate_and_fix_elements( &$elementor_json ) {
 		$elements = json_decode( $elementor_json, true );
@@ -1074,11 +1179,13 @@ class Spai_Elementor_Basic {
 			return array(
 				'warnings' => array( 'Elementor data is not a valid array.' ),
 				'fixes'    => array(),
+				'errors'   => array(),
 			);
 		}
 
 		$warnings          = array();
 		$fixes             = array();
+		$errors            = array();
 		$changed           = false;
 		$registered        = $this->get_registered_widgets();
 		$registered_lookup = array_flip( $registered );
@@ -1091,7 +1198,7 @@ class Spai_Elementor_Basic {
 		 * @param string $parent_type Parent elType for nesting validation.
 		 */
 		$walk = function ( &$el, $path = '', $parent_type = '' ) use (
-			&$walk, &$warnings, &$fixes, &$changed,
+			&$walk, &$warnings, &$fixes, &$errors, &$changed,
 			$registered, $registered_lookup
 		) {
 			$el_type     = isset( $el['elType'] ) ? $el['elType'] : '';
@@ -1142,7 +1249,7 @@ class Spai_Elementor_Basic {
 					}
 				}
 			} elseif ( 'widget' === $el_type && '' === $widget_type ) {
-				$warnings[] = "{$path}: widget element missing widgetType";
+				$errors[] = "{$path}: widget element missing widgetType";
 			}
 
 			// --- 5. Rename known wrong control keys ---
@@ -1160,13 +1267,13 @@ class Spai_Elementor_Basic {
 
 			// --- 6. Flag unknown settings keys using widget reference ---
 			if ( 'widget' === $el_type && '' !== $widget_type && ! empty( $el['settings'] ) && is_array( $el['settings'] ) ) {
-				$valid_keys = Spai_Elementor_Widgets::get_valid_keys( $widget_type );
+				$valid_keys = $this->get_valid_widget_keys( $widget_type );
 				if ( ! empty( $valid_keys ) ) {
 					// Common Elementor internal prefixes that should not trigger warnings.
 					$internal_prefixes = array( '_', 'motion_fx_', '__', 'hide_', 'responsive_', 'custom_css' );
 					foreach ( array_keys( $el['settings'] ) as $key ) {
 						// Skip known valid keys.
-						if ( in_array( $key, $valid_keys, true ) ) {
+						if ( in_array( $key, $valid_keys, true ) || $this->is_valid_responsive_setting_key( $key, $valid_keys ) ) {
 							continue;
 						}
 						// Skip internal/advanced keys.
@@ -1221,6 +1328,7 @@ class Spai_Elementor_Basic {
 		return array(
 			'warnings' => $warnings,
 			'fixes'    => $fixes,
+			'errors'   => $errors,
 		);
 	}
 
@@ -1871,50 +1979,10 @@ class Spai_Elementor_Basic {
 			);
 		}
 
-		// --- Save back ---
-
-		$elementor_json = wp_json_encode( $elements );
-
-		// Run validation/fixes (auto-generate IDs, rename bad keys, etc.).
-		$validation = $this->validate_and_fix_elements( $elementor_json );
-
-		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
-
-		// Regenerate CSS.
-		delete_post_meta( $page_id, '_elementor_css' );
-		$css_debug = array();
-		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
-			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
-			$css_file->update();
-			$css_debug['css_regenerated'] = true;
-
-			// Verify the generated CSS file exists and is non-empty.
-			$upload_dir = wp_upload_dir();
-			$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
-			$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
-			$css_debug['css_file_size'] = $css_size;
-
-			// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
-			if ( $css_size < 10 ) {
-				delete_post_meta( $page_id, '_elementor_css' );
-				$css_debug['css_deferred'] = true;
-				$permalink = get_permalink( $page_id );
-				if ( $permalink ) {
-					wp_remote_get(
-						add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
-						array(
-							'timeout'   => 15,
-							'sslverify' => false,
-							'blocking'  => false,
-						)
-					);
-					$css_debug['css_primed'] = true;
-				}
-			}
+		$save_debug = $this->save_elements_to_page( $page_id, $elements );
+		if ( is_wp_error( $save_debug ) ) {
+			return $save_debug;
 		}
-
-		// Purge caches.
-		$this->purge_page_cache( $page_id );
 
 		// Re-read the saved element to return its final state.
 		$saved_data = get_post_meta( $page_id, '_elementor_data', true );
@@ -1938,13 +2006,22 @@ class Spai_Elementor_Basic {
 			'element'  => $saved_element ? $saved_element : $found,
 			'edit_url' => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
-		if ( ! empty( $css_debug ) ) {
-			$result['css_debug'] = $css_debug;
+		if ( ! empty( $save_debug ) ) {
+			$result['css_debug'] = array_intersect_key(
+				$save_debug,
+				array(
+					'css_regenerated' => true,
+					'css_file_size'   => true,
+					'save_method'     => true,
+					'meta_verified'   => true,
+					'sections_saved'  => true,
+				)
+			);
 		}
 
 		$all_warnings = array_merge(
-			isset( $validation['warnings'] ) ? $validation['warnings'] : array(),
-			isset( $validation['fixes'] ) ? $validation['fixes'] : array()
+			isset( $save_debug['validation_warnings'] ) ? $save_debug['validation_warnings'] : array(),
+			isset( $save_debug['validation_fixes'] ) ? $save_debug['validation_fixes'] : array()
 		);
 		if ( ! empty( $all_warnings ) ) {
 			$result['warnings'] = $all_warnings;
@@ -2068,49 +2145,10 @@ class Spai_Elementor_Basic {
 			}
 		}
 
-		// Save back.
-		$elementor_json = wp_json_encode( $elements );
-
-		// Run validation/fixes.
-		$validation = $this->validate_and_fix_elements( $elementor_json );
-
-		update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
-
-		// Regenerate CSS.
-		delete_post_meta( $page_id, '_elementor_css' );
-		$css_debug = array();
-		if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
-			$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
-			$css_file->update();
-			$css_debug['css_regenerated'] = true;
-
-			// Verify the generated CSS file exists and is non-empty.
-			$upload_dir = wp_upload_dir();
-			$css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $page_id . '.css';
-			$css_size   = file_exists( $css_path ) ? filesize( $css_path ) : 0;
-			$css_debug['css_file_size'] = $css_size;
-
-			// If CSS is empty/tiny, delete meta to force frontend regeneration and prime it.
-			if ( $css_size < 10 ) {
-				delete_post_meta( $page_id, '_elementor_css' );
-				$css_debug['css_deferred'] = true;
-				$permalink = get_permalink( $page_id );
-				if ( $permalink ) {
-					wp_remote_get(
-						add_query_arg( 'spai_prime_css', wp_rand(), $permalink ),
-						array(
-							'timeout'   => 15,
-							'sslverify' => false,
-							'blocking'  => false,
-						)
-					);
-					$css_debug['css_primed'] = true;
-				}
-			}
+		$save_debug = $this->save_elements_to_page( $page_id, $elements );
+		if ( is_wp_error( $save_debug ) ) {
+			return $save_debug;
 		}
-
-		// Purge caches.
-		$this->purge_page_cache( $page_id );
 
 		// Re-read the widget to return its final state.
 		$saved_data     = get_post_meta( $page_id, '_elementor_data', true );
@@ -2127,13 +2165,22 @@ class Spai_Elementor_Basic {
 			'widget'      => $saved_widget ? $saved_widget : $found,
 			'edit_url'    => admin_url( "post.php?post={$page_id}&action=elementor" ),
 		);
-		if ( ! empty( $css_debug ) ) {
-			$result['css_debug'] = $css_debug;
+		if ( ! empty( $save_debug ) ) {
+			$result['css_debug'] = array_intersect_key(
+				$save_debug,
+				array(
+					'css_regenerated' => true,
+					'css_file_size'   => true,
+					'save_method'     => true,
+					'meta_verified'   => true,
+					'sections_saved'  => true,
+				)
+			);
 		}
 
 		$all_warnings = array_merge(
-			isset( $validation['warnings'] ) ? $validation['warnings'] : array(),
-			isset( $validation['fixes'] ) ? $validation['fixes'] : array()
+			isset( $save_debug['validation_warnings'] ) ? $save_debug['validation_warnings'] : array(),
+			isset( $save_debug['validation_fixes'] ) ? $save_debug['validation_fixes'] : array()
 		);
 		if ( ! empty( $all_warnings ) ) {
 			$result['warnings'] = $all_warnings;
@@ -2164,6 +2211,9 @@ class Spai_Elementor_Basic {
 
 		// Validate and fix (before write).
 		$validation = $this->validate_and_fix_elements( $elementor_json );
+		if ( ! empty( $validation['errors'] ) ) {
+			return new WP_Error( 'invalid_elementor_structure', implode( ' | ', $validation['errors'] ), array( 'status' => 400, 'validation_errors' => $validation['errors'] ) );
+		}
 		$debug['validation_fixes']    = $validation['fixes'];
 		$debug['validation_warnings'] = $validation['warnings'];
 
@@ -2187,8 +2237,23 @@ class Spai_Elementor_Basic {
 				if ( $document && method_exists( $document, 'save' ) ) {
 					$save_result = $document->save( array( 'elements' => $post_val ) );
 					if ( ! is_wp_error( $save_result ) ) {
-						$document_saved = true;
-						$debug['save_method'] = 'document_save';
+						wp_cache_delete( $page_id, 'post_meta' );
+						clean_post_cache( $page_id );
+						$stored_after_document = get_post_meta( $page_id, '_elementor_data', true );
+						$decoded_after_document = json_decode( $stored_after_document, true );
+						$stored_after_count     = is_array( $decoded_after_document ) ? count( $decoded_after_document ) : 0;
+
+						if ( $stored_after_count === $input_count ) {
+							$document_saved       = true;
+							$debug['save_method'] = 'document_save';
+						} else {
+							$debug['document_save_persist_mismatch'] = array(
+								'sections_expected' => $input_count,
+								'sections_saved'    => $stored_after_count,
+							);
+						}
+					} else {
+						$debug['document_save_error'] = $save_result->get_error_message();
 					}
 				}
 			}
@@ -2247,6 +2312,8 @@ class Spai_Elementor_Basic {
 		}
 
 		$this->purge_page_cache( $page_id );
+
+		$debug['next_step'] = sprintf( 'Call wp_get_elementor_summary(id=%d) to verify the page structure.', $page_id );
 
 		return $debug;
 	}
