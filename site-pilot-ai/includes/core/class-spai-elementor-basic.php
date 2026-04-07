@@ -667,6 +667,23 @@ class Spai_Elementor_Basic {
 		if ( ! $document_saved ) {
 			update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
 			$save_debug['meta_written'] = true;
+
+			// (#187) Update post_content so Elementor's front-end renderer doesn't
+			// short-circuit on stale/empty post_content from a previous save attempt.
+			wp_update_post( array(
+				'ID'           => $page_id,
+				'post_content' => '',
+			) );
+
+			// (#187) Flush Elementor's in-memory document cache. Document::save() may
+			// have cached an empty elements array; force a fresh load from the DB so
+			// subsequent CSS regeneration and any same-request renders see the new data.
+			if ( $elementor_ok && ! empty( \Elementor\Plugin::$instance->documents ) ) {
+				clean_post_cache( $page_id );
+				wp_cache_delete( $page_id, 'post_meta' );
+				\Elementor\Plugin::$instance->documents->get( $page_id, false );
+				$save_debug['document_cache_flushed'] = true;
+			}
 		}
 
 		// Verify data was stored correctly.
