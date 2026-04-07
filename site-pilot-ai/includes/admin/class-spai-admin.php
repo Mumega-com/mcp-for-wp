@@ -42,8 +42,8 @@ class Spai_Admin {
 	 */
 	public function add_admin_menu() {
 		add_menu_page(
-			__( 'Mumega MCP', 'site-pilot-ai' ),
-			__( 'Mumega MCP', 'site-pilot-ai' ),
+			__( 'MUCP', 'site-pilot-ai' ),
+			__( 'MUCP', 'site-pilot-ai' ),
 			'activate_plugins',
 			self::PAGE_SLUG,
 			array( $this, 'render_admin_page' ),
@@ -2240,8 +2240,8 @@ class Spai_Admin {
 	 */
 	public function add_network_admin_menu() {
 		add_menu_page(
-			__( 'Mumega MCP — Network', 'site-pilot-ai' ),
-			__( 'Mumega MCP', 'site-pilot-ai' ),
+			__( 'MUCP — Network', 'site-pilot-ai' ),
+			__( 'MUCP', 'site-pilot-ai' ),
 			'manage_network_plugins',
 			'site-pilot-ai-network',
 			array( $this, 'render_network_admin_page' ),
@@ -2281,7 +2281,7 @@ class Spai_Admin {
 			'spai_network_setup_done',
 			sprintf(
 				/* translators: %d: number of sites */
-				__( 'Mumega MCP activated on %d site(s).', 'site-pilot-ai' ),
+				__( 'MUCP activated on %d site(s).', 'site-pilot-ai' ),
 				$count
 			),
 			'updated'
@@ -2338,7 +2338,7 @@ class Spai_Admin {
 		settings_errors( 'spai_network_messages' );
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Mumega MCP — Network Overview', 'site-pilot-ai' ); ?></h1>
+			<h1><?php esc_html_e( 'MUCP — Network Overview', 'site-pilot-ai' ); ?></h1>
 
 			<form method="post">
 				<?php wp_nonce_field( 'spai_network_setup_all', 'spai_network_nonce' ); ?>

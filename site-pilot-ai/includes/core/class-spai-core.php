@@ -45,7 +45,7 @@ class Spai_Core {
 			'text_direction' => ( function_exists( 'is_rtl' ) && is_rtl() ) ? 'rtl' : 'ltr',
 			'capabilities' => $this->get_capabilities(),
 			'plugin'       => array(
-				'name'    => 'Mumega MCP',
+				'name'    => 'MUCP',
 				'version' => SPAI_VERSION,
 			),
 		);

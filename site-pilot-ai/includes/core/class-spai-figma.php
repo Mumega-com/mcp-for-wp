@@ -360,7 +360,7 @@ class Spai_Figma {
 	private function get_config() {
 		$config = $this->manager->get_provider_config( 'figma' );
 		if ( ! is_array( $config ) ) {
-			return new WP_Error( 'figma_not_configured', __( 'Figma is not configured. Add a personal token or OAuth app in Mumega MCP → Integrations.', 'site-pilot-ai' ) );
+			return new WP_Error( 'figma_not_configured', __( 'Figma is not configured. Add a personal token or OAuth app in MUCP → Integrations.', 'site-pilot-ai' ) );
 		}
 
 		return $config;
@@ -403,7 +403,7 @@ class Spai_Figma {
 			return (string) $refreshed['access_token'];
 		}
 
-		return new WP_Error( 'figma_not_configured', __( 'Figma is not configured. Add a personal token or complete the OAuth connection in Mumega MCP → Integrations.', 'site-pilot-ai' ) );
+		return new WP_Error( 'figma_not_configured', __( 'Figma is not configured. Add a personal token or complete the OAuth connection in MUCP → Integrations.', 'site-pilot-ai' ) );
 	}
 
 	/**

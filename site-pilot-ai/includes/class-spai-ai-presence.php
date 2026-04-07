@@ -130,7 +130,7 @@ class Spai_AI_Presence {
 		} else {
 			$lines[] = '';
 			$lines[] = '## Site Character';
-			$lines[] = 'No explicit AI site context is configured yet. Use the Mumega MCP settings to define the brand voice, design system, target audience, and recurring page patterns.';
+			$lines[] = 'No explicit AI site context is configured yet. Use the MUCP settings to define the brand voice, design system, target audience, and recurring page patterns.';
 		}
 
 		$lines[] = '';

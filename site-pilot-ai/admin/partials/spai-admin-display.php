@@ -55,7 +55,7 @@ if ( isset( $new_key ) && $new_key ) {
 		<span class="spai-logo">
 			<span class="dashicons dashicons-airplane"></span>
 		</span>
-		<?php esc_html_e( 'Mumega MCP', 'site-pilot-ai' ); ?>
+		<?php esc_html_e( 'MUCP', 'site-pilot-ai' ); ?>
 		<span class="spai-version">v<?php echo esc_html( SPAI_VERSION ); ?></span>
 	</h1>
 
@@ -66,7 +66,7 @@ if ( isset( $new_key ) && $new_key ) {
 			<span class="dashicons dashicons-yes-alt"></span>
 		</div>
 		<div class="spai-welcome-content">
-			<h2><?php esc_html_e( 'Mumega MCP is ready!', 'site-pilot-ai' ); ?></h2>
+			<h2><?php esc_html_e( 'MUCP is ready!', 'site-pilot-ai' ); ?></h2>
 			<p><?php esc_html_e( 'Your API key has been generated. Copy it now and use it to connect Claude Desktop, Claude Code, or ChatGPT to your WordPress site.', 'site-pilot-ai' ); ?></p>
 			<div class="spai-api-key-wrapper spai-api-key-wrapper--highlight">
 				<input
@@ -177,7 +177,7 @@ if ( isset( $new_key ) && $new_key ) {
 		<div class="spai-card">
 			<h2><?php esc_html_e( 'Updates & Recovery', 'site-pilot-ai' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'Mumega MCP can detect new versions automatically, but plugin installation still depends on your host allowing WordPress to replace plugin files. When shared hosting blocks that step, use the manual recovery path below.', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'MUCP can detect new versions automatically, but plugin installation still depends on your host allowing WordPress to replace plugin files. When shared hosting blocks that step, use the manual recovery path below.', 'site-pilot-ai' ); ?>
 			</p>
 
 			<div class="spai-library-summary">
@@ -237,7 +237,7 @@ if ( isset( $new_key ) && $new_key ) {
 		<div class="spai-card">
 			<h2><?php esc_html_e( 'Recent Activity', 'site-pilot-ai' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'Latest API activity captured by Mumega MCP. Use Activity Log for full history and details.', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'Latest API activity captured by MUCP. Use Activity Log for full history and details.', 'site-pilot-ai' ); ?>
 			</p>
 
 			<?php
@@ -537,7 +537,7 @@ if ( isset( $new_key ) && $new_key ) {
 		<div class="spai-card">
 			<h2><?php esc_html_e( 'Detected Capabilities', 'site-pilot-ai' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'Plugins detected on your site that Mumega MCP can work with.', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'Plugins detected on your site that MUCP can work with.', 'site-pilot-ai' ); ?>
 			</p>
 			<table class="widefat spai-capabilities-table">
 				<thead>
@@ -860,7 +860,7 @@ if ( isset( $new_key ) && $new_key ) {
 				<?php esc_html_e( 'About', 'site-pilot-ai' ); ?>
 			</h2>
 			<p class="description">
-				<?php esc_html_e( 'All features are included for free. Mumega MCP connects your WordPress site to AI assistants via the Model Context Protocol (MCP).', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'All features are included for free. MUCP connects your WordPress site to AI assistants via the Model Context Protocol (MCP).', 'site-pilot-ai' ); ?>
 			</p>
 			<p style="margin-top: 10px;">
 				<a href="https://mumega.com/" target="_blank" class="button">
@@ -1155,7 +1155,7 @@ if ( isset( $new_key ) && $new_key ) {
 		<div class="spai-card">
 			<h2><?php esc_html_e( 'Operating Sequence', 'site-pilot-ai' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'This is the operator loop Mumega MCP is designed around. New models and humans should follow this path instead of building pages from scratch every time.', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'This is the operator loop MUCP is designed around. New models and humans should follow this path instead of building pages from scratch every time.', 'site-pilot-ai' ); ?>
 			</p>
 			<div class="spai-workflow-sequence">
 				<div class="spai-workflow-step">

@@ -22,14 +22,14 @@ class Spai_Activity_Log_Page {
 		$log_id = isset( $_GET['log_id'] ) ? absint( wp_unslash( $_GET['log_id'] ) ) : 0;
 
 		echo '<div class="wrap">';
-		echo '<h1>' . esc_html__( 'Mumega MCP Activity Log', 'site-pilot-ai' ) . '</h1>';
+		echo '<h1>' . esc_html__( 'MUCP Activity Log', 'site-pilot-ai' ) . '</h1>';
 
 		$settings = get_option( 'spai_settings', array() );
 		$enabled  = ! empty( $settings['enable_logging'] );
 
 		if ( ! $enabled ) {
 			echo '<div class="notice notice-warning"><p>' .
-				esc_html__( 'Activity logging is currently disabled. Enable it in Mumega MCP settings to capture new entries.', 'site-pilot-ai' ) .
+				esc_html__( 'Activity logging is currently disabled. Enable it in MUCP settings to capture new entries.', 'site-pilot-ai' ) .
 				'</p></div>';
 		}
 
