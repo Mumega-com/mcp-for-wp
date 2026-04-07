@@ -1149,9 +1149,11 @@ class Spai_Elementor_Basic {
 			}
 		}
 
-		if ( empty( $keys ) ) {
-			$keys = Spai_Elementor_Widgets::get_valid_keys( $widget_type );
-		}
+		// Always merge in our static reference schema — it may know about keys
+		// that the live widget registry doesn't expose via get_controls() (e.g.
+		// responsive base keys like 'align' on icon-box).
+		$static_keys = Spai_Elementor_Widgets::get_valid_keys( $widget_type );
+		$keys = array_merge( $keys, $static_keys );
 
 		return array_values( array_unique( $keys ) );
 	}
@@ -2279,6 +2281,21 @@ class Spai_Elementor_Basic {
 		if ( ! $document_saved ) {
 			update_post_meta( $page_id, '_elementor_data', wp_slash( $elementor_json ) );
 			$debug['save_method'] = 'meta_direct';
+
+			// (#187) Update post_content so front-end renderer doesn't short-circuit.
+			wp_update_post( array(
+				'ID'           => $page_id,
+				'post_content' => '',
+			) );
+
+			// (#187) Flush Elementor's in-memory document cache so CSS regen
+			// and same-request renders read the new data from DB.
+			if ( $elementor_ok && ! empty( \Elementor\Plugin::$instance->documents ) ) {
+				clean_post_cache( $page_id );
+				wp_cache_delete( $page_id, 'post_meta' );
+				\Elementor\Plugin::$instance->documents->get( $page_id, false );
+				$debug['document_cache_flushed'] = true;
+			}
 		}
 
 		$debug['meta_written'] = true;
