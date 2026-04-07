@@ -1025,12 +1025,12 @@ trait Spai_Api_Auth {
 			'designer' => array(
 				'label'       => __( 'Designer', 'site-pilot-ai' ),
 				'description' => __( 'Visual building — Elementor, Gutenberg, media, site settings.', 'site-pilot-ai' ),
-				'categories'  => array( 'elementor', 'gutenberg', 'media', 'site' ),
+				'categories'  => array( 'elementor', 'elementor-build', 'elementor-templates', 'elementor-theme', 'elementor-info', 'gutenberg', 'media', 'site' ),
 			),
 			'editor'   => array(
 				'label'       => __( 'Editor', 'site-pilot-ai' ),
 				'description' => __( 'Content + SEO management.', 'site-pilot-ai' ),
-				'categories'  => array( 'content', 'media', 'taxonomy', 'seo' ),
+				'categories'  => array( 'content', 'media', 'taxonomy', 'seo', 'elementor', 'elementor-build', 'elementor-templates', 'elementor-theme', 'elementor-info' ),
 			),
 			'custom'   => array(
 				'label'       => __( 'Custom', 'site-pilot-ai' ),
@@ -1050,7 +1050,11 @@ trait Spai_Api_Auth {
 			'content'    => __( 'Content', 'site-pilot-ai' ),
 			'media'      => __( 'Media', 'site-pilot-ai' ),
 			'taxonomy'   => __( 'Taxonomy', 'site-pilot-ai' ),
-			'elementor'  => __( 'Elementor', 'site-pilot-ai' ),
+			'elementor'           => __( 'Elementor', 'site-pilot-ai' ),
+			'elementor-build'     => __( 'Elementor Build', 'site-pilot-ai' ),
+			'elementor-templates' => __( 'Elementor Templates', 'site-pilot-ai' ),
+			'elementor-theme'     => __( 'Elementor Theme', 'site-pilot-ai' ),
+			'elementor-info'      => __( 'Elementor Info', 'site-pilot-ai' ),
 			'gutenberg'  => __( 'Gutenberg', 'site-pilot-ai' ),
 			'seo'        => __( 'SEO', 'site-pilot-ai' ),
 			'forms'      => __( 'Forms', 'site-pilot-ai' ),

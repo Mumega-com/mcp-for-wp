@@ -137,7 +137,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_update_term'             => 'taxonomy',
 			'wp_delete_term'             => 'taxonomy',
 
-			// Elementor
+			// Elementor — core read/write/edit
 			'wp_get_elementor'           => 'elementor',
 			'wp_get_elementor_bulk'      => 'elementor',
 			'wp_get_elementor_summary'   => 'elementor',
@@ -148,13 +148,15 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_patch_elementor'         => 'elementor',
 			'wp_edit_widget'             => 'elementor',
 			'wp_set_elementor'           => 'elementor',
-			'wp_elementor_status'        => 'elementor',
-			'wp_regenerate_elementor_css' => 'elementor',
-			'wp_bulk_find_replace'       => 'elementor',
-			'wp_get_elementor_widgets'   => 'elementor',
-			'wp_get_widget_schema'       => 'elementor',
-			'wp_elementor_widget_help'   => 'elementor',
 			'wp_preview_elementor'       => 'elementor',
+			'wp_bulk_find_replace'       => 'elementor',
+
+			// Elementor Info — reference/status
+			'wp_elementor_status'        => 'elementor-info',
+			'wp_regenerate_elementor_css' => 'elementor-info',
+			'wp_get_elementor_widgets'   => 'elementor-info',
+			'wp_get_widget_schema'       => 'elementor-info',
+			'wp_elementor_widget_help'   => 'elementor-info',
 
 			// Gutenberg
 			'wp_get_blocks'              => 'gutenberg',
