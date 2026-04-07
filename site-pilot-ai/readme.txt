@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.5.1
+Stable tag: 2.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,12 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.5.2 =
+
+* Fix: SiteGround full-page cache purge after Elementor saves
+* Fix: Stats blueprint text values (Free, checkmarks) no longer render as 0 — uses heading widget for non-numeric stats (#201)
+* Filed: #200-#205 from Antigravity full-day feedback
 
 = 2.5.1 =
 

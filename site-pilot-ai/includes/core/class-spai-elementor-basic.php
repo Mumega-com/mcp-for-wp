@@ -1455,9 +1455,12 @@ class Spai_Elementor_Basic {
 
 		$url = get_permalink( $page_id );
 
-		// SiteGround SG Optimizer.
+		// SiteGround SG Optimizer — purge both URL and full cache for aggressive configs.
 		if ( function_exists( 'sg_cachepress_purge_cache' ) ) {
 			sg_cachepress_purge_cache( $url );
+		}
+		if ( class_exists( '\SiteGround_Optimizer\Supercacher\Supercacher' ) ) {
+			\SiteGround_Optimizer\Supercacher\Supercacher::purge_cache();
 		}
 
 		// WP Super Cache.

@@ -1050,17 +1050,45 @@ class Spai_Page_Builder {
 		if ( $use_containers ) {
 			$inner_containers = array();
 			foreach ( $items as $item ) {
+				$number_val = isset( $item['number'] ) ? $item['number'] : '';
+				$label_val  = isset( $item['label'] ) ? $item['label'] : ( isset( $item['title'] ) ? $item['title'] : '' );
+				$is_numeric = is_numeric( $number_val );
+
+				if ( $is_numeric ) {
+					// Use counter widget for numeric values (animated counting).
+					$stat_widget = $this->widget( 'counter', array(
+						'starting_number' => 0,
+						'ending_number'   => (int) $number_val,
+						'suffix'          => isset( $item['suffix'] ) ? $item['suffix'] : '',
+						'title'           => $label_val,
+						'duration'        => isset( $item['duration'] ) ? (int) $item['duration'] : 2000,
+					) );
+				} else {
+					// Use heading for text values ("Free", "✓", etc.) — counter only accepts numbers.
+					$stat_widget = $this->widget( 'heading', array(
+						'title'       => (string) $number_val,
+						'header_size' => 'h2',
+						'align'       => 'center',
+						'title_color' => '#111111',
+					) );
+				}
+
+				$card_elements = array( $stat_widget );
+				// Add label below for text stats (counter has its own title field).
+				if ( ! $is_numeric && $label_val ) {
+					$card_elements[] = $this->widget( 'heading', array(
+						'title'       => $label_val,
+						'header_size' => 'h5',
+						'align'       => 'center',
+						'title_color' => '#666666',
+					) );
+				}
+
 				$inner_containers[] = array(
 					'id'       => $this->id(),
 					'elType'   => 'container',
 					'settings' => array( 'content_width' => 'full' ),
-					'elements' => array( $this->widget( 'counter', array(
-						'starting_number' => 0,
-						'ending_number'   => isset( $item['number'] ) ? (int) $item['number'] : 0,
-						'suffix'          => isset( $item['suffix'] ) ? $item['suffix'] : '',
-						'title'           => isset( $item['title'] ) ? $item['title'] : '',
-						'duration'        => isset( $item['duration'] ) ? (int) $item['duration'] : 2000,
-					) ) ),
+					'elements' => $card_elements,
 				);
 			}
 
