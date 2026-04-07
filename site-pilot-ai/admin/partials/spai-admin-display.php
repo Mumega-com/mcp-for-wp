@@ -1889,7 +1889,7 @@ if ( isset( $new_key ) && $new_key ) {
 			<ul class="spai-resources-list">
 				<li>
 					<span class="dashicons dashicons-book"></span>
-					<a href="https://sitepilotai.mumega.com/docs" target="_blank"><?php esc_html_e( 'Documentation & Source Code', 'site-pilot-ai' ); ?></a>
+					<a href="https://mcpforwp.mumega.com/docs" target="_blank"><?php esc_html_e( 'Documentation & Source Code', 'site-pilot-ai' ); ?></a>
 				</li>
 				<li>
 					<span class="dashicons dashicons-sos"></span>

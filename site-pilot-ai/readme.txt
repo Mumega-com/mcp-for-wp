@@ -1,11 +1,11 @@
 === Mumega MCP for WordPress ===
 Contributors: mumega
-Donate link: https://sitepilotai.mumega.com
+Donate link: https://mcpforwp.mumega.com
 Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.3.1
+Stable tag: 2.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -126,10 +126,14 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 == Changelog ==
 
+= 2.3.2 =
+
+* All plugin and site URLs updated to mcpforwp.mumega.com
+
 = 2.3.1 =
 
 * Updated GitHub repository references to Mumega-com/mcp-for-wp
-* Plugin URI updated to sitepilotai.mumega.com
+* Plugin URI updated to mcpforwp.mumega.com
 * Site branding updated to match plugin name
 
 = 2.3.0 =
@@ -255,7 +259,7 @@ Each site needs its own plugin installation and API key. Multi-site management f
 * Fix: All Elementor save paths consolidated to use Document::save() with meta_direct fallback
 
 = 1.7.2 =
-* Add: Self-hosted auto-updater — plugin updates directly from sitepilotai.mumega.com
+* Add: Self-hosted auto-updater — plugin updates directly from mcpforwp.mumega.com
 * Add: "Check for updates" link in plugin row meta
 
 = 1.7.1 =
@@ -383,7 +387,7 @@ Each site needs its own plugin installation and API key. Multi-site management f
 * Enhancement: Feedback includes site URL, site name, and plugin version for context
 
 = 1.1.19 =
-* Fix: All plugin URLs now use correct domain (sitepilotai.mumega.com) with HTTPS
+* Fix: All plugin URLs now use correct domain (mcpforwp.mumega.com) with HTTPS
 * Fix: Report a Bug link now points to GitHub issues instead of non-existent page
 * Fix: Screenshot Worker docs link corrected
 
@@ -789,8 +793,8 @@ Used as a fallback for generating website screenshot thumbnails when no Cloudfla
 When a user submits feedback via the wp_submit_feedback tool, the feedback is relayed to a central endpoint so plugin developers receive bug reports. This can be disabled by defining `SPAI_DISABLE_FEEDBACK_RELAY` as true.
 * Data sent: Feedback text, site URL, site name, plugin version
 * When: Only when the wp_submit_feedback MCP tool is explicitly called
-* Endpoint: https://sitepilotai.mumega.com/wp-json/site-pilot-ai/v1/feedback/relay
-* Privacy Policy: https://sitepilotai.mumega.com/privacy
+* Endpoint: https://mcpforwp.mumega.com/wp-json/site-pilot-ai/v1/feedback/relay
+* Privacy Policy: https://mcpforwp.mumega.com/privacy
 
 = GitHub API (optional) =
 If configured in settings, feedback can be automatically posted as GitHub issues.
@@ -833,6 +837,6 @@ Used for stock photo search and download when configured by the user.
 
 == Support ==
 
-* Documentation: [sitepilotai.mumega.com/docs](https://sitepilotai.mumega.com/docs)
+* Documentation: [mcpforwp.mumega.com/docs](https://mcpforwp.mumega.com/docs)
 * Support Forum: [wordpress.org/support/plugin/site-pilot-ai](https://wordpress.org/support/plugin/site-pilot-ai)
 * GitHub: [github.com/Mumega-com/mcp-for-wp](https://github.com/Mumega-com/mcp-for-wp)
