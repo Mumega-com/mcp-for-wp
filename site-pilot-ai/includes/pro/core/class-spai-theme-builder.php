@@ -440,38 +440,60 @@ class Spai_Theme_Builder {
 			return $template_id;
 		}
 
-		// Set Elementor meta for Theme Builder.
+		// Set all required Elementor meta for Theme Builder templates to render.
 		update_post_meta( $template_id, '_elementor_template_type', $type );
 		update_post_meta( $template_id, '_elementor_edit_mode', 'builder' );
+		update_post_meta( $template_id, '_elementor_version', defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : '' );
+		update_post_meta( $template_id, '_wp_page_template', 'elementor_header_footer' );
 
-		// Set Elementor data if provided — use Document::save() for proper rendering.
+		// Set Elementor data if provided — use document_save_with_meta_overwrite pattern.
 		if ( ! empty( $data['elementor_data'] ) ) {
 			$elements = $data['elementor_data'];
 			if ( is_string( $elements ) ) {
 				$elements = json_decode( $elements, true );
 			}
+			if ( ! is_array( $elements ) ) {
+				$elements = array();
+			}
 
+			$json         = wp_json_encode( $elements );
 			$elementor_ok = class_exists( '\Elementor\Plugin' ) && ! empty( \Elementor\Plugin::$instance->documents );
-			$saved        = false;
 
+			// Try Document::save() first for proper Elementor initialization.
 			if ( $elementor_ok ) {
 				wp_cache_delete( $template_id, 'post_meta' );
 				clean_post_cache( $template_id );
 				$document = \Elementor\Plugin::$instance->documents->get( $template_id, false );
 				if ( $document && method_exists( $document, 'save' ) ) {
-					$result = $document->save( array( 'elements' => $elements ) );
-					$saved  = ! is_wp_error( $result );
+					$document->save( array( 'elements' => $elements ) );
 				}
 			}
 
-			if ( ! $saved ) {
-				$json = is_array( $elements ) ? wp_json_encode( $elements ) : $elements;
-				update_post_meta( $template_id, '_elementor_data', wp_slash( $json ) );
-				delete_post_meta( $template_id, '_elementor_css' );
-				if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
-					$css_file = \Elementor\Core\Files\CSS\Post::create( $template_id );
-					$css_file->update();
+			// Always overwrite raw meta — Document::save() may silently fail or
+			// write to revision cache instead of post meta (#198).
+			update_post_meta( $template_id, '_elementor_data', wp_slash( $json ) );
+
+			// Clear post_content so Elementor owns the rendering.
+			wp_update_post( array(
+				'ID'           => $template_id,
+				'post_content' => '',
+			) );
+
+			// Flush caches so Elementor reads the new data.
+			wp_cache_delete( $template_id, 'post_meta' );
+			clean_post_cache( $template_id );
+			if ( $elementor_ok ) {
+				\Elementor\Plugin::$instance->documents->get( $template_id, false );
+				if ( function_exists( 'wp_cache_flush_group' ) ) {
+					wp_cache_flush_group( 'post_meta' );
 				}
+			}
+
+			// Regenerate CSS.
+			delete_post_meta( $template_id, '_elementor_css' );
+			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+				$css_file = \Elementor\Core\Files\CSS\Post::create( $template_id );
+				$css_file->update();
 			}
 		}
 
