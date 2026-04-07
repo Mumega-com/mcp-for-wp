@@ -38,19 +38,56 @@ class Spai_Admin {
 	const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0iIzljYTJhNyI+PHBhdGggZD0iTTEwIDJjLTQuNCAwLTggMy42LTggOHMzLjYgOCA4IDggOC0zLjYgOC04LTMuNi04LTgtOHptMCAyYzEuNyAwIDMuMi43IDQuMyAxLjhMNy41IDE0LjZDNS42IDEzLjIgNC41IDExIDQuNSAxMCA0LjUgNi45IDcgNC41IDEwIDQuNXptMCAxMWMtMS43IDAtMy4yLS43LTQuMy0xLjhsNi44LTguOGMxLjkgMS40IDMgMy42IDMgNS42IDAgMy4xLTIuNSA1LjUtNS41IDUuNXoiLz48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSIyIi8+PC9zdmc+';
 
 	/**
+	 * Library page slug.
+	 *
+	 * @var string
+	 */
+	const LIBRARY_PAGE_SLUG = 'site-pilot-ai-library';
+
+	/**
+	 * Settings page slug.
+	 *
+	 * @var string
+	 */
+	const SETTINGS_PAGE_SLUG = 'site-pilot-ai-settings';
+
+	/**
 	 * Add admin menu - top-level with icon.
 	 */
 	public function add_admin_menu() {
+		// Top-level menu + default submenu (Setup) share the same slug so
+		// clicking "mumcp" always lands on the Setup page.
 		add_menu_page(
 			__( 'mumcp', 'site-pilot-ai' ),
 			__( 'mumcp', 'site-pilot-ai' ),
 			'activate_plugins',
 			self::PAGE_SLUG,
-			array( $this, 'render_admin_page' ),
+			array( $this, 'render_setup_page' ),
 			self::MENU_ICON,
 			80
 		);
 
+		// Setup — same slug as parent so it becomes the first visible item.
+		add_submenu_page(
+			self::PAGE_SLUG,
+			__( 'Setup', 'site-pilot-ai' ),
+			__( 'Setup', 'site-pilot-ai' ),
+			'activate_plugins',
+			self::PAGE_SLUG,
+			array( $this, 'render_setup_page' )
+		);
+
+		// Library.
+		add_submenu_page(
+			self::PAGE_SLUG,
+			__( 'Library', 'site-pilot-ai' ),
+			__( 'Library', 'site-pilot-ai' ),
+			'activate_plugins',
+			self::LIBRARY_PAGE_SLUG,
+			array( $this, 'render_library_page' )
+		);
+
+		// Integrations (already exists).
 		add_submenu_page(
 			self::PAGE_SLUG,
 			__( 'Integrations', 'site-pilot-ai' ),
@@ -60,15 +97,27 @@ class Spai_Admin {
 			array( new Spai_Integrations_Admin(), 'render' )
 		);
 
+		// Tools (renamed from "MCP Tools").
 		add_submenu_page(
 			self::PAGE_SLUG,
-			__( 'MCP Tools', 'site-pilot-ai' ),
-			__( 'MCP Tools', 'site-pilot-ai' ),
+			__( 'Tools', 'site-pilot-ai' ),
+			__( 'Tools', 'site-pilot-ai' ),
 			'activate_plugins',
 			Spai_Tools_Admin::PAGE_SLUG,
 			array( new Spai_Tools_Admin(), 'render' )
 		);
 
+		// Settings.
+		add_submenu_page(
+			self::PAGE_SLUG,
+			__( 'Settings', 'site-pilot-ai' ),
+			__( 'Settings', 'site-pilot-ai' ),
+			'activate_plugins',
+			self::SETTINGS_PAGE_SLUG,
+			array( $this, 'render_settings_page' )
+		);
+
+		// Activity Log.
 		add_submenu_page(
 			self::PAGE_SLUG,
 			__( 'Activity Log', 'site-pilot-ai' ),
@@ -88,6 +137,8 @@ class Spai_Admin {
 	public function enqueue_styles( $hook ) {
 		$allowed_hooks = array(
 			'toplevel_page_' . self::PAGE_SLUG,
+			self::PAGE_SLUG . '_page_' . self::LIBRARY_PAGE_SLUG,
+			self::PAGE_SLUG . '_page_' . self::SETTINGS_PAGE_SLUG,
 			self::PAGE_SLUG . '_page_' . self::ACTIVITY_LOG_PAGE_SLUG,
 			self::PAGE_SLUG . '_page_' . Spai_Integrations_Admin::PAGE_SLUG,
 			self::PAGE_SLUG . '_page_' . Spai_Tools_Admin::PAGE_SLUG,
@@ -111,7 +162,13 @@ class Spai_Admin {
 	 * @param string $hook Current admin page.
 	 */
 	public function enqueue_scripts( $hook ) {
-		if ( 'toplevel_page_' . self::PAGE_SLUG !== $hook ) {
+		// Fire on Setup (toplevel), Library, and Settings pages.
+		$allowed_hooks = array(
+			'toplevel_page_' . self::PAGE_SLUG,
+			self::PAGE_SLUG . '_page_' . self::LIBRARY_PAGE_SLUG,
+			self::PAGE_SLUG . '_page_' . self::SETTINGS_PAGE_SLUG,
+		);
+		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
 			return;
 		}
 
@@ -195,15 +252,14 @@ class Spai_Admin {
 	}
 
 	/**
-	 * Render admin page.
+	 * Render the Setup page (default landing page).
 	 */
-	public function render_admin_page() {
-		// Check permissions
+	public function render_setup_page() {
 		if ( ! current_user_can( 'activate_plugins' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
 		}
 
-		// Handle regenerate action
+		// Handle API key actions.
 		$new_key = null;
 		if ( isset( $_POST['spai_regenerate_key'] ) ) {
 			check_admin_referer( 'spai_regenerate_key', 'spai_nonce' );
@@ -231,8 +287,8 @@ class Spai_Admin {
 
 			$new_scoped_key = $this->create_scoped_api_key( $label, $scopes, $role, $tool_categories );
 
-			$roles       = self::get_role_definitions();
-			$role_label  = isset( $roles[ $role ] ) ? $roles[ $role ]['label'] : $role;
+			$roles      = self::get_role_definitions();
+			$role_label = isset( $roles[ $role ] ) ? $roles[ $role ]['label'] : $role;
 			add_settings_error(
 				'spai_messages',
 				'spai_scoped_key_created',
@@ -269,6 +325,28 @@ class Spai_Admin {
 			}
 		}
 
+		// Check for first-activation key.
+		if ( ! $new_key ) {
+			$first_key = get_transient( 'spai_new_api_key' );
+			if ( $first_key ) {
+				$new_key = $first_key;
+			}
+		}
+
+		$scoped_keys = $this->list_scoped_api_keys( true );
+
+		include SPAI_PLUGIN_DIR . 'admin/partials/spai-setup-display.php';
+	}
+
+	/**
+	 * Render the Library page.
+	 */
+	public function render_library_page() {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
+		}
+
+		// Handle library form actions.
 		if ( isset( $_POST['spai_promote_template_archetype'] ) ) {
 			check_admin_referer( 'spai_library_actions', 'spai_library_nonce' );
 			$this->handle_promote_template_to_archetype();
@@ -329,23 +407,33 @@ class Spai_Admin {
 			$this->handle_create_page_from_design_reference();
 		}
 
+		$library_inventory      = $this->get_library_inventory();
+		$library_filters        = $this->get_library_filters();
+		$library_filter_options = $this->get_library_filter_options( $library_inventory );
+		$library_inventory      = $this->filter_library_inventory( $library_inventory, $library_filters );
+
+		include SPAI_PLUGIN_DIR . 'admin/partials/spai-library-display.php';
+	}
+
+	/**
+	 * Render the Settings page.
+	 */
+	public function render_settings_page() {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'site-pilot-ai' ) );
+		}
+
 		if ( isset( $_POST['spai_save_site_profile'] ) ) {
 			check_admin_referer( 'spai_site_profile_actions', 'spai_site_profile_nonce' );
 			$this->handle_save_site_profile();
 		}
 
-		// Check for first-activation key
-		if ( ! $new_key ) {
-			$first_key = get_transient( 'spai_new_api_key' );
-			if ( $first_key ) {
-				$new_key = $first_key;
-			}
-		}
+		$site_profile         = $this->get_site_profile();
+		$site_context_preview = $this->get_site_context_preview();
+		$llms_url             = $this->get_llms_url();
+		$llms_preview         = $this->get_llms_preview();
 
-		$scoped_keys = $this->list_scoped_api_keys( true );
-		$site_profile = $this->get_site_profile();
-
-		include SPAI_PLUGIN_DIR . 'admin/partials/spai-admin-display.php';
+		include SPAI_PLUGIN_DIR . 'admin/partials/spai-settings-display.php';
 	}
 
 	/**
@@ -486,35 +574,35 @@ class Spai_Admin {
 				'title'       => __( 'Define site character', 'site-pilot-ai' ),
 				'description' => __( 'Save the brand voice, audience, and page rules in Settings.', 'site-pilot-ai' ),
 				'done'        => $has_site_profile,
-				'url'         => admin_url( 'admin.php?page=site-pilot-ai&tab=settings' ),
+				'url'         => admin_url( 'admin.php?page=' . self::SETTINGS_PAGE_SLUG ),
 				'cta'         => __( 'Open Settings', 'site-pilot-ai' ),
 			),
 			array(
 				'title'       => __( 'Create an AI key', 'site-pilot-ai' ),
 				'description' => __( 'Generate or copy an API key so models can connect to the site.', 'site-pilot-ai' ),
 				'done'        => $has_api_key,
-				'url'         => admin_url( 'admin.php?page=site-pilot-ai&tab=setup' ),
+				'url'         => admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
 				'cta'         => __( 'Manage Keys', 'site-pilot-ai' ),
 			),
 			array(
 				'title'       => __( 'Store a design reference', 'site-pilot-ai' ),
 				'description' => __( 'Turn one approved screenshot or mockup into reusable design memory.', 'site-pilot-ai' ),
 				'done'        => $has_references,
-				'url'         => admin_url( 'admin.php?page=site-pilot-ai&tab=library' ),
+				'url'         => admin_url( 'admin.php?page=' . self::LIBRARY_PAGE_SLUG ),
 				'cta'         => __( 'Open Library', 'site-pilot-ai' ),
 			),
 			array(
 				'title'       => __( 'Create an archetype', 'site-pilot-ai' ),
 				'description' => __( 'Save at least one page or product structure so models stop starting from zero.', 'site-pilot-ai' ),
 				'done'        => $has_archetypes,
-				'url'         => admin_url( 'admin.php?page=site-pilot-ai&tab=library' ),
+				'url'         => admin_url( 'admin.php?page=' . self::LIBRARY_PAGE_SLUG ),
 				'cta'         => __( 'Review Archetypes', 'site-pilot-ai' ),
 			),
 			array(
 				'title'       => __( 'Build reusable parts', 'site-pilot-ai' ),
 				'description' => __( 'Keep heroes, proof blocks, FAQs, and CTAs in the parts library for future pages.', 'site-pilot-ai' ),
 				'done'        => $has_parts,
-				'url'         => admin_url( 'admin.php?page=site-pilot-ai&tab=library' ),
+				'url'         => admin_url( 'admin.php?page=' . self::LIBRARY_PAGE_SLUG ),
 				'cta'         => __( 'Review Parts', 'site-pilot-ai' ),
 			),
 		);
@@ -2202,7 +2290,7 @@ class Spai_Admin {
 				$results[]    = array(
 					'id'    => $reference_id,
 					'title' => isset( $reference['title'] ) ? (string) $reference['title'] : '',
-					'url'   => admin_url( 'admin.php?page=site-pilot-ai&tab=library&library_asset_type=references&library_search=' . rawurlencode( $reference_id ) ),
+					'url'   => admin_url( 'admin.php?page=' . self::LIBRARY_PAGE_SLUG . '&library_asset_type=references&library_search=' . rawurlencode( $reference_id ) ),
 				);
 			}
 		}

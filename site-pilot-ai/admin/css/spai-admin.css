@@ -1153,3 +1153,52 @@
 		display: none;
 	}
 }
+
+/* ====== Setup page ====== */
+.spai-setup-page {}
+
+.spai-no-key-prompt {
+	padding: 20px;
+	background: #f0f6fc;
+	border: 1px solid #c3d9f0;
+	border-radius: 6px;
+	margin-bottom: 16px;
+}
+
+.spai-quick-links {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.spai-quick-links li {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: 0 0 auto;
+}
+
+.spai-quick-links .button .dashicons {
+	vertical-align: middle;
+	margin-top: -2px;
+	margin-right: 4px;
+}
+
+/* Inner tabs (within a card) */
+.spai-tabs--inner {
+	margin: 0 0 16px 0;
+	padding: 0;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.spai-tabs--inner .nav-tab {
+	font-size: 13px;
+	padding: 6px 14px;
+}
+
+.spai-inner-tab-content {
+	padding: 4px 0;
+}

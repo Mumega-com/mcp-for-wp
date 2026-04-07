@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.4.1
+Stable tag: 2.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,13 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.5.0 =
+
+* New: Restructured admin navigation — Setup, Library, Integrations, Tools, Settings, Activity Log
+* New: Setup page with API key generation, MCP config for all clients, connection status
+* New: Library page extracted — archetypes, reusable parts, design references
+* New: Settings page extracted — logging, CORS, rate limits, site context
 
 = 2.4.1 =
 
