@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.2.3
+Stable tag: 2.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,14 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.2.4 =
+
+* Fix: Empty front-end render after MCP Elementor save — flush document cache and post_content in fallback path (#187)
+* Fix: wp_edit_widget silently failed to persist — same fallback cache issue in shared save helper
+* Fix: Validator false positives on icon-box 'align' key — merge static schema with live Elementor controls
+* Fix: Removed icon-box title_size control rename that corrupted valid h-tag setting (#190)
+* Enhancement: Split elementor tool category (99 tools) into 5 subcategories for Gemini 100-tool limit (#191)
 
 = 2.2.3 =
 
