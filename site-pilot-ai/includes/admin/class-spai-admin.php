@@ -42,8 +42,8 @@ class Spai_Admin {
 	 */
 	public function add_admin_menu() {
 		add_menu_page(
-			__( 'MUCP', 'site-pilot-ai' ),
-			__( 'MUCP', 'site-pilot-ai' ),
+			__( 'mumcp', 'site-pilot-ai' ),
+			__( 'mumcp', 'site-pilot-ai' ),
 			'activate_plugins',
 			self::PAGE_SLUG,
 			array( $this, 'render_admin_page' ),
@@ -2241,7 +2241,7 @@ class Spai_Admin {
 	public function add_network_admin_menu() {
 		add_menu_page(
 			__( 'MUCP — Network', 'site-pilot-ai' ),
-			__( 'MUCP', 'site-pilot-ai' ),
+			__( 'mumcp', 'site-pilot-ai' ),
 			'manage_network_plugins',
 			'site-pilot-ai-network',
 			array( $this, 'render_network_admin_page' ),

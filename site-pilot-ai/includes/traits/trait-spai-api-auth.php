@@ -62,7 +62,7 @@ trait Spai_Api_Auth {
 				__( 'API key is required.', 'site-pilot-ai' ),
 				array(
 					'status' => 401,
-					'hint'   => 'Include your API key in the X-API-Key header or Authorization: Bearer header. Generate keys in WP Admin > MUCP > Settings, or call wp_create_api_key if you have admin access.',
+					'hint'   => 'Include your API key in the X-API-Key header or Authorization: Bearer header. Generate keys in WP Admin > mumcp > Settings, or call wp_create_api_key if you have admin access.',
 				)
 			);
 		}
@@ -96,10 +96,10 @@ trait Spai_Api_Auth {
 			if ( ! $has_configured_keys ) {
 				return new WP_Error(
 					'api_not_configured',
-					__( 'API key not configured. Please visit the MUCP settings.', 'site-pilot-ai' ),
+					__( 'API key not configured. Please visit the mumcp settings.', 'site-pilot-ai' ),
 					array(
 						'status' => 500,
-						'hint'   => 'No API keys have been configured yet. The site admin needs to visit WP Admin > MUCP > Settings to generate an API key.',
+						'hint'   => 'No API keys have been configured yet. The site admin needs to visit WP Admin > mumcp > Settings to generate an API key.',
 					)
 				);
 			}
@@ -111,7 +111,7 @@ trait Spai_Api_Auth {
 				__( 'Invalid API key.', 'site-pilot-ai' ),
 				array(
 					'status' => 401,
-					'hint'   => 'The provided API key is not valid. Check for typos or whitespace. Keys start with "spai_". Generate a new key in WP Admin > MUCP > Settings.',
+					'hint'   => 'The provided API key is not valid. Check for typos or whitespace. Keys start with "spai_". Generate a new key in WP Admin > mumcp > Settings.',
 				)
 			);
 		}
@@ -158,10 +158,10 @@ trait Spai_Api_Auth {
 		if ( ! $this->set_api_user_context() ) {
 			return new WP_Error(
 				'api_user_missing',
-				__( 'API user context is not configured. Re-activate MUCP to provision the service account.', 'site-pilot-ai' ),
+				__( 'API user context is not configured. Re-activate mumcp to provision the service account.', 'site-pilot-ai' ),
 				array(
 					'status' => 500,
-					'hint'   => 'The plugin\'s internal service account is missing. Deactivate and reactivate the MUCP plugin in WP Admin > Plugins to reprovision it.',
+					'hint'   => 'The plugin\'s internal service account is missing. Deactivate and reactivate the mumcp plugin in WP Admin > Plugins to reprovision it.',
 				)
 			);
 		}
@@ -340,7 +340,7 @@ trait Spai_Api_Auth {
 		if ( ! $this->set_api_user_context() ) {
 			return new WP_Error(
 				'api_user_missing',
-				__( 'API user context is not configured. Re-activate MUCP to provision the service account.', 'site-pilot-ai' ),
+				__( 'API user context is not configured. Re-activate mumcp to provision the service account.', 'site-pilot-ai' ),
 				array( 'status' => 500 )
 			);
 		}

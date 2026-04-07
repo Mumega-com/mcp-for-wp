@@ -3,7 +3,7 @@
  * Guides & Documentation
  *
  * Provides context-aware guides for AI assistants on how to use
- * MUCP tools effectively.
+ * mumcp tools effectively.
  *
  * @package SitePilotAI
  */
@@ -71,7 +71,7 @@ class Spai_Guides {
 			array(
 				'topic'       => 'woocommerce',
 				'title'       => 'WooCommerce',
-				'description' => 'Products, orders, and categories management via MUCP tools.',
+				'description' => 'Products, orders, and categories management via mumcp tools.',
 				'requires'    => 'woocommerce',
 			),
 			array(
@@ -95,7 +95,7 @@ class Spai_Guides {
 			array(
 				'topic'       => 'troubleshooting',
 				'title'       => 'Troubleshooting',
-				'description' => 'Common errors, debugging tips, and fixes for frequent issues with MUCP tools.',
+				'description' => 'Common errors, debugging tips, and fixes for frequent issues with mumcp tools.',
 				'requires'    => null,
 			),
 		);

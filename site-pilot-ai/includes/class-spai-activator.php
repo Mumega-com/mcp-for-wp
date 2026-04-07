@@ -118,8 +118,8 @@ class Spai_Activator {
 				'user_login'   => 'spai_bot',
 				'user_pass'    => wp_generate_password( 64 ),
 				'role'         => 'spai_api_agent',
-				'display_name' => 'MUCP',
-				'description'  => 'Service account for MUCP API',
+				'display_name' => 'mumcp',
+				'description'  => 'Service account for mumcp API',
 			) );
 		}
 	}

@@ -154,7 +154,7 @@ class Spai_Google_Indexing {
 		if ( ! $sa ) {
 			return new WP_Error(
 				'no_service_account',
-				__( 'Google Indexing API service account not configured. Add it via MUCP > Integrations.', 'site-pilot-ai' ),
+				__( 'Google Indexing API service account not configured. Add it via mumcp > Integrations.', 'site-pilot-ai' ),
 				array( 'status' => 400 )
 			);
 		}

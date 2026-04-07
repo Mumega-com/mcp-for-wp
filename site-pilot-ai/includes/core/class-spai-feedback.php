@@ -376,7 +376,7 @@ class Spai_Feedback {
 			}
 		}
 
-		$body .= "\n---\n*Submitted via MUCP feedback system*";
+		$body .= "\n---\n*Submitted via mumcp feedback system*";
 
 		return $body;
 	}

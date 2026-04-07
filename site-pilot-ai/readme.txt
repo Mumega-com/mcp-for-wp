@@ -1,11 +1,11 @@
-=== MUCP ===
+=== mumcp ===
 Contributors: mumega
 Donate link: https://mucp.mumega.com
 Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.3.5
+Stable tag: 2.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,7 +36,7 @@ MUCP connects your WordPress site to AI assistants like Claude using the Model C
 = How It Works =
 
 1. Install and activate the plugin
-2. Copy your API key from MUCP in the admin menu
+2. Copy your API key from mumcp in the admin menu
 3. Configure your MCP server with the API key
 4. Define your site character and save reusable assets like archetypes, parts, and design references
 5. Start building draft pages and products with natural language
@@ -54,9 +54,9 @@ MUCP connects your WordPress site to AI assistants like Claude using the Model C
 = From WordPress Admin =
 
 1. Go to Plugins → Add New
-2. Search for "MUCP"
+2. Search for "mumcp"
 3. Click Install Now, then Activate
-4. Go to MUCP in the admin menu to get your API key
+4. Go to mumcp in the admin menu to get your API key
 
 = Manual Installation =
 
@@ -64,7 +64,7 @@ MUCP connects your WordPress site to AI assistants like Claude using the Model C
 2. Go to Plugins → Add New → Upload Plugin
 3. Select the ZIP file and click Install Now
 4. Activate the plugin
-5. Go to MUCP in the admin menu to get your API key
+5. Go to mumcp in the admin menu to get your API key
 
 = MCP Server Setup =
 
@@ -87,7 +87,7 @@ Add to your `~/.claude.json`:
 
 = What is MCP? =
 
-Model Context Protocol (MCP) is an open protocol that enables AI assistants like Claude to interact with external tools and services. MUCP exposes your WordPress site as an MCP-compatible tool.
+Model Context Protocol (MCP) is an open protocol that enables AI assistants like Claude to interact with external tools and services. mumcp exposes your WordPress site as an MCP-compatible tool.
 
 = Is this secure? =
 
@@ -111,7 +111,7 @@ MUCP is best for operators: founders, marketers, agencies, and site managers who
 
 = Does it support Elementor 4? =
 
-Yes. The current stack has been tested on WordPress 6.9.1 with Elementor 4.0.0. MUCP verifies that Elementor saves actually persist `_elementor_data`, and automatically falls back to a direct meta save when Elementor reports success but stores nothing. Landing page generation was also verified on the local Elementor 4 test stack.
+Yes. The current stack has been tested on WordPress 6.9.1 with Elementor 4.0.0. mumcp verifies that Elementor saves actually persist `_elementor_data`, and automatically falls back to a direct meta save when Elementor reports success but stores nothing. Landing page generation was also verified on the local Elementor 4 test stack.
 
 = Can I use this on multiple sites? =
 
@@ -126,9 +126,15 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 == Changelog ==
 
+= 2.4.0 =
+
+* Renamed to mumcp (5+ chars for WP.org slug generation)
+* Removed self-updater from WP.org build (not permitted)
+* Fixed SQL escaping in activity log for WP.org scanner
+
 = 2.3.5 =
 
-* Plugin renamed to MUCP everywhere
+* Plugin renamed to mumcp everywhere
 
 = 2.3.4 =
 
@@ -150,7 +156,7 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 = 2.3.0 =
 
-* Renamed to "MUCP" for WordPress.org compliance
+* Renamed to "mumcp" for WordPress.org compliance
 * Author updated from DigID Inc to Mumega
 * Plugin URI updated to mumega.com/mcp
 * Copyright updated to 2026

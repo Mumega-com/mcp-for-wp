@@ -181,7 +181,7 @@ function spa_fs_uninstall_cleanup() {
 }
 
 /**
- * Cleanup a single site's MUCP data.
+ * Cleanup a single site's mumcp data.
  */
 function spa_fs_uninstall_cleanup_site() {
 	// Clean up options.

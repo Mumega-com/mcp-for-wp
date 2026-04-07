@@ -11,10 +11,10 @@
  * @license           GPL-2.0-or-later
  *
  * @wordpress-plugin
- * Plugin Name:       MUCP
+ * Plugin Name:       mumcp
  * Plugin URI:        https://mucp.mumega.com
  * Description:       Connect WordPress to AI assistants via the Model Context Protocol (MCP). Manage posts, pages, media, and Elementor through natural language.
- * Version:           2.3.5
+ * Version:           2.4.0
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            Mumega
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SPAI_VERSION', '2.3.5' );
+define( 'SPAI_VERSION', '2.4.0' );
 
 /**
  * Plugin directory path.
@@ -261,7 +261,7 @@ if ( ! function_exists( 'spai_activate' ) ) {
 }
 
 /**
- * Provision MUCP tables/options when a new site is created in a multisite network.
+ * Provision mumcp tables/options when a new site is created in a multisite network.
  *
  * @param WP_Site $new_site New site object.
  */
@@ -271,7 +271,7 @@ if ( ! function_exists( 'spai_on_new_site' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 	}
 
-	// Only run if MUCP is network-activated.
+	// Only run if mumcp is network-activated.
 	if ( ! is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
 		return;
 	}

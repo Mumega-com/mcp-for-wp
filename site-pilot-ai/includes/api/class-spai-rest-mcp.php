@@ -244,7 +244,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			? $core->get_site_info()
 			: array(
 				'plugin'       => array(
-					'name'    => 'MUCP',
+					'name'    => 'mumcp',
 					'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 				),
 				'capabilities' => array(),
@@ -282,7 +282,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 
 		return array(
 			'plugin'                => $site_info['plugin'] ?? array(
-				'name'    => 'MUCP',
+				'name'    => 'mumcp',
 				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 			),
 			'site'                  => array(
@@ -296,7 +296,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			'detected_integrations' => $this->get_detected_integrations(),
 			'auth'                  => array(
 				'header' => 'X-API-Key',
-				'note'   => 'Send your MUCP API key in the X-API-Key header for REST + MCP requests.',
+				'note'   => 'Send your mumcp API key in the X-API-Key header for REST + MCP requests.',
 			),
 			'endpoints'             => array(
 				'rest_base' => rest_url( 'site-pilot-ai/v1/' ),
@@ -1102,9 +1102,9 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$lines = array();
 
 		// --- Plugin overview ---
-		$lines[] = '# MUCP — MCP Server Instructions';
+		$lines[] = '# mumcp — MCP Server Instructions';
 		$lines[] = '';
-		$lines[] = 'You are connected to **' . $site_name . '**' . ( $site_url ? ' (' . $site_url . ')' : '' ) . ' via MUCP, a WordPress management plugin that exposes content, design, SEO, and admin tools through MCP.';
+		$lines[] = 'You are connected to **' . $site_name . '**' . ( $site_url ? ' (' . $site_url . ')' : '' ) . ' via mumcp, a WordPress management plugin that exposes content, design, SEO, and admin tools through MCP.';
 		$lines[] = '';
 
 		// --- Best practices ---
