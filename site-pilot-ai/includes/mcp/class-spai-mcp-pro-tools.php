@@ -1011,7 +1011,7 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 
 		$pro_tools[] = $this->define_tool(
 			'wp_set_elementor_globals',
-			'Set Elementor global settings (colors, typography, button styles, kit-level CSS, etc.). Merges with existing kit settings. Use custom_css for site-wide Elementor CSS that persists independently of theme Custom CSS.',
+			'Set Elementor global settings. Merges with existing kit page_settings. Accepts any valid Elementor Kit setting key — common ones listed below, but any kit setting works.',
 			array(
 				'system_colors' => array(
 					'type'        => 'array',
@@ -1031,7 +1031,35 @@ class Spai_MCP_Pro_Tools extends Spai_MCP_Tool_Registry {
 				),
 				'custom_css' => array(
 					'type'        => 'string',
-					'description' => 'Kit-level custom CSS. Applied site-wide via Elementor (separate from WordPress Customizer CSS). Replaces any existing kit CSS.',
+					'description' => 'Kit-level custom CSS. Applied site-wide via Elementor. Replaces existing kit CSS.',
+				),
+				'container_width' => array(
+					'type'        => 'object',
+					'description' => 'Default container max-width: {"size":1140,"unit":"px"}',
+				),
+				'space_between_widgets' => array(
+					'type'        => 'object',
+					'description' => 'Space between widgets: {"size":20,"unit":"px"}',
+				),
+				'page_title_selector' => array(
+					'type'        => 'string',
+					'description' => 'CSS selector for page title element (e.g. "h1.entry-title")',
+				),
+				'stretched_section_container' => array(
+					'type'        => 'string',
+					'description' => 'CSS selector for stretched sections container',
+				),
+				'default_generic_fonts' => array(
+					'type'        => 'string',
+					'description' => 'Fallback font stack (e.g. "Sans-serif")',
+				),
+				'viewport_md' => array(
+					'type'        => 'number',
+					'description' => 'Tablet breakpoint in px (default: 768)',
+				),
+				'viewport_lg' => array(
+					'type'        => 'number',
+					'description' => 'Desktop breakpoint in px (default: 1025)',
 				),
 			)
 		);
