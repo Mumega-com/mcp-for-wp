@@ -55,7 +55,7 @@ if ( isset( $new_key ) && $new_key ) {
 		<span class="spai-logo">
 			<span class="dashicons dashicons-airplane"></span>
 		</span>
-		<?php esc_html_e( 'Mumega MCP for WordPress', 'site-pilot-ai' ); ?>
+		<?php esc_html_e( 'Mumega MCP', 'site-pilot-ai' ); ?>
 		<span class="spai-version">v<?php echo esc_html( SPAI_VERSION ); ?></span>
 	</h1>
 
@@ -66,7 +66,7 @@ if ( isset( $new_key ) && $new_key ) {
 			<span class="dashicons dashicons-yes-alt"></span>
 		</div>
 		<div class="spai-welcome-content">
-			<h2><?php esc_html_e( 'Mumega MCP for WordPress is ready!', 'site-pilot-ai' ); ?></h2>
+			<h2><?php esc_html_e( 'Mumega MCP is ready!', 'site-pilot-ai' ); ?></h2>
 			<p><?php esc_html_e( 'Your API key has been generated. Copy it now and use it to connect Claude Desktop, Claude Code, or ChatGPT to your WordPress site.', 'site-pilot-ai' ); ?></p>
 			<div class="spai-api-key-wrapper spai-api-key-wrapper--highlight">
 				<input
@@ -860,7 +860,7 @@ if ( isset( $new_key ) && $new_key ) {
 				<?php esc_html_e( 'About', 'site-pilot-ai' ); ?>
 			</h2>
 			<p class="description">
-				<?php esc_html_e( 'All features are included for free. Mumega MCP for WordPress connects your WordPress site to AI assistants via the Model Context Protocol (MCP).', 'site-pilot-ai' ); ?>
+				<?php esc_html_e( 'All features are included for free. Mumega MCP connects your WordPress site to AI assistants via the Model Context Protocol (MCP).', 'site-pilot-ai' ); ?>
 			</p>
 			<p style="margin-top: 10px;">
 				<a href="https://mumega.com/" target="_blank" class="button">

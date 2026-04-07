@@ -244,7 +244,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 			? $core->get_site_info()
 			: array(
 				'plugin'       => array(
-					'name'    => 'Mumega MCP for WordPress',
+					'name'    => 'Mumega MCP',
 					'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 				),
 				'capabilities' => array(),
@@ -282,7 +282,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 
 		return array(
 			'plugin'                => $site_info['plugin'] ?? array(
-				'name'    => 'Mumega MCP for WordPress',
+				'name'    => 'Mumega MCP',
 				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 			),
 			'site'                  => array(
@@ -1102,9 +1102,9 @@ class Spai_REST_MCP extends Spai_REST_API {
 		$lines = array();
 
 		// --- Plugin overview ---
-		$lines[] = '# Mumega MCP for WordPress — MCP Server Instructions';
+		$lines[] = '# Mumega MCP — MCP Server Instructions';
 		$lines[] = '';
-		$lines[] = 'You are connected to **' . $site_name . '**' . ( $site_url ? ' (' . $site_url . ')' : '' ) . ' via Mumega MCP for WordPress, a WordPress management plugin that exposes content, design, SEO, and admin tools through MCP.';
+		$lines[] = 'You are connected to **' . $site_name . '**' . ( $site_url ? ' (' . $site_url . ')' : '' ) . ' via Mumega MCP, a WordPress management plugin that exposes content, design, SEO, and admin tools through MCP.';
 		$lines[] = '';
 
 		// --- Best practices ---

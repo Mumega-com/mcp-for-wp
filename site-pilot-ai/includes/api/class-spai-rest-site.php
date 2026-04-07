@@ -1019,7 +1019,7 @@ class Spai_REST_Site extends Spai_REST_API {
 			return $this->success_response(
 				array(
 					'plugin'  => array(
-						'name'    => 'Mumega MCP for WordPress',
+						'name'    => 'Mumega MCP',
 						'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 					),
 					'message' => 'MCP controller not available.',
@@ -1032,7 +1032,7 @@ class Spai_REST_Site extends Spai_REST_API {
 			return $this->success_response(
 				array(
 					'plugin'  => array(
-						'name'    => 'Mumega MCP for WordPress',
+						'name'    => 'Mumega MCP',
 						'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 					),
 					'message' => 'Introspection is not supported in this version.',
@@ -1079,7 +1079,7 @@ class Spai_REST_Site extends Spai_REST_API {
 			'wp_version'  => $site_info['wp_version'] ?? $GLOBALS['wp_version'],
 			'theme'       => $site_info['theme'] ?? array(),
 			'plugin'      => $site_info['plugin'] ?? array(
-				'name'    => 'Mumega MCP for WordPress',
+				'name'    => 'Mumega MCP',
 				'version' => defined( 'SPAI_VERSION' ) ? SPAI_VERSION : null,
 			),
 		);

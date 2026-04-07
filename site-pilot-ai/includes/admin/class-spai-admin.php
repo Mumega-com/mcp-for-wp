@@ -42,7 +42,7 @@ class Spai_Admin {
 	 */
 	public function add_admin_menu() {
 		add_menu_page(
-			__( 'Mumega MCP for WordPress', 'site-pilot-ai' ),
+			__( 'Mumega MCP', 'site-pilot-ai' ),
 			__( 'Mumega MCP', 'site-pilot-ai' ),
 			'activate_plugins',
 			self::PAGE_SLUG,

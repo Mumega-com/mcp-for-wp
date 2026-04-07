@@ -1,11 +1,11 @@
-=== Mumega MCP for WordPress ===
+=== Mumega MCP ===
 Contributors: mumega
 Donate link: https://mcpforwp.mumega.com
 Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.3.2
+Stable tag: 2.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Turn WordPress into a reusable AI production system. Connect Claude and other MC
 
 == Description ==
 
-Mumega MCP for WordPress connects your WordPress site to AI assistants like Claude using the Model Context Protocol (MCP). Instead of generating isolated one-off pages, it helps operators build with reusable structure: guided site character, Elementor parts, page archetypes, WooCommerce product archetypes, and design references from screenshots or Figma. Your AI assistant can create drafts, preserve brand patterns, save reusable sections back into the library, and manage the rest of WordPress through natural language. Every feature is free.
+Mumega MCP connects your WordPress site to AI assistants like Claude using the Model Context Protocol (MCP). Instead of generating isolated one-off pages, it helps operators build with reusable structure: guided site character, Elementor parts, page archetypes, WooCommerce product archetypes, and design references from screenshots or Figma. Your AI assistant can create drafts, preserve brand patterns, save reusable sections back into the library, and manage the rest of WordPress through natural language. Every feature is free.
 
 = Key Features =
 
@@ -36,7 +36,7 @@ Mumega MCP for WordPress connects your WordPress site to AI assistants like Clau
 = How It Works =
 
 1. Install and activate the plugin
-2. Copy your API key from Mumega MCP for WordPress in the admin menu
+2. Copy your API key from Mumega MCP in the admin menu
 3. Configure your MCP server with the API key
 4. Define your site character and save reusable assets like archetypes, parts, and design references
 5. Start building draft pages and products with natural language
@@ -54,9 +54,9 @@ Mumega MCP for WordPress connects your WordPress site to AI assistants like Clau
 = From WordPress Admin =
 
 1. Go to Plugins → Add New
-2. Search for "Mumega MCP for WordPress"
+2. Search for "Mumega MCP"
 3. Click Install Now, then Activate
-4. Go to Mumega MCP for WordPress in the admin menu to get your API key
+4. Go to Mumega MCP in the admin menu to get your API key
 
 = Manual Installation =
 
@@ -64,7 +64,7 @@ Mumega MCP for WordPress connects your WordPress site to AI assistants like Clau
 2. Go to Plugins → Add New → Upload Plugin
 3. Select the ZIP file and click Install Now
 4. Activate the plugin
-5. Go to Mumega MCP for WordPress in the admin menu to get your API key
+5. Go to Mumega MCP in the admin menu to get your API key
 
 = MCP Server Setup =
 
@@ -87,7 +87,7 @@ Add to your `~/.claude.json`:
 
 = What is MCP? =
 
-Model Context Protocol (MCP) is an open protocol that enables AI assistants like Claude to interact with external tools and services. Mumega MCP for WordPress exposes your WordPress site as an MCP-compatible tool.
+Model Context Protocol (MCP) is an open protocol that enables AI assistants like Claude to interact with external tools and services. Mumega MCP exposes your WordPress site as an MCP-compatible tool.
 
 = Is this secure? =
 
@@ -95,7 +95,7 @@ Yes. All requests require a unique API key. Keys are hashed using WordPress pass
 
 = Does it work with any AI? =
 
-Mumega MCP for WordPress works with any AI assistant that supports the MCP protocol. Currently, this includes Claude Code and Claude Desktop. More integrations are planned.
+Mumega MCP works with any AI assistant that supports the MCP protocol. Currently, this includes Claude Code and Claude Desktop. More integrations are planned.
 
 = Do I need coding skills? =
 
@@ -107,11 +107,11 @@ Full Elementor support is included: get/set page data, templates, landing pages,
 
 = Who is this for? =
 
-Mumega MCP for WordPress is best for operators: founders, marketers, agencies, and site managers who ship pages or products repeatedly and want AI to work from approved structure instead of rebuilding everything from scratch.
+Mumega MCP is best for operators: founders, marketers, agencies, and site managers who ship pages or products repeatedly and want AI to work from approved structure instead of rebuilding everything from scratch.
 
 = Does it support Elementor 4? =
 
-Yes. The current stack has been tested on WordPress 6.9.1 with Elementor 4.0.0. Mumega MCP for WordPress verifies that Elementor saves actually persist `_elementor_data`, and automatically falls back to a direct meta save when Elementor reports success but stores nothing. Landing page generation was also verified on the local Elementor 4 test stack.
+Yes. The current stack has been tested on WordPress 6.9.1 with Elementor 4.0.0. Mumega MCP verifies that Elementor saves actually persist `_elementor_data`, and automatically falls back to a direct meta save when Elementor reports success but stores nothing. Landing page generation was also verified on the local Elementor 4 test stack.
 
 = Can I use this on multiple sites? =
 
@@ -126,6 +126,10 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 == Changelog ==
 
+= 2.3.3 =
+
+* Removed "for WordPress" from plugin name per WP.org trademark policy
+
 = 2.3.2 =
 
 * All plugin and site URLs updated to mcpforwp.mumega.com
@@ -138,7 +142,7 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 = 2.3.0 =
 
-* Renamed to "Mumega MCP for WordPress" for WordPress.org compliance
+* Renamed to "Mumega MCP" for WordPress.org compliance
 * Author updated from DigID Inc to Mumega
 * Plugin URI updated to mumega.com/mcp
 * Copyright updated to 2026
@@ -776,7 +780,7 @@ This plugin is provided "as is" without warranty of any kind, express or implied
 
 == Privacy Policy ==
 
-Mumega MCP for WordPress does not collect or transmit any user content to external servers. All content data stays on your WordPress installation. Activity logs are stored locally and can be configured or disabled in settings.
+Mumega MCP does not collect or transmit any user content to external servers. All content data stays on your WordPress installation. Activity logs are stored locally and can be configured or disabled in settings.
 
 == External Services ==
 

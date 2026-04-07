@@ -1874,13 +1874,13 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 		// Plugin Updates
 		$tools[] = $this->define_tool(
 			'wp_check_update',
-			'Check if a newer version of Mumega MCP for WordPress is available. Returns current version, latest version, and download URL.',
+			'Check if a newer version of Mumega MCP is available. Returns current version, latest version, and download URL.',
 			array()
 		);
 
 		$tools[] = $this->define_tool(
 			'wp_trigger_update',
-			'Download and install the latest version of Mumega MCP for WordPress. The plugin will be upgraded in place. Requires administrator privileges.',
+			'Download and install the latest version of Mumega MCP. The plugin will be upgraded in place. Requires administrator privileges.',
 			array()
 		);
 
