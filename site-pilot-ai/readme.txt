@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.2.4
+Stable tag: 2.2.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,12 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.2.5 =
+
+* Fix: Counter widget typography keys added to schema (#194)
+* Fix: wp_edit_section/wp_set_elementor persist on second call — v2.2.4 fallback cache flush now in all save paths (#195, #197)
+* All fixes from 2.2.4 included (was missing #194 in the 2.2.4 zip)
 
 = 2.2.4 =
 
