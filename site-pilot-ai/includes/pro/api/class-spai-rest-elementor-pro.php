@@ -1222,11 +1222,31 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 			\Elementor\Plugin::$instance->files_manager->clear_cache();
 		}
 
-		return $this->success_response( array(
+		// Warn about unscoped CSS selectors that could break header/footer templates (#205).
+		$warnings = array();
+		$custom_css = isset( $updated['custom_css'] ) ? $updated['custom_css'] : '';
+		if ( $custom_css ) {
+			$bare_selectors = array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'body', 'p', 'a', 'ul', 'ol', 'li', 'img', 'div', 'span', 'section', 'header', 'footer', 'nav', 'main' );
+			foreach ( $bare_selectors as $sel ) {
+				if ( preg_match( '/(?:^|\n)\s*' . preg_quote( $sel, '/' ) . '\s*\{/m', $custom_css ) ) {
+					$warnings[] = sprintf(
+						'Kit CSS contains unscoped "%s" selector — this will affect header/footer templates. Scope it to .site-main or .elementor to avoid breaking theme builder templates.',
+						$sel
+					);
+				}
+			}
+		}
+
+		$response = array(
 			'kit_id'   => $kit_id,
 			'settings' => $updated,
 			'message'  => __( 'Elementor globals updated.', 'site-pilot-ai' ),
-		) );
+		);
+		if ( ! empty( $warnings ) ) {
+			$response['warnings'] = $warnings;
+		}
+
+		return $this->success_response( $response );
 	}
 
 	/**

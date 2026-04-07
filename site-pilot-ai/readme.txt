@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.5.2
+Stable tag: 2.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,13 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.5.3 =
+
+* Enhancement: wp_create_theme_template dry_run support (#203)
+* Enhancement: Kit CSS unscoped selector warnings (#205)
+* Enhancement: wp_set_elementor_globals layout params (container_width, breakpoints)
+* Closed: #200 (SG cache), #201 (counter text), #202 (globals), #204 (delete exists)
 
 = 2.5.2 =
 

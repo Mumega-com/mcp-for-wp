@@ -412,9 +412,10 @@ class Spai_Theme_Builder {
 			return new WP_Error( 'not_available', __( 'Elementor Pro Theme Builder is not available.', 'site-pilot-ai' ) );
 		}
 
-		$title = ! empty( $data['title'] ) ? sanitize_text_field( $data['title'] ) : '';
-		$type  = ! empty( $data['type'] ) ? sanitize_text_field( $data['type'] ) : '';
-		$scope = ! empty( $data['scope'] ) ? sanitize_text_field( $data['scope'] ) : 'entire_site';
+		$dry_run = ! empty( $data['dry_run'] );
+		$title   = ! empty( $data['title'] ) ? sanitize_text_field( $data['title'] ) : '';
+		$type    = ! empty( $data['type'] ) ? sanitize_text_field( $data['type'] ) : '';
+		$scope   = ! empty( $data['scope'] ) ? sanitize_text_field( $data['scope'] ) : 'entire_site';
 
 		if ( empty( $title ) ) {
 			return new WP_Error( 'missing_title', __( 'Template title is required.', 'site-pilot-ai' ) );
@@ -426,6 +427,31 @@ class Spai_Theme_Builder {
 				__( 'Invalid template type. Must be one of: %s', 'site-pilot-ai' ),
 				implode( ', ', $valid_types )
 			) );
+		}
+
+		// Dry run: validate params without creating anything.
+		if ( $dry_run ) {
+			$result = array(
+				'dry_run'  => true,
+				'valid'    => true,
+				'title'    => $title,
+				'type'     => $type,
+				'scope'    => $scope,
+				'message'  => __( 'Validation passed — no template created.', 'site-pilot-ai' ),
+			);
+			if ( ! empty( $data['elementor_data'] ) ) {
+				$elements = $data['elementor_data'];
+				if ( is_string( $elements ) ) {
+					$elements = json_decode( $elements, true );
+				}
+				if ( ! is_array( $elements ) || empty( $elements ) ) {
+					$result['valid']  = false;
+					$result['errors'] = array( 'elementor_data must be a non-empty JSON array' );
+				} else {
+					$result['element_count'] = count( $elements );
+				}
+			}
+			return $result;
 		}
 
 		// Create the template post.
