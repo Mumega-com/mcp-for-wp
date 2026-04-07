@@ -33,6 +33,8 @@ class Spai_Page_Builder {
 		'hero', 'features', 'cta', 'pricing', 'faq',
 		'testimonials', 'text', 'gallery',
 		'contact_form', 'map', 'countdown', 'stats', 'logo_grid', 'video',
+		'team', 'portfolio', 'blog_grid', 'services', 'about',
+		'process_steps', 'social_proof', 'product_showcase', 'before_after', 'newsletter',
 	);
 
 	/**
@@ -294,12 +296,103 @@ class Spai_Page_Builder {
 					'items'   => array( 'type' => 'array', 'description' => 'Array of {image, url}' ),
 				),
 			),
-			'video'        => array(
+			'video'           => array(
 				'description' => 'Video embed section (YouTube, Vimeo, or hosted MP4).',
 				'params'      => array(
 					'heading'    => array( 'type' => 'string', 'default' => '' ),
 					'url'        => array( 'type' => 'string', 'required' => true, 'description' => 'YouTube/Vimeo/MP4 URL' ),
 					'subheading' => array( 'type' => 'string', 'default' => '' ),
+				),
+			),
+			'team'            => array(
+				'description' => 'Team member grid with photos, names, titles, bios, and social links.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => 'Meet the Team' ),
+					'columns' => array( 'type' => 'integer', 'default' => 3, 'min' => 2, 'max' => 4 ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {name, title, image, bio, social_links}' ),
+				),
+			),
+			'portfolio'       => array(
+				'description' => 'Project/work showcase grid with image, title, category, and optional link.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => 'Our Work' ),
+					'columns' => array( 'type' => 'integer', 'default' => 3, 'min' => 2, 'max' => 4 ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {title, image, category, url}' ),
+				),
+			),
+			'blog_grid'       => array(
+				'description' => 'Blog post card grid using the Elementor posts widget.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => 'Latest Posts' ),
+					'columns' => array( 'type' => 'integer', 'default' => 3, 'min' => 2, 'max' => 3 ),
+					'count'   => array( 'type' => 'integer', 'default' => 3, 'description' => 'Number of posts to show' ),
+				),
+			),
+			'services'        => array(
+				'description' => 'Service offerings with icons, descriptions, optional price, and CTA button.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => 'Our Services' ),
+					'columns' => array( 'type' => 'integer', 'default' => 3, 'min' => 2, 'max' => 3 ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {icon, title, desc, price, button_text, url}' ),
+				),
+			),
+			'about'           => array(
+				'description' => 'About section with image and text side by side.',
+				'params'      => array(
+					'heading'        => array( 'type' => 'string', 'default' => 'About Us' ),
+					'text'           => array( 'type' => 'string', 'default' => '' ),
+					'image_url'      => array( 'type' => 'string', 'default' => '' ),
+					'image_position' => array( 'type' => 'string', 'default' => 'left', 'description' => 'left or right' ),
+					'button_text'    => array( 'type' => 'string', 'default' => '' ),
+					'button_url'     => array( 'type' => 'string', 'default' => '#' ),
+				),
+			),
+			'process_steps'   => array(
+				'description' => 'Numbered how-it-works steps displayed horizontally.',
+				'params'      => array(
+					'heading' => array( 'type' => 'string', 'default' => 'How It Works' ),
+					'items'   => array( 'type' => 'array', 'description' => 'Array of {number, title, desc, icon}' ),
+				),
+			),
+			'social_proof'    => array(
+				'description' => 'Trust/social proof section with star-rated quote cards.',
+				'params'      => array(
+					'heading'    => array( 'type' => 'string', 'default' => 'What People Say' ),
+					'subheading' => array( 'type' => 'string', 'default' => '' ),
+					'items'      => array( 'type' => 'array', 'description' => 'Array of {text, author, rating}' ),
+				),
+			),
+			'product_showcase' => array(
+				'description' => 'Single product highlight with image on one side and details on the other.',
+				'params'      => array(
+					'heading'     => array( 'type' => 'string', 'default' => '' ),
+					'image_url'   => array( 'type' => 'string', 'default' => '' ),
+					'title'       => array( 'type' => 'string', 'default' => '' ),
+					'desc'        => array( 'type' => 'string', 'default' => '' ),
+					'price'       => array( 'type' => 'string', 'default' => '' ),
+					'button_text' => array( 'type' => 'string', 'default' => 'Buy Now' ),
+					'button_url'  => array( 'type' => 'string', 'default' => '#' ),
+					'features'    => array( 'type' => 'array', 'description' => 'Array of feature strings' ),
+				),
+			),
+			'before_after'    => array(
+				'description' => 'Two-column before/after comparison section.',
+				'params'      => array(
+					'heading'        => array( 'type' => 'string', 'default' => 'Before & After' ),
+					'before_heading' => array( 'type' => 'string', 'default' => 'Before' ),
+					'after_heading'  => array( 'type' => 'string', 'default' => 'After' ),
+					'before_items'   => array( 'type' => 'array', 'description' => 'Array of strings describing before state' ),
+					'after_items'    => array( 'type' => 'array', 'description' => 'Array of strings describing after state' ),
+				),
+			),
+			'newsletter'      => array(
+				'description' => 'Email signup CTA with heading, subheading, and button.',
+				'params'      => array(
+					'heading'          => array( 'type' => 'string', 'default' => 'Stay in the Loop' ),
+					'subheading'       => array( 'type' => 'string', 'default' => '' ),
+					'button_text'      => array( 'type' => 'string', 'default' => 'Subscribe' ),
+					'placeholder_text' => array( 'type' => 'string', 'default' => 'Enter your email' ),
+					'background'       => array( 'type' => 'string', 'default' => '' ),
 				),
 			),
 		);
@@ -1301,6 +1394,1163 @@ class Spai_Page_Builder {
 		return $this->wrap_section( $widgets, array(
 			'padding' => array( 'top' => '60', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
 		), $use_containers );
+	}
+
+	/**
+	 * Build a team members section.
+	 *
+	 * @param array $p              Section params: heading, columns, items[{name, title, image, bio, social_links}].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_team( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : 'Meet the Team';
+		$columns = isset( $p['columns'] ) ? min( max( (int) $p['columns'], 2 ), 4 ) : 3;
+		$items   = isset( $p['items'] ) && is_array( $p['items'] ) ? $p['items'] : array();
+
+		$all_widgets = array();
+
+		if ( $heading ) {
+			$all_widgets[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		$card_widths = array( 2 => 47, 3 => 30, 4 => 22 );
+		$card_width  = isset( $card_widths[ $columns ] ) ? $card_widths[ $columns ] : 30;
+
+		if ( $use_containers ) {
+			$inner_containers = array();
+			foreach ( $items as $item ) {
+				$image_url = isset( $item['image'] ) ? $item['image'] : '';
+				$name      = isset( $item['name'] ) ? $item['name'] : '';
+				$title     = isset( $item['title'] ) ? $item['title'] : '';
+				$bio       = isset( $item['bio'] ) ? $item['bio'] : '';
+
+				$card_elements = array(
+					$this->widget( 'image-box', array(
+						'image'       => array( 'url' => $image_url ),
+						'title_text'  => $name,
+						'description_text' => ( $title ? '<strong>' . esc_html( $title ) . '</strong>' : '' ) . ( $bio ? ( $title ? '<br>' : '' ) . esc_html( $bio ) : '' ),
+						'position'    => 'top',
+					) ),
+				);
+
+				// Social links as icon list if provided.
+				$social_links = isset( $item['social_links'] ) && is_array( $item['social_links'] ) ? $item['social_links'] : array();
+				if ( ! empty( $social_links ) ) {
+					$icon_items = array();
+					$icon_map   = array(
+						'facebook'  => 'fab fa-facebook',
+						'twitter'   => 'fab fa-twitter',
+						'linkedin'  => 'fab fa-linkedin',
+						'instagram' => 'fab fa-instagram',
+						'github'    => 'fab fa-github',
+					);
+					foreach ( $social_links as $network => $url ) {
+						$icon = isset( $icon_map[ $network ] ) ? $icon_map[ $network ] : 'fas fa-link';
+						$icon_items[] = array(
+							'icon'    => array( 'value' => $icon, 'library' => 'fa-brands' ),
+							'link'    => array( 'url' => $url, 'is_external' => true ),
+							'text'    => '',
+						);
+					}
+					$card_elements[] = $this->widget( 'icon-list', array(
+						'icon_list' => $icon_items,
+						'layout'    => 'inline',
+						'align'     => 'center',
+					) );
+				}
+
+				$inner_containers[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'container',
+					'settings' => array(
+						'content_width'              => 'full',
+						'_element_width'             => 'initial',
+						'width'                      => array( 'size' => $card_width, 'unit' => '%' ),
+						'background_background'      => 'classic',
+						'background_color'           => '#FFFFFF',
+						'border_radius'              => array( 'top_left' => '12', 'top_right' => '12', 'bottom_right' => '12', 'bottom_left' => '12', 'unit' => 'px', 'isLinked' => true ),
+						'box_shadow_box_shadow_type' => 'yes',
+						'box_shadow_box_shadow'      => array( 'horizontal' => 0, 'vertical' => 4, 'blur' => 20, 'spread' => 0, 'color' => 'rgba(0,0,0,0.08)' ),
+						'padding'                    => array( 'top' => '30', 'bottom' => '30', 'left' => '30', 'right' => '30', 'unit' => 'px', 'isLinked' => true ),
+						'custom_css'                 => 'selector { transition: box-shadow 0.3s ease, transform 0.3s ease; } selector:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.15); transform: translateY(-4px); }',
+					),
+					'elements' => $card_elements,
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 20, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $inner_containers,
+			);
+		} else {
+			$col_size  = (int) floor( 100 / $columns );
+			$structure = array( 2 => '20', 3 => '30', 4 => '40' );
+
+			$column_elements = array();
+			foreach ( $items as $item ) {
+				$image_url = isset( $item['image'] ) ? $item['image'] : '';
+				$name      = isset( $item['name'] ) ? $item['name'] : '';
+				$title     = isset( $item['title'] ) ? $item['title'] : '';
+				$bio       = isset( $item['bio'] ) ? $item['bio'] : '';
+
+				$column_elements[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'column',
+					'settings' => array( '_column_size' => $col_size ),
+					'elements' => array( $this->widget( 'image-box', array(
+						'image'            => array( 'url' => $image_url ),
+						'title_text'       => $name,
+						'description_text' => ( $title ? esc_html( $title ) : '' ) . ( $bio ? ' — ' . esc_html( $bio ) : '' ),
+						'position'         => 'top',
+					) ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => isset( $structure[ $columns ] ) ? $structure[ $columns ] : '30',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $column_elements,
+			);
+		}
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build a portfolio showcase grid.
+	 *
+	 * @param array $p              Section params: heading, columns, items[{title, image, category, url}].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_portfolio( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : 'Our Work';
+		$columns = isset( $p['columns'] ) ? min( max( (int) $p['columns'], 2 ), 4 ) : 3;
+		$items   = isset( $p['items'] ) && is_array( $p['items'] ) ? $p['items'] : array();
+
+		$all_widgets = array();
+
+		if ( $heading ) {
+			$all_widgets[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		$card_widths = array( 2 => 47, 3 => 30, 4 => 22 );
+		$card_width  = isset( $card_widths[ $columns ] ) ? $card_widths[ $columns ] : 30;
+
+		if ( $use_containers ) {
+			$inner_containers = array();
+			foreach ( $items as $item ) {
+				$image_url = isset( $item['image'] ) ? $item['image'] : '';
+				$title     = isset( $item['title'] ) ? $item['title'] : '';
+				$category  = isset( $item['category'] ) ? $item['category'] : '';
+				$url       = isset( $item['url'] ) ? $item['url'] : '';
+
+				$desc = $category ? '<span style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#888;">' . esc_html( $category ) . '</span>' : '';
+
+				$img_settings = array(
+					'image'            => array( 'url' => $image_url ),
+					'title_text'       => $title,
+					'description_text' => $desc,
+					'position'         => 'bottom',
+				);
+				if ( $url ) {
+					$img_settings['link']    = array( 'url' => $url, 'is_external' => false );
+					$img_settings['open_lightbox'] = 'no';
+				}
+
+				$inner_containers[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'container',
+					'settings' => array(
+						'content_width'              => 'full',
+						'_element_width'             => 'initial',
+						'width'                      => array( 'size' => $card_width, 'unit' => '%' ),
+						'background_background'      => 'classic',
+						'background_color'           => '#FFFFFF',
+						'border_radius'              => array( 'top_left' => '12', 'top_right' => '12', 'bottom_right' => '12', 'bottom_left' => '12', 'unit' => 'px', 'isLinked' => true ),
+						'box_shadow_box_shadow_type' => 'yes',
+						'box_shadow_box_shadow'      => array( 'horizontal' => 0, 'vertical' => 4, 'blur' => 20, 'spread' => 0, 'color' => 'rgba(0,0,0,0.08)' ),
+						'padding'                    => array( 'top' => '0', 'bottom' => '20', 'left' => '0', 'right' => '0', 'unit' => 'px', 'isLinked' => false ),
+						'custom_css'                 => 'selector { transition: box-shadow 0.3s ease, transform 0.3s ease; overflow: hidden; } selector:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.15); transform: translateY(-4px); }',
+					),
+					'elements' => array( $this->widget( 'image-box', $img_settings ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 20, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $inner_containers,
+			);
+		} else {
+			$col_size  = (int) floor( 100 / $columns );
+			$structure = array( 2 => '20', 3 => '30', 4 => '40' );
+
+			$column_elements = array();
+			foreach ( $items as $item ) {
+				$image_url = isset( $item['image'] ) ? $item['image'] : '';
+				$title     = isset( $item['title'] ) ? $item['title'] : '';
+				$category  = isset( $item['category'] ) ? $item['category'] : '';
+				$url       = isset( $item['url'] ) ? $item['url'] : '';
+
+				$img_settings = array(
+					'image'            => array( 'url' => $image_url ),
+					'title_text'       => $title,
+					'description_text' => $category,
+					'position'         => 'bottom',
+				);
+				if ( $url ) {
+					$img_settings['link'] = array( 'url' => $url, 'is_external' => false );
+				}
+
+				$column_elements[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'column',
+					'settings' => array( '_column_size' => $col_size ),
+					'elements' => array( $this->widget( 'image-box', $img_settings ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => isset( $structure[ $columns ] ) ? $structure[ $columns ] : '30',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $column_elements,
+			);
+		}
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build a blog post cards grid.
+	 *
+	 * @param array $p              Section params: heading, columns, count.
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_blog_grid( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : 'Latest Posts';
+		$columns = isset( $p['columns'] ) ? min( max( (int) $p['columns'], 2 ), 3 ) : 3;
+		$count   = isset( $p['count'] ) ? max( (int) $p['count'], 1 ) : 3;
+
+		$all_widgets = array();
+
+		if ( $heading ) {
+			$all_widgets[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		$posts_widget = $this->widget( 'posts', array(
+			'skin'         => 'classic',
+			'posts_per_page' => $count,
+			'columns'      => $columns,
+			'show_image'   => 'yes',
+			'show_title'   => 'yes',
+			'show_excerpt' => 'yes',
+			'show_read_more' => 'yes',
+			'read_more_text' => 'Read More',
+		) );
+
+		$all_widgets[] = $this->wrap_section(
+			array( $posts_widget ),
+			array( 'padding' => array( 'top' => '20', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ) ),
+			$use_containers
+		);
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build a services section.
+	 *
+	 * @param array $p              Section params: heading, columns, items[{icon, title, desc, price, button_text, url}].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_services( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : 'Our Services';
+		$columns = isset( $p['columns'] ) ? min( max( (int) $p['columns'], 2 ), 3 ) : 3;
+		$items   = isset( $p['items'] ) && is_array( $p['items'] ) ? $p['items'] : array();
+
+		$all_widgets = array();
+
+		if ( $heading ) {
+			$all_widgets[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		$card_widths = array( 2 => 47, 3 => 30 );
+		$card_width  = isset( $card_widths[ $columns ] ) ? $card_widths[ $columns ] : 30;
+
+		if ( $use_containers ) {
+			$inner_containers = array();
+			foreach ( $items as $item ) {
+				$icon        = isset( $item['icon'] ) ? $item['icon'] : 'fas fa-concierge-bell';
+				$title       = isset( $item['title'] ) ? $item['title'] : '';
+				$desc        = isset( $item['desc'] ) ? $item['desc'] : ( isset( $item['description'] ) ? $item['description'] : '' );
+				$price       = isset( $item['price'] ) ? $item['price'] : '';
+				$button_text = isset( $item['button_text'] ) ? $item['button_text'] : '';
+				$url         = isset( $item['url'] ) ? $item['url'] : '#';
+
+				$full_desc = $desc;
+				if ( $price ) {
+					$full_desc .= '<br><br><strong style="font-size:1.2em;color:#0073aa;">' . esc_html( $price ) . '</strong>';
+				}
+
+				$card_elements = array(
+					$this->widget( 'icon-box', array(
+						'selected_icon'    => array( 'value' => $icon, 'library' => 'fa-solid' ),
+						'title_text'       => $title,
+						'description_text' => $full_desc,
+						'position'         => 'top',
+						'align'            => 'left',
+					) ),
+				);
+
+				if ( $button_text ) {
+					$card_elements[] = $this->widget( 'button', array(
+						'text'            => $button_text,
+						'link'            => array( 'url' => $url, 'is_external' => false ),
+						'align'           => 'left',
+						'size'            => 'sm',
+						'background_color' => '#0073aa',
+						'button_text_color' => '#FFFFFF',
+						'border_radius'   => array( 'top_left' => '6', 'top_right' => '6', 'bottom_right' => '6', 'bottom_left' => '6', 'unit' => 'px', 'isLinked' => true ),
+						'hover_animation' => 'float',
+					) );
+				}
+
+				$inner_containers[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'container',
+					'settings' => array(
+						'content_width'              => 'full',
+						'_element_width'             => 'initial',
+						'width'                      => array( 'size' => $card_width, 'unit' => '%' ),
+						'background_background'      => 'classic',
+						'background_color'           => '#FFFFFF',
+						'border_radius'              => array( 'top_left' => '12', 'top_right' => '12', 'bottom_right' => '12', 'bottom_left' => '12', 'unit' => 'px', 'isLinked' => true ),
+						'box_shadow_box_shadow_type' => 'yes',
+						'box_shadow_box_shadow'      => array( 'horizontal' => 0, 'vertical' => 4, 'blur' => 20, 'spread' => 0, 'color' => 'rgba(0,0,0,0.08)' ),
+						'padding'                    => array( 'top' => '30', 'bottom' => '30', 'left' => '30', 'right' => '30', 'unit' => 'px', 'isLinked' => true ),
+						'custom_css'                 => 'selector { transition: box-shadow 0.3s ease, transform 0.3s ease; } selector:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.15); transform: translateY(-4px); }',
+					),
+					'elements' => $card_elements,
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 20, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $inner_containers,
+			);
+		} else {
+			$col_size  = (int) floor( 100 / $columns );
+			$structure = array( 2 => '20', 3 => '30' );
+
+			$column_elements = array();
+			foreach ( $items as $item ) {
+				$icon  = isset( $item['icon'] ) ? $item['icon'] : 'fas fa-concierge-bell';
+				$title = isset( $item['title'] ) ? $item['title'] : '';
+				$desc  = isset( $item['desc'] ) ? $item['desc'] : ( isset( $item['description'] ) ? $item['description'] : '' );
+				$price = isset( $item['price'] ) ? $item['price'] : '';
+
+				$full_desc = $desc . ( $price ? "\n\n" . $price : '' );
+
+				$column_elements[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'column',
+					'settings' => array( '_column_size' => $col_size ),
+					'elements' => array( $this->widget( 'icon-box', array(
+						'selected_icon'    => array( 'value' => $icon, 'library' => 'fa-solid' ),
+						'title_text'       => $title,
+						'description_text' => $full_desc,
+						'position'         => 'top',
+					) ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => isset( $structure[ $columns ] ) ? $structure[ $columns ] : '30',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $column_elements,
+			);
+		}
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build an about section with image + text side by side.
+	 *
+	 * @param array $p              Section params: heading, text, image_url, image_position, button_text, button_url.
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_about( $p, $use_containers ) {
+		$heading        = isset( $p['heading'] ) ? $p['heading'] : 'About Us';
+		$text           = isset( $p['text'] ) ? $p['text'] : '';
+		$image_url      = isset( $p['image_url'] ) ? $p['image_url'] : '';
+		$image_position = isset( $p['image_position'] ) && 'right' === $p['image_position'] ? 'right' : 'left';
+		$button_text    = isset( $p['button_text'] ) ? $p['button_text'] : '';
+		$button_url     = isset( $p['button_url'] ) ? $p['button_url'] : '#';
+
+		$text_widgets = array();
+		if ( $heading ) {
+			$text_widgets[] = $this->widget( 'heading', array(
+				'title'       => $heading,
+				'header_size' => 'h2',
+				'align'       => 'left',
+			) );
+		}
+		if ( $text ) {
+			$text_widgets[] = $this->widget( 'text-editor', array(
+				'editor' => '<p>' . wp_kses_post( $text ) . '</p>',
+			) );
+		}
+		if ( $button_text ) {
+			$text_widgets[] = $this->widget( 'button', array(
+				'text'  => $button_text,
+				'link'  => array( 'url' => $button_url, 'is_external' => false ),
+				'align' => 'left',
+				'size'  => 'md',
+			) );
+		}
+
+		$image_widget = $this->widget( 'image', array(
+			'image'      => array( 'url' => $image_url ),
+			'image_size' => 'large',
+			'align'      => 'center',
+		) );
+
+		if ( $use_containers ) {
+			$image_col = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'content_width' => 'full',
+					'width'         => array( 'size' => 47, 'unit' => '%' ),
+					'padding'       => array( 'top' => '20', 'bottom' => '20', 'left' => '20', 'right' => '20', 'unit' => 'px', 'isLinked' => true ),
+				),
+				'elements' => array( $image_widget ),
+			);
+
+			$text_col = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'content_width' => 'full',
+					'width'         => array( 'size' => 47, 'unit' => '%' ),
+					'padding'       => array( 'top' => '20', 'bottom' => '20', 'left' => '20', 'right' => '20', 'unit' => 'px', 'isLinked' => true ),
+				),
+				'elements' => $text_widgets,
+			);
+
+			$children = 'left' === $image_position ? array( $image_col, $text_col ) : array( $text_col, $image_col );
+
+			return array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 40, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '60', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $children,
+			);
+		}
+
+		// Classic: two-column section.
+		$image_col_el = array(
+			'id'       => $this->id(),
+			'elType'   => 'column',
+			'settings' => array( '_column_size' => 50 ),
+			'elements' => array( $image_widget ),
+		);
+		$text_col_el = array(
+			'id'       => $this->id(),
+			'elType'   => 'column',
+			'settings' => array( '_column_size' => 50 ),
+			'elements' => $text_widgets,
+		);
+
+		$cols = 'left' === $image_position ? array( $image_col_el, $text_col_el ) : array( $text_col_el, $image_col_el );
+
+		return array(
+			'id'       => $this->id(),
+			'elType'   => 'section',
+			'settings' => array(
+				'structure' => '20',
+				'padding'   => array( 'top' => '60', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+			),
+			'elements' => $cols,
+		);
+	}
+
+	/**
+	 * Build a numbered process steps section.
+	 *
+	 * @param array $p              Section params: heading, items[{number, title, desc, icon}].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_process_steps( $p, $use_containers ) {
+		$heading = isset( $p['heading'] ) ? $p['heading'] : 'How It Works';
+		$items   = isset( $p['items'] ) && is_array( $p['items'] ) ? $p['items'] : array();
+		$columns = count( $items ) > 4 ? 4 : max( count( $items ), 2 );
+
+		$all_widgets = array();
+
+		if ( $heading ) {
+			$all_widgets[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		$card_widths = array( 2 => 47, 3 => 30, 4 => 22 );
+		$card_width  = isset( $card_widths[ $columns ] ) ? $card_widths[ $columns ] : 30;
+
+		if ( $use_containers ) {
+			$inner_containers = array();
+			foreach ( $items as $idx => $item ) {
+				$number = isset( $item['number'] ) ? $item['number'] : ( $idx + 1 );
+				$title  = isset( $item['title'] ) ? $item['title'] : '';
+				$desc   = isset( $item['desc'] ) ? $item['desc'] : ( isset( $item['description'] ) ? $item['description'] : '' );
+				$icon   = isset( $item['icon'] ) ? $item['icon'] : 'fas fa-circle';
+
+				$inner_containers[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'container',
+					'settings' => array(
+						'content_width'              => 'full',
+						'_element_width'             => 'initial',
+						'width'                      => array( 'size' => $card_width, 'unit' => '%' ),
+						'background_background'      => 'classic',
+						'background_color'           => '#FFFFFF',
+						'border_radius'              => array( 'top_left' => '12', 'top_right' => '12', 'bottom_right' => '12', 'bottom_left' => '12', 'unit' => 'px', 'isLinked' => true ),
+						'box_shadow_box_shadow_type' => 'yes',
+						'box_shadow_box_shadow'      => array( 'horizontal' => 0, 'vertical' => 4, 'blur' => 20, 'spread' => 0, 'color' => 'rgba(0,0,0,0.08)' ),
+						'padding'                    => array( 'top' => '30', 'bottom' => '30', 'left' => '30', 'right' => '30', 'unit' => 'px', 'isLinked' => true ),
+						'custom_css'                 => 'selector { transition: box-shadow 0.3s ease, transform 0.3s ease; } selector:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.15); transform: translateY(-4px); }',
+					),
+					'elements' => array(
+						$this->widget( 'heading', array(
+							'title'       => (string) $number,
+							'header_size' => 'h3',
+							'align'       => 'center',
+							'title_color' => '#0073aa',
+							'typography_typography' => 'custom',
+							'typography_font_size'  => array( 'size' => 40, 'unit' => 'px' ),
+							'typography_font_weight' => '700',
+						) ),
+						$this->widget( 'icon-box', array(
+							'selected_icon'    => array( 'value' => $icon, 'library' => 'fa-solid' ),
+							'title_text'       => $title,
+							'description_text' => $desc,
+							'position'         => 'top',
+							'align'            => 'center',
+						) ),
+					),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 20, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $inner_containers,
+			);
+		} else {
+			$col_size  = (int) floor( 100 / $columns );
+			$structure = array( 2 => '20', 3 => '30', 4 => '40' );
+
+			$column_elements = array();
+			foreach ( $items as $idx => $item ) {
+				$number = isset( $item['number'] ) ? $item['number'] : ( $idx + 1 );
+				$title  = isset( $item['title'] ) ? $item['title'] : '';
+				$desc   = isset( $item['desc'] ) ? $item['desc'] : ( isset( $item['description'] ) ? $item['description'] : '' );
+				$icon   = isset( $item['icon'] ) ? $item['icon'] : 'fas fa-circle';
+
+				$column_elements[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'column',
+					'settings' => array( '_column_size' => $col_size ),
+					'elements' => array(
+						$this->widget( 'heading', array(
+							'title'       => (string) $number,
+							'header_size' => 'h3',
+							'align'       => 'center',
+							'title_color' => '#0073aa',
+						) ),
+						$this->widget( 'icon-box', array(
+							'selected_icon'    => array( 'value' => $icon, 'library' => 'fa-solid' ),
+							'title_text'       => $title,
+							'description_text' => $desc,
+							'position'         => 'top',
+						) ),
+					),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => isset( $structure[ $columns ] ) ? $structure[ $columns ] : '30',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $column_elements,
+			);
+		}
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build a social proof / trust section with star-rated quote cards.
+	 *
+	 * @param array $p              Section params: heading, subheading, items[{text, author, rating}].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_social_proof( $p, $use_containers ) {
+		$heading    = isset( $p['heading'] ) ? $p['heading'] : 'What People Say';
+		$subheading = isset( $p['subheading'] ) ? $p['subheading'] : '';
+		$items      = isset( $p['items'] ) && is_array( $p['items'] ) ? $p['items'] : array();
+
+		$all_widgets = array();
+
+		$header_widgets = array();
+		if ( $heading ) {
+			$header_widgets[] = $this->widget( 'heading', array(
+				'title'       => $heading,
+				'header_size' => 'h2',
+				'align'       => 'center',
+			) );
+		}
+		if ( $subheading ) {
+			$header_widgets[] = $this->widget( 'text-editor', array(
+				'editor' => '<p style="text-align:center;">' . esc_html( $subheading ) . '</p>',
+			) );
+		}
+		if ( ! empty( $header_widgets ) ) {
+			$all_widgets[] = $this->wrap_section(
+				$header_widgets,
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		$columns = min( count( $items ), 3 );
+		if ( $columns < 2 ) {
+			$columns = 2;
+		}
+		$card_width = 3 === $columns ? 30 : 47;
+
+		if ( $use_containers ) {
+			$inner_containers = array();
+			foreach ( $items as $item ) {
+				$text   = isset( $item['text'] ) ? $item['text'] : '';
+				$author = isset( $item['author'] ) ? $item['author'] : '';
+				$rating = isset( $item['rating'] ) ? min( max( (int) $item['rating'], 1 ), 5 ) : 5;
+
+				$stars = str_repeat( '&#9733;', $rating ) . str_repeat( '&#9734;', 5 - $rating );
+
+				$card_html  = '<p style="font-style:italic;color:#333;">&ldquo;' . esc_html( $text ) . '&rdquo;</p>';
+				$card_html .= '<p style="font-size:20px;color:#f5a623;margin:8px 0;">' . $stars . '</p>';
+				if ( $author ) {
+					$card_html .= '<p style="font-weight:600;color:#555;">— ' . esc_html( $author ) . '</p>';
+				}
+
+				$inner_containers[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'container',
+					'settings' => array(
+						'content_width'              => 'full',
+						'_element_width'             => 'initial',
+						'width'                      => array( 'size' => $card_width, 'unit' => '%' ),
+						'background_background'      => 'classic',
+						'background_color'           => '#FFFFFF',
+						'border_radius'              => array( 'top_left' => '12', 'top_right' => '12', 'bottom_right' => '12', 'bottom_left' => '12', 'unit' => 'px', 'isLinked' => true ),
+						'box_shadow_box_shadow_type' => 'yes',
+						'box_shadow_box_shadow'      => array( 'horizontal' => 0, 'vertical' => 4, 'blur' => 20, 'spread' => 0, 'color' => 'rgba(0,0,0,0.08)' ),
+						'padding'                    => array( 'top' => '30', 'bottom' => '30', 'left' => '30', 'right' => '30', 'unit' => 'px', 'isLinked' => true ),
+						'custom_css'                 => 'selector { transition: box-shadow 0.3s ease, transform 0.3s ease; } selector:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.15); transform: translateY(-4px); }',
+					),
+					'elements' => array( $this->widget( 'text-editor', array( 'editor' => $card_html ) ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 20, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '20', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $inner_containers,
+			);
+		} else {
+			$col_size  = (int) floor( 100 / $columns );
+			$structure = array( 2 => '20', 3 => '30' );
+
+			$column_elements = array();
+			foreach ( $items as $item ) {
+				$text   = isset( $item['text'] ) ? $item['text'] : '';
+				$author = isset( $item['author'] ) ? $item['author'] : '';
+				$rating = isset( $item['rating'] ) ? min( max( (int) $item['rating'], 1 ), 5 ) : 5;
+
+				$stars    = str_repeat( '&#9733;', $rating ) . str_repeat( '&#9734;', 5 - $rating );
+				$card_html = '<p><em>&ldquo;' . esc_html( $text ) . '&rdquo;</em></p><p>' . $stars . '</p>' . ( $author ? '<p><strong>— ' . esc_html( $author ) . '</strong></p>' : '' );
+
+				$column_elements[] = array(
+					'id'       => $this->id(),
+					'elType'   => 'column',
+					'settings' => array( '_column_size' => $col_size ),
+					'elements' => array( $this->widget( 'text-editor', array( 'editor' => $card_html ) ) ),
+				);
+			}
+
+			$all_widgets[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => isset( $structure[ $columns ] ) ? $structure[ $columns ] : '30',
+					'padding'   => array( 'top' => '20', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => $column_elements,
+			);
+		}
+
+		return $all_widgets;
+	}
+
+	/**
+	 * Build a single product showcase section.
+	 *
+	 * @param array $p              Section params: heading, image_url, title, desc, price, button_text, button_url, features[].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_product_showcase( $p, $use_containers ) {
+		$heading     = isset( $p['heading'] ) ? $p['heading'] : '';
+		$image_url   = isset( $p['image_url'] ) ? $p['image_url'] : '';
+		$title       = isset( $p['title'] ) ? $p['title'] : '';
+		$desc        = isset( $p['desc'] ) ? $p['desc'] : '';
+		$price       = isset( $p['price'] ) ? $p['price'] : '';
+		$button_text = isset( $p['button_text'] ) ? $p['button_text'] : 'Buy Now';
+		$button_url  = isset( $p['button_url'] ) ? $p['button_url'] : '#';
+		$features    = isset( $p['features'] ) && is_array( $p['features'] ) ? $p['features'] : array();
+
+		$elements = array();
+
+		// Optional section heading.
+		if ( $heading ) {
+			$elements[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		// Details column widgets.
+		$detail_widgets = array();
+		if ( $title ) {
+			$detail_widgets[] = $this->widget( 'heading', array(
+				'title'       => $title,
+				'header_size' => 'h3',
+				'align'       => 'left',
+			) );
+		}
+		if ( $desc ) {
+			$detail_widgets[] = $this->widget( 'text-editor', array(
+				'editor' => '<p>' . wp_kses_post( $desc ) . '</p>',
+			) );
+		}
+		if ( ! empty( $features ) ) {
+			$icon_items = array();
+			foreach ( $features as $feature ) {
+				$icon_items[] = array(
+					'icon' => array( 'value' => 'fas fa-check', 'library' => 'fa-solid' ),
+					'text' => is_string( $feature ) ? $feature : '',
+				);
+			}
+			$detail_widgets[] = $this->widget( 'icon-list', array(
+				'icon_list' => $icon_items,
+			) );
+		}
+		if ( $price ) {
+			$detail_widgets[] = $this->widget( 'heading', array(
+				'title'       => $price,
+				'header_size' => 'h2',
+				'align'       => 'left',
+				'title_color' => '#0073aa',
+				'typography_typography' => 'custom',
+				'typography_font_size'  => array( 'size' => 36, 'unit' => 'px' ),
+				'typography_font_weight' => '700',
+			) );
+		}
+		if ( $button_text ) {
+			$detail_widgets[] = $this->widget( 'button', array(
+				'text'  => $button_text,
+				'link'  => array( 'url' => $button_url, 'is_external' => false ),
+				'align' => 'left',
+				'size'  => 'lg',
+			) );
+		}
+
+		$image_widget = $this->widget( 'image', array(
+			'image'      => array( 'url' => $image_url ),
+			'image_size' => 'large',
+			'align'      => 'center',
+		) );
+
+		if ( $use_containers ) {
+			$img_col = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'content_width' => 'full',
+					'width'         => array( 'size' => 47, 'unit' => '%' ),
+					'padding'       => array( 'top' => '20', 'bottom' => '20', 'left' => '20', 'right' => '20', 'unit' => 'px', 'isLinked' => true ),
+				),
+				'elements' => array( $image_widget ),
+			);
+			$detail_col = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'content_width' => 'full',
+					'width'         => array( 'size' => 47, 'unit' => '%' ),
+					'padding'       => array( 'top' => '20', 'bottom' => '20', 'left' => '20', 'right' => '20', 'unit' => 'px', 'isLinked' => true ),
+				),
+				'elements' => $detail_widgets,
+			);
+
+			$elements[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 40, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => array( $img_col, $detail_col ),
+			);
+		} else {
+			$img_col_el = array(
+				'id'       => $this->id(),
+				'elType'   => 'column',
+				'settings' => array( '_column_size' => 50 ),
+				'elements' => array( $image_widget ),
+			);
+			$detail_col_el = array(
+				'id'       => $this->id(),
+				'elType'   => 'column',
+				'settings' => array( '_column_size' => 50 ),
+				'elements' => $detail_widgets,
+			);
+
+			$elements[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => '20',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => array( $img_col_el, $detail_col_el ),
+			);
+		}
+
+		return $elements;
+	}
+
+	/**
+	 * Build a before/after comparison section.
+	 *
+	 * @param array $p              Section params: heading, before_heading, after_heading, before_items[], after_items[].
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element(s).
+	 */
+	private function build_before_after( $p, $use_containers ) {
+		$heading        = isset( $p['heading'] ) ? $p['heading'] : 'Before & After';
+		$before_heading = isset( $p['before_heading'] ) ? $p['before_heading'] : 'Before';
+		$after_heading  = isset( $p['after_heading'] ) ? $p['after_heading'] : 'After';
+		$before_items   = isset( $p['before_items'] ) && is_array( $p['before_items'] ) ? $p['before_items'] : array();
+		$after_items    = isset( $p['after_items'] ) && is_array( $p['after_items'] ) ? $p['after_items'] : array();
+
+		$elements = array();
+
+		if ( $heading ) {
+			$elements[] = $this->wrap_section(
+				array( $this->widget( 'heading', array(
+					'title'       => $heading,
+					'header_size' => 'h2',
+					'align'       => 'center',
+				) ) ),
+				array( 'padding' => array( 'top' => '60', 'bottom' => '20', 'unit' => 'px' ) ),
+				$use_containers
+			);
+		}
+
+		// Build before column.
+		$before_widgets = array(
+			$this->widget( 'heading', array(
+				'title'       => $before_heading,
+				'header_size' => 'h3',
+				'align'       => 'center',
+				'title_color' => '#c0392b',
+			) ),
+		);
+		if ( ! empty( $before_items ) ) {
+			$before_icon_list = array();
+			foreach ( $before_items as $bi ) {
+				$before_icon_list[] = array(
+					'icon' => array( 'value' => 'fas fa-times-circle', 'library' => 'fa-solid' ),
+					'text' => is_string( $bi ) ? $bi : '',
+				);
+			}
+			$before_widgets[] = $this->widget( 'icon-list', array( 'icon_list' => $before_icon_list ) );
+		}
+
+		// Build after column.
+		$after_widgets = array(
+			$this->widget( 'heading', array(
+				'title'       => $after_heading,
+				'header_size' => 'h3',
+				'align'       => 'center',
+				'title_color' => '#27ae60',
+			) ),
+		);
+		if ( ! empty( $after_items ) ) {
+			$after_icon_list = array();
+			foreach ( $after_items as $ai ) {
+				$after_icon_list[] = array(
+					'icon' => array( 'value' => 'fas fa-check-circle', 'library' => 'fa-solid' ),
+					'text' => is_string( $ai ) ? $ai : '',
+				);
+			}
+			$after_widgets[] = $this->widget( 'icon-list', array( 'icon_list' => $after_icon_list ) );
+		}
+
+		if ( $use_containers ) {
+			$before_col = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'content_width'         => 'full',
+					'width'                 => array( 'size' => 47, 'unit' => '%' ),
+					'background_background' => 'classic',
+					'background_color'      => '#fff5f5',
+					'border_radius'         => array( 'top_left' => '12', 'top_right' => '12', 'bottom_right' => '12', 'bottom_left' => '12', 'unit' => 'px', 'isLinked' => true ),
+					'padding'               => array( 'top' => '30', 'bottom' => '30', 'left' => '30', 'right' => '30', 'unit' => 'px', 'isLinked' => true ),
+				),
+				'elements' => $before_widgets,
+			);
+			$after_col = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'content_width'         => 'full',
+					'width'                 => array( 'size' => 47, 'unit' => '%' ),
+					'background_background' => 'classic',
+					'background_color'      => '#f0fff4',
+					'border_radius'         => array( 'top_left' => '12', 'top_right' => '12', 'bottom_right' => '12', 'bottom_left' => '12', 'unit' => 'px', 'isLinked' => true ),
+					'padding'               => array( 'top' => '30', 'bottom' => '30', 'left' => '30', 'right' => '30', 'unit' => 'px', 'isLinked' => true ),
+				),
+				'elements' => $after_widgets,
+			);
+
+			$elements[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'container',
+				'settings' => array(
+					'flex_direction' => 'row',
+					'flex_wrap'      => 'wrap',
+					'flex_gap'       => array( 'size' => 30, 'unit' => 'px' ),
+					'content_width'  => 'boxed',
+					'padding'        => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => array( $before_col, $after_col ),
+			);
+		} else {
+			$before_col_el = array(
+				'id'       => $this->id(),
+				'elType'   => 'column',
+				'settings' => array( '_column_size' => 50 ),
+				'elements' => $before_widgets,
+			);
+			$after_col_el = array(
+				'id'       => $this->id(),
+				'elType'   => 'column',
+				'settings' => array( '_column_size' => 50 ),
+				'elements' => $after_widgets,
+			);
+
+			$elements[] = array(
+				'id'       => $this->id(),
+				'elType'   => 'section',
+				'settings' => array(
+					'structure' => '20',
+					'padding'   => array( 'top' => '40', 'bottom' => '60', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+				),
+				'elements' => array( $before_col_el, $after_col_el ),
+			);
+		}
+
+		return $elements;
+	}
+
+	/**
+	 * Build a newsletter email signup CTA section.
+	 *
+	 * @param array $p              Section params: heading, subheading, button_text, placeholder_text, background.
+	 * @param bool  $use_containers Use container layout.
+	 * @return array Elementor element.
+	 */
+	private function build_newsletter( $p, $use_containers ) {
+		$heading          = isset( $p['heading'] ) ? $p['heading'] : 'Stay in the Loop';
+		$subheading       = isset( $p['subheading'] ) ? $p['subheading'] : '';
+		$button_text      = isset( $p['button_text'] ) ? $p['button_text'] : 'Subscribe';
+		$placeholder_text = isset( $p['placeholder_text'] ) ? $p['placeholder_text'] : 'Enter your email';
+		$background       = isset( $p['background'] ) ? $p['background'] : '#0073aa';
+
+		$widgets = array();
+
+		$widgets[] = $this->widget( 'heading', array(
+			'title'       => $heading,
+			'header_size' => 'h2',
+			'align'       => 'center',
+			'title_color' => '#FFFFFF',
+			'typography_typography' => 'custom',
+			'typography_font_size'  => array( 'size' => 36, 'unit' => 'px' ),
+		) );
+
+		if ( $subheading ) {
+			$widgets[] = $this->widget( 'text-editor', array(
+				'editor' => '<p style="text-align:center;color:#e0e0e0;font-size:18px;">' . esc_html( $subheading ) . '</p>',
+			) );
+		}
+
+		// Placeholder text hint displayed as muted paragraph before the button.
+		$widgets[] = $this->widget( 'text-editor', array(
+			'editor' => '<p style="text-align:center;color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:4px;">' . esc_html( $placeholder_text ) . '</p>',
+		) );
+
+		$widgets[] = $this->widget( 'button', array(
+			'text'                => $button_text,
+			'link'                => array( 'url' => '#newsletter', 'is_external' => false ),
+			'align'               => 'center',
+			'size'                => 'lg',
+			'background_color'    => '#FFFFFF',
+			'button_text_color'   => $background,
+			'border_radius'       => array( 'top_left' => '6', 'top_right' => '6', 'bottom_right' => '6', 'bottom_left' => '6', 'unit' => 'px', 'isLinked' => true ),
+			'hover_animation'     => 'float',
+		) );
+
+		$section_settings = array(
+			'background_background' => 'classic',
+			'background_color'      => $background && '#' === substr( $background, 0, 1 ) ? $background : '#0073aa',
+			'padding'               => array( 'top' => '80', 'bottom' => '80', 'left' => '20', 'right' => '20', 'unit' => 'px' ),
+		);
+
+		if ( 'gradient' === $background ) {
+			$section_settings['background_background']    = 'gradient';
+			$section_settings['background_color']         = '#0073aa';
+			$section_settings['background_color_b']       = '#005177';
+			$section_settings['background_gradient_type']  = 'linear';
+			$section_settings['background_gradient_angle'] = array( 'size' => 135, 'unit' => 'deg' );
+		}
+
+		return $this->wrap_section( $widgets, $section_settings, $use_containers );
 	}
 
 	// ---------------------------------------------------------------
