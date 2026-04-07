@@ -960,9 +960,8 @@ class Spai_Elementor_Basic {
 	 * @var array<string, array<string, string>>
 	 */
 	private static $control_renames = array(
-		'icon-box' => array(
-			'title_size' => 'title_typography_font_size',
-		),
+		// Note: icon-box 'title_size' is a valid h-tag selector (h1-h6), not a font size.
+		// Do NOT rename it to title_typography_font_size — that corrupts the value. (#190)
 		'flip-box' => array(
 			'front_title_text'       => 'title_text_a',
 			'front_description_text' => 'description_text_a',
