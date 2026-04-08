@@ -31,6 +31,45 @@ You: "Build a landing page with a hero, 3 feature cards, and a CTA"
 AI:  wp_build_page → creates full Elementor page with styled sections, flex grid, shadows, hover effects
 ```
 
+## How It Works
+
+```mermaid
+graph LR
+    A[🤖 AI Assistant] -->|MCP JSON-RPC| B[mumcp Plugin]
+    B -->|REST API| C[WordPress]
+    B -->|Document API| D[Elementor]
+    B -->|WC API| E[WooCommerce]
+    
+    subgraph "Your WordPress Site"
+        C --- F[Pages & Posts]
+        C --- G[Media Library]
+        C --- H[Menus & Settings]
+        D --- I[Layouts & Widgets]
+        D --- J[Templates & Parts]
+        E --- K[Products & Orders]
+    end
+    
+    subgraph "AI Clients"
+        L[Claude Code] --> A
+        M[Claude Desktop] --> A
+        N[Cursor] --> A
+        O[Windsurf] --> A
+        P[Gemini] --> A
+    end
+```
+
+## Why mumcp?
+
+| | mumcp | Royal MCP | Elementor Angie |
+|---|---|---|---|
+| **MCP Tools** | **239** | 37 | Unknown |
+| **Blueprints** | **24 types** | 0 | Limited |
+| **Elementor** | Full (build + edit + templates + theme builder) | No | Partial |
+| **WooCommerce** | 21 tools | No | No |
+| **Role-scoped keys** | 5 roles | No | No |
+| **Validation** | Auto-fix IDs, widget keys, nesting | No | No |
+| **Price** | **Free** | Free | Beta (credits) |
+
 ## Install
 
 ```bash
