@@ -63,7 +63,7 @@ class Spai_Integration_Manager {
 		),
 		'screenshot' => array(
 			'name'        => 'Screenshot Worker',
-			'url'         => 'https://mucp.mumega.com/docs/screenshot-worker/',
+			'url'         => 'https://github.com/Mumega-com/mcp-for-wp',
 			'key_prefix'  => '',
 			'tier'        => 'free',
 			'description' => 'Cloudflare Browser Rendering for high-quality headless Chromium screenshots. Without this, screenshots use WordPress mshots (lower quality, delayed).',
