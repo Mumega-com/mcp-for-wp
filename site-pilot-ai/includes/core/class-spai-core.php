@@ -50,11 +50,7 @@ class Spai_Core {
 			),
 		);
 
-		// All features are free — no license required.
-		$info['license'] = array(
-			'plan'   => 'free',
-			'is_pro' => true,
-		);
+		$info['license'] = spai_license()->get_info();
 
 		return $info;
 	}

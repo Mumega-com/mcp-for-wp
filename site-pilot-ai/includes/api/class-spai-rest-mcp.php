@@ -1310,7 +1310,7 @@ class Spai_REST_MCP extends Spai_REST_API {
 	 * @return bool Always true — all features are free.
 	 */
 	private function is_pro_active() {
-		return true;
+		return spai_license()->is_pro();
 	}
 
 	/**

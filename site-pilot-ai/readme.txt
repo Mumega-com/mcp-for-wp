@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.6.0
+Stable tag: 2.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,14 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.7.0 =
+
+* New: Free/Pro licensing — free core (70 tools) on WP.org, Pro bundle (all 239) via license
+* New: 14-day Pro trial on first activation (no credit card)
+* New: Lemon Squeezy license validation
+* New: Elementor v4 Atomic editor support in validator (#211)
+* New: KNOWN_ISSUES.md and COMPATIBILITY.md documentation
 
 = 2.6.0 =
 
