@@ -1,4 +1,8 @@
-# mumcp
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Mumega-com/mcp-for-wp/main/site-pilot-ai/assets/banner-1544x500.png" alt="mumcp — 239 MCP tools for WordPress" width="100%">
+</p>
+
+<h1 align="center">mumcp</h1>
 
 <p align="center">
   <strong>239 MCP tools for WordPress. Every AI model. Free.</strong>
@@ -6,20 +10,23 @@
 
 <p align="center">
   <a href="#install">Install</a> •
-  <a href="#connect">Connect</a> •
+  <a href="#how-it-works">How It Works</a> •
   <a href="#tools">239 Tools</a> •
   <a href="#examples">Examples</a> •
+  <a href="#blueprints">24 Blueprints</a> •
   <a href="https://mucp.mumega.com">Website</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tools-239-blue" alt="Tools">
-  <img src="https://img.shields.io/badge/version-2.6.0-green" alt="Version">
-  <img src="https://img.shields.io/badge/MCP-compatible-brightgreen" alt="MCP">
-  <img src="https://img.shields.io/badge/WordPress-5.0%2B-blue" alt="WordPress">
-  <img src="https://img.shields.io/badge/Elementor-4.x-purple" alt="Elementor">
-  <img src="https://img.shields.io/badge/license-GPL--2.0-orange" alt="License">
-  <img src="https://img.shields.io/badge/price-free-brightgreen" alt="Free">
+  <a href="https://github.com/Mumega-com/mcp-for-wp/stargazers"><img src="https://img.shields.io/github/stars/Mumega-com/mcp-for-wp?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/Mumega-com/mcp-for-wp/releases"><img src="https://img.shields.io/github/v/release/Mumega-com/mcp-for-wp?style=flat-square" alt="Release"></a>
+  <img src="https://img.shields.io/badge/tools-239-blue?style=flat-square" alt="Tools">
+  <img src="https://img.shields.io/badge/blueprints-24-blue?style=flat-square" alt="Blueprints">
+  <img src="https://img.shields.io/badge/MCP-compatible-brightgreen?style=flat-square" alt="MCP">
+  <img src="https://img.shields.io/badge/WordPress-5.0%2B-21759b?style=flat-square" alt="WordPress">
+  <img src="https://img.shields.io/badge/Elementor-4.x-92003B?style=flat-square" alt="Elementor">
+  <img src="https://img.shields.io/badge/license-GPL--2.0-orange?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/price-free-brightgreen?style=flat-square" alt="Free">
 </p>
 
 ---
@@ -28,8 +35,14 @@ mumcp turns any WordPress site into an MCP server. AI assistants (Claude, Gemini
 
 ```
 You: "Build a landing page with a hero, 3 feature cards, and a CTA"
-AI:  wp_build_page → creates full Elementor page with styled sections, flex grid, shadows, hover effects
+AI:  wp_build_page → full Elementor page with styled sections, flex grid, shadows, hover effects
 ```
+
+<!-- TODO: Replace with actual demo GIF
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Mumega-com/mcp-for-wp/main/docs/demo.gif" alt="mumcp demo" width="800">
+</p>
+-->
 
 ## How It Works
 
@@ -60,15 +73,17 @@ graph LR
 
 ## Why mumcp?
 
-| | mumcp | Royal MCP | Elementor Angie |
-|---|---|---|---|
-| **MCP Tools** | **239** | 37 | Unknown |
-| **Blueprints** | **24 types** | 0 | Limited |
-| **Elementor** | Full (build + edit + templates + theme builder) | No | Partial |
-| **WooCommerce** | 21 tools | No | No |
-| **Role-scoped keys** | 5 roles | No | No |
-| **Validation** | Auto-fix IDs, widget keys, nesting | No | No |
-| **Price** | **Free** | Free | Beta (credits) |
+| | mumcp | WordPress MCP Adapter | Royal MCP | InstaWP mcp-wp |
+|---|---|---|---|---|
+| **MCP Tools** | **239** | ~20 | 37 | ~30 |
+| **Blueprints** | **24 types** | 0 | 0 | 0 |
+| **Elementor** | Full (build + edit + templates + theme) | No | No | No |
+| **WooCommerce** | 21 tools | No | No | No |
+| **LearnPress** | 18 tools | No | No | No |
+| **Role-scoped keys** | 5 roles | No | No | No |
+| **Validation** | Auto-fix IDs, keys, nesting | No | No | No |
+| **Install** | WordPress plugin | Requires Abilities API | WordPress plugin | External Node.js |
+| **Price** | **Free** | Free | Free | Free |
 
 ## Install
 
@@ -76,7 +91,7 @@ graph LR
 wp plugin install https://mumega.com/mcp-updates/mumega-mcp-latest.zip --activate
 ```
 
-Or download from [mucp.mumega.com](https://mucp.mumega.com) and install via WP Admin > Plugins > Add New > Upload.
+Or download from [mucp.mumega.com](https://mucp.mumega.com) and upload via WP Admin > Plugins > Add New.
 
 ## Connect
 
@@ -97,9 +112,10 @@ Same URL and key — add in your MCP server settings.
 
 ### Claude Code Plugin
 ```bash
-claude plugin add Mumega-com/mumcp-claude-plugin
+claude plugin marketplace add https://github.com/Mumega-com/mumcp-claude-plugin.git
+claude plugin install mumcp@mumcp
 ```
-Gives you `/mumcp:connect`, `/mumcp:tools`, `/mumcp:elementor`, `/mumcp:design` skills.
+Adds `/mumcp:setup`, `/mumcp:tools`, `/mumcp:elementor`, `/mumcp:design` skills + `wp-builder` agent.
 
 ## Tools
 
@@ -123,6 +139,51 @@ Gives you `/mumcp:connect`, `/mumcp:tools`, `/mumcp:elementor`, `/mumcp:design` 
 | **admin** | 16 | API keys, rate limits, settings, updates |
 | **webhooks** | 7 | Create, test, monitor deliveries |
 
+## Role-Scoped API Keys
+
+```mermaid
+graph TD
+    A[API Key] -->|role| B{Role}
+    B -->|admin| C["🔓 239 tools — full access"]
+    B -->|designer| D["🎨 82 tools — Elementor + media + site"]
+    B -->|editor| E["✏️ 99 tools — content + design + SEO"]
+    B -->|author| F["📝 40 tools — content + media"]
+    B -->|custom| G["⚙️ pick categories"]
+```
+
+Create keys via WP Admin > mumcp > Setup, or `wp_create_api_key(label, role)`.
+
+## Blueprints
+
+Build full pages with one call. 24 section types:
+
+| Type | What it builds |
+|------|---------------|
+| `hero` | Full-width hero with heading, CTA, background |
+| `features` | Icon-box card grid with shadows, hover effects |
+| `cta` | Call-to-action banner with button |
+| `pricing` | Price table columns with feature lists |
+| `faq` | Accordion with Q&A |
+| `testimonials` | Quote cards with ratings |
+| `team` | Team member cards with images |
+| `portfolio` | Project showcase grid |
+| `blog_grid` | Blog post cards |
+| `services` | Service cards with pricing |
+| `about` | Image + text side-by-side |
+| `process_steps` | Numbered step cards |
+| `social_proof` | Star ratings + quotes |
+| `product_showcase` | Product highlight with features |
+| `before_after` | Comparison columns |
+| `newsletter` | Email signup CTA |
+| `stats` | Animated number counters |
+| `gallery` | Image gallery grid |
+| `text` | Simple text section |
+| `map` | Google Maps embed |
+| `countdown` | Countdown timer |
+| `logo_grid` | Partner/client logos |
+| `video` | Video embed |
+| `contact_form` | Contact form section |
+
 ## Examples
 
 ### Build a page
@@ -130,9 +191,9 @@ Gives you `/mumcp:connect`, `/mumcp:tools`, `/mumcp:elementor`, `/mumcp:design` 
 wp_build_page(title: "Services", sections: [
   {type: "hero", heading: "Our Services", button_text: "Get Started"},
   {type: "features", columns: 3, items: [
-    {icon: "fas fa-rocket", title: "Fast", desc: "Speed matters", button_text: "Learn More"},
-    {icon: "fas fa-shield-alt", title: "Secure", desc: "Bank-grade", button_text: "Learn More"},
-    {icon: "fas fa-heart", title: "Reliable", desc: "99.9% uptime", button_text: "Learn More"}
+    {icon: "fas fa-rocket", title: "Fast", desc: "Speed matters"},
+    {icon: "fas fa-shield-alt", title: "Secure", desc: "Bank-grade"},
+    {icon: "fas fa-heart", title: "Reliable", desc: "99.9% uptime"}
   ]},
   {type: "cta", heading: "Ready?", button_text: "Contact Us"}
 ])
@@ -153,33 +214,43 @@ wp_upload_media_from_url(url: "https://example.com/photo.jpg", title: "Hero imag
 wc_create_product(name: "T-Shirt", regular_price: "29.99", type: "simple")
 ```
 
-## Role-Scoped API Keys
-
-Control which tools each AI model can access:
-
-| Role | Tools | Best for |
-|------|-------|----------|
-| admin | 239 | Full access |
-| designer | ~82 | Page building (Elementor + media + site) |
-| editor | ~99 | Content + design + SEO |
-| author | ~40 | Content writing |
-| custom | pick | Specific use cases |
-
-Create keys via WP Admin or `wp_create_api_key(label, role)`.
-
 ## Elementor Features
 
-- **24 blueprint types** — hero, features, cta, pricing, faq, testimonials, team, portfolio, services, about, and more
+- **24 blueprint types** — hero, features, cta, pricing, team, portfolio, services, about, and more
 - **Validation** — auto-fixes missing IDs, wrong widget keys, nesting errors
 - **Fuzzy matching** — typo in widget type? "Did you mean 'heading'?"
-- **Save persistence** — verifies data actually persists after Elementor's document save
-- **CSS regeneration** — auto-rebuilds CSS after changes
+- **Save persistence** — forces direct meta overwrite after Document::save()
+- **CSS regeneration** — auto-rebuilds CSS, purges SiteGround/WP Rocket/LiteSpeed
 - **Container + classic mode** — works with both Elementor layout modes
+
+## Roadmap
+
+- [x] 239 MCP tools across 15 categories
+- [x] 24 page blueprints
+- [x] Role-scoped API keys (5 roles)
+- [x] Elementor validation + auto-fix
+- [x] Admin UI (Setup, Library, Tools, Settings)
+- [x] Claude Code plugin with 6 skills
+- [ ] WordPress.org listing (submitted, pending)
+- [ ] Managed MCP proxy for agencies
+- [ ] 30+ blueprint types
+- [ ] Visual diff — show what changed after MCP edits
+- [ ] Multi-site dashboard
+- [ ] WooCommerce product page blueprints
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and what we need help with.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for our vulnerability disclosure policy.
 
 ## Links
 
 - **Website:** [mucp.mumega.com](https://mucp.mumega.com)
 - **Claude Code Plugin:** [Mumega-com/mumcp-claude-plugin](https://github.com/Mumega-com/mumcp-claude-plugin)
+- **MCP Proxy:** [Mumega-com/mumcp-proxy](https://github.com/Mumega-com/mumcp-proxy)
 - **WordPress.org:** pending approval (slug: mumega-mcp)
 - **Download:** [mumega-mcp-latest.zip](https://mumega.com/mcp-updates/mumega-mcp-latest.zip)
 
@@ -189,4 +260,6 @@ GPL v2 or later. All 239 tools are free. No paywalls, no locked features.
 
 ---
 
-Built by [Mumega](https://mumega.com)
+<p align="center">
+  Built by <a href="https://mumega.com">Mumega</a>
+</p>
