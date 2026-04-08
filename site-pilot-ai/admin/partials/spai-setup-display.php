@@ -523,21 +523,41 @@ $last_activity_time = ! empty( $recent_activity[0]['created_at'] ) ? $recent_act
 				</div>
 			</div>
 
-			<?php if ( $update_channel['update_available'] ) : ?>
-			<div class="notice notice-warning inline" style="margin-top:16px;">
-				<p>
-					<?php
-					printf(
-						/* translators: 1: current version, 2: available version */
-						esc_html__( 'Update available: v%1$s → v%2$s.', 'site-pilot-ai' ),
-						esc_html( $update_channel['current_version'] ),
-						esc_html( $update_channel['remote_version'] )
-					);
-					?>
-					<a href="<?php echo esc_url( $update_channel['download_url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Download', 'site-pilot-ai' ); ?></a>
+			<div style="margin-top:16px;">
+				<?php if ( $update_channel['update_available'] ) : ?>
+				<div class="notice notice-warning inline" style="margin-bottom:12px;">
+					<p>
+						<?php
+						printf(
+							esc_html__( 'Update available: v%1$s → v%2$s.', 'site-pilot-ai' ),
+							esc_html( $update_channel['current_version'] ),
+							esc_html( $update_channel['remote_version'] )
+						);
+						?>
+						<a href="<?php echo esc_url( admin_url( 'update-core.php' ) ); ?>" class="button button-primary" style="margin-left:8px;"><?php esc_html_e( 'Update Now', 'site-pilot-ai' ); ?></a>
+						<a href="<?php echo esc_url( $update_channel['download_url'] ); ?>" target="_blank" rel="noopener noreferrer" class="button" style="margin-left:4px;"><?php esc_html_e( 'Download ZIP', 'site-pilot-ai' ); ?></a>
+					</p>
+				</div>
+				<?php else : ?>
+				<div class="notice notice-success inline" style="margin-bottom:12px;">
+					<p>
+						<?php esc_html_e( 'You are running the latest version.', 'site-pilot-ai' ); ?>
+						<strong>v<?php echo esc_html( SPAI_VERSION ); ?></strong>
+					</p>
+				</div>
+				<?php endif; ?>
+				<form method="post" style="display:inline;">
+					<?php wp_nonce_field( 'spai_check_update', 'spai_update_nonce' ); ?>
+					<button type="submit" name="spai_force_update_check" class="button">
+						<span class="dashicons dashicons-update"></span>
+						<?php esc_html_e( 'Check for Updates', 'site-pilot-ai' ); ?>
+					</button>
+				</form>
+				<p class="description" style="margin-top:8px;">
+					<?php esc_html_e( 'Manifest:', 'site-pilot-ai' ); ?>
+					<code><?php echo esc_html( $update_channel['manifest_url'] ); ?></code>
 				</p>
 			</div>
-			<?php endif; ?>
 		</div>
 
 		<!-- ============================= SECTION 4: QUICK LINKS ============================= -->

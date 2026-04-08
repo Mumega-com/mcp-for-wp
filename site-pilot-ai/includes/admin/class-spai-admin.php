@@ -333,6 +333,20 @@ class Spai_Admin {
 			}
 		}
 
+		// Handle force update check.
+		if ( isset( $_POST['spai_force_update_check'] ) ) {
+			check_admin_referer( 'spai_check_update', 'spai_update_nonce' );
+			delete_site_transient( 'update_plugins' );
+			delete_transient( 'spai_update_check' );
+			wp_update_plugins();
+			add_settings_error(
+				'spai_messages',
+				'spai_update_checked',
+				__( 'Update check complete.', 'site-pilot-ai' ),
+				'updated'
+			);
+		}
+
 		$scoped_keys = $this->list_scoped_api_keys( true );
 
 		include SPAI_PLUGIN_DIR . 'admin/partials/spai-setup-display.php';
