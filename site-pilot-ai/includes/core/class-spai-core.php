@@ -50,7 +50,7 @@ class Spai_Core {
 			),
 		);
 
-		$info['license'] = spai_license()->get_info();
+		$info['license'] = array( 'plan' => 'free', 'is_pro' => true );
 
 		return $info;
 	}

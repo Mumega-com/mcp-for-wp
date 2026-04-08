@@ -128,9 +128,13 @@ Each site needs its own plugin installation and API key. Multi-site management f
 
 = 2.7.0 =
 
-* New: Free/Pro licensing — free core (70 tools) on WP.org, Pro bundle (all 239) via license
-* New: 14-day Pro trial on first activation (no credit card)
-* New: Lemon Squeezy license validation
+* All 239 tools free — no licensing gate, no trial, no restrictions
+* Elementor v4 Atomic editor support in validator (#211)
+* KNOWN_ISSUES.md and COMPATIBILITY.md documentation
+* Launch-ready README with architecture diagram and competitor table
+
+= 2.7.0 =
+
 * New: Elementor v4 Atomic editor support in validator (#211)
 * New: KNOWN_ISSUES.md and COMPATIBILITY.md documentation
 

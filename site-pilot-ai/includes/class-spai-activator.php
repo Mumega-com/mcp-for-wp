@@ -33,11 +33,6 @@ class Spai_Activator {
 			update_option( 'spai_first_activation', true );
 		}
 
-		// Auto-start 14-day Pro trial on first activation.
-		if ( ! get_option( Spai_License::TRIAL_KEY ) && ! spai_license()->is_paying() ) {
-			spai_license()->start_trial();
-		}
-
 		// Ensure scoped API key store exists for key-level revocation/scopes.
 		self::ensure_scoped_api_keys();
 
