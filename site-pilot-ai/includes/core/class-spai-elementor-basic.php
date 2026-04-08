@@ -1025,7 +1025,13 @@ class Spai_Elementor_Basic {
 	 *
 	 * @var array
 	 */
-	private static $valid_el_types = array( 'section', 'column', 'widget', 'container' );
+	private static $valid_el_types = array(
+		// Classic layout.
+		'section', 'column', 'widget', 'container',
+		// Elementor v4 Atomic elements (#211).
+		'e-div-block', 'e-flexbox', 'e-heading', 'e-paragraph', 'e-button',
+		'e-image', 'e-svg', 'e-divider', 'e-youtube', 'e-self-hosted-video',
+	);
 
 	/**
 	 * Valid nesting rules: parent elType => allowed child elTypes.
@@ -1033,9 +1039,13 @@ class Spai_Elementor_Basic {
 	 * @var array<string, array<string>>
 	 */
 	private static $nesting_rules = array(
-		'section'   => array( 'column' ),
-		'column'    => array( 'widget', 'section', 'container' ),
-		'container' => array( 'widget', 'container' ),
+		// Classic layout.
+		'section'     => array( 'column' ),
+		'column'      => array( 'widget', 'section', 'container' ),
+		'container'   => array( 'widget', 'container' ),
+		// Elementor v4 Atomic layout (#211) — div-block and flexbox can nest anything.
+		'e-div-block' => array( 'e-div-block', 'e-flexbox', 'e-heading', 'e-paragraph', 'e-button', 'e-image', 'e-svg', 'e-divider', 'e-youtube', 'e-self-hosted-video', 'widget', 'container' ),
+		'e-flexbox'   => array( 'e-div-block', 'e-flexbox', 'e-heading', 'e-paragraph', 'e-button', 'e-image', 'e-svg', 'e-divider', 'e-youtube', 'e-self-hosted-video', 'widget', 'container' ),
 	);
 
 	/**
