@@ -719,16 +719,28 @@ class Spai_Elementor_Basic {
 			);
 		}
 
-		// --- 4. CSS regeneration (only needed for meta_direct fallback — Document::save handles it) ---
+		// --- 4. Rebuild CSS + HTML rendering cache ---
+		// Always regenerate — meta overwrite may leave post_content (HTML cache) stale.
 
-		if ( ! $document_saved && $elementor_ok ) {
-			// Clear file cache.
+		if ( $elementor_ok ) {
 			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
 				\Elementor\Plugin::$instance->files_manager->clear_cache();
 				$save_debug['cache_cleared'] = true;
 			}
 
 			delete_post_meta( $page_id, '_elementor_css' );
+
+			// Force fresh document re-save to rebuild post_content (HTML rendering).
+			if ( ! empty( \Elementor\Plugin::$instance->documents ) ) {
+				$fresh_doc = \Elementor\Plugin::$instance->documents->get( $page_id, false );
+				if ( $fresh_doc && method_exists( $fresh_doc, 'save' ) ) {
+					$fresh_elements = json_decode( get_post_meta( $page_id, '_elementor_data', true ), true );
+					if ( is_array( $fresh_elements ) && ! empty( $fresh_elements ) ) {
+						$fresh_doc->save( array( 'elements' => $fresh_elements ) );
+						$save_debug['html_cache_rebuilt'] = true;
+					}
+				}
+			}
 
 			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
@@ -2341,12 +2353,26 @@ class Spai_Elementor_Basic {
 		$debug['sections_saved'] = $stored_count;
 		$debug['meta_verified']  = ( $stored_count === $input_count );
 
-		// CSS regen only needed for meta_direct fallback.
-		if ( ! $document_saved && $elementor_ok ) {
+		// Rebuild Elementor's CSS + HTML rendering cache.
+		// Always regenerate — Document::save() may have used stale data before
+		// our meta overwrite, leaving post_content (HTML cache) stale.
+		if ( $elementor_ok ) {
 			if ( ! empty( \Elementor\Plugin::$instance->files_manager ) ) {
 				\Elementor\Plugin::$instance->files_manager->clear_cache();
 			}
 			delete_post_meta( $page_id, '_elementor_css' );
+
+			// Force a fresh document load and re-save to rebuild post_content (HTML rendering).
+			if ( ! empty( \Elementor\Plugin::$instance->documents ) ) {
+				$fresh_doc = \Elementor\Plugin::$instance->documents->get( $page_id, false );
+				if ( $fresh_doc && method_exists( $fresh_doc, 'save' ) ) {
+					$fresh_elements = json_decode( get_post_meta( $page_id, '_elementor_data', true ), true );
+					if ( is_array( $fresh_elements ) && ! empty( $fresh_elements ) ) {
+						$fresh_doc->save( array( 'elements' => $fresh_elements ) );
+						$debug['html_cache_rebuilt'] = true;
+					}
+				}
+			}
 
 			if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
 				$css_file = \Elementor\Core\Files\CSS\Post::create( $page_id );
