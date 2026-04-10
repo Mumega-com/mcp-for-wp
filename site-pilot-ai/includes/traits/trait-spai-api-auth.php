@@ -40,6 +40,11 @@ trait Spai_Api_Auth {
 	 * @return bool|WP_Error True if valid, error otherwise.
 	 */
 	public function verify_api_key( $request ) {
+		// Bypass for internal server-side requests (e.g. Chat tab tool execution).
+		if ( apply_filters( 'spai_bypass_api_key_check', false ) ) {
+			return true;
+		}
+
 		// Skip rate limiting for batch sub-requests (already counted on the outer request).
 		if ( $request->get_header( 'X-SPAI-Batch-Sub-Request' ) ) {
 			return $this->verify_api_key_auth_only( $request );

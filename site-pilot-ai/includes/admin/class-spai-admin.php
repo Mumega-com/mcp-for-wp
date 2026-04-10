@@ -412,6 +412,54 @@ class Spai_Admin {
 	}
 
 	/**
+	 * AJAX handler — execute an MCP tool server-side (from chat).
+	 */
+	public function ajax_chat_execute_tool() {
+		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+		}
+
+		$tool      = isset( $_POST['tool'] ) ? sanitize_text_field( wp_unslash( $_POST['tool'] ) ) : '';
+		$arguments = isset( $_POST['arguments'] ) ? json_decode( wp_unslash( $_POST['arguments'] ), true ) : array();
+
+		if ( empty( $tool ) ) {
+			wp_send_json_error( array( 'message' => 'Tool name is required' ) );
+		}
+
+		// Execute via internal REST dispatch — no API key needed, runs as current user.
+		$request = new WP_REST_Request( 'POST', '/site-pilot-ai/v1/mcp' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( array(
+			'jsonrpc' => '2.0',
+			'id'      => time(),
+			'method'  => 'tools/call',
+			'params'  => array(
+				'name'      => $tool,
+				'arguments' => is_array( $arguments ) ? $arguments : array(),
+			),
+		) ) );
+
+		// Bypass API key auth for internal requests.
+		add_filter( 'spai_bypass_api_key_check', '__return_true' );
+		$response = rest_do_request( $request );
+		remove_filter( 'spai_bypass_api_key_check', '__return_true' );
+
+		$data = rest_get_server()->response_to_data( $response, false );
+
+		if ( isset( $data['result']['content'][0]['text'] ) ) {
+			$text = $data['result']['content'][0]['text'];
+			$parsed = json_decode( $text, true );
+			wp_send_json_success( is_array( $parsed ) ? $parsed : array( 'text' => $text ) );
+		} elseif ( isset( $data['error'] ) ) {
+			wp_send_json_error( $data['error'] );
+		} else {
+			wp_send_json_success( $data );
+		}
+	}
+
+	/**
 	 * Render the Library page.
 	 */
 	public function render_library_page() {

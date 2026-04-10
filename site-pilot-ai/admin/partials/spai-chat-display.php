@@ -120,44 +120,21 @@ $plugin_ver    = SPAI_VERSION;
 	}
 
 	async function executeTool(toolCall) {
-		// Execute via local MCP endpoint
-		const mcpUrl = <?php echo wp_json_encode( rest_url( 'site-pilot-ai/v1/mcp' ) ); ?>;
-		const mcpKey = <?php
-			// Get the first active scoped key, or fall back to legacy key
-			$keys = ( new Spai_Admin() )->list_scoped_api_keys( true );
-			$active = array_filter( $keys, function( $k ) { return empty( $k['revoked_at'] ); } );
-			$first = reset( $active );
-			echo wp_json_encode( $first ? $first['plain_key'] ?? '' : '' );
-		?>;
-
+		// Execute via WP AJAX — server-side, no API key needed in browser
 		try {
-			const resp = await fetch(mcpUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-API-Key': mcpKey || '<?php echo esc_js( get_transient( 'spai_new_api_key' ) ?: '' ); ?>',
-				},
-				body: JSON.stringify({
-					jsonrpc: '2.0',
-					id: Date.now(),
-					method: 'tools/call',
-					params: {
-						name: toolCall.tool,
-						arguments: toolCall.arguments || {},
-					},
-				}),
-			});
+			const formData = new FormData();
+			formData.append('action', 'spai_chat_execute_tool');
+			formData.append('nonce', ajaxNonce);
+			formData.append('tool', toolCall.tool);
+			formData.append('arguments', JSON.stringify(toolCall.arguments || {}));
 
-			const data = await resp.json();
-			if (data.result && data.result.content) {
-				const text = data.result.content[0]?.text || JSON.stringify(data.result);
-				try {
-					return JSON.parse(text);
-				} catch {
-					return text;
-				}
+			const resp = await fetch(ajaxUrl, { method: 'POST', body: formData });
+			const ajaxResp = await resp.json();
+
+			if (!ajaxResp.success) {
+				return { error: ajaxResp.data?.message || 'Tool execution failed' };
 			}
-			return data.error || data;
+			return ajaxResp.data;
 		} catch (err) {
 			return { error: err.message };
 		}
