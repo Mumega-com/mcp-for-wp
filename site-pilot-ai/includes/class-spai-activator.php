@@ -200,7 +200,9 @@ class Spai_Activator {
 
 		$charset_collate = $wpdb->get_charset_collate();
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( ! function_exists( 'dbDelta' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		}
 
 		// Activity log table
 		$table_name = $wpdb->prefix . 'spai_activity_log';

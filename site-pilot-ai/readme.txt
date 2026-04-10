@@ -127,6 +127,14 @@ Each site needs its own plugin installation and API key. Multi-site management f
 == Changelog ==
 
 = 2.8.1 =
+
+* WP.org: Guard custom CSS/JS endpoints behind SPAI_WPORG_BUILD constant
+* WP.org: Replace deprecated utf8_encode with mb_convert_encoding
+* WP.org: Add external service disclosures (Figma, Pexels, Google Indexing, ElevenLabs, CF Workers AI, LottieFiles)
+* WP.org: Wrap all ABSPATH includes in function_exists guards
+* WP.org: Guard Elementor custom code endpoints behind SPAI_WPORG_BUILD
+
+= 2.8.1 =
 * Fix: Remove POST/DELETE methods from /custom-css endpoint (WP.org review)
 * Fix: Replace deprecated utf8_encode() with mb_convert_encoding() (WP.org review)
 * Fix: Consolidate wp-admin includes in media upload methods (WP.org review)
@@ -935,6 +943,14 @@ Used to submit URLs to Google for indexing when configured by the user with a Go
 * Required OAuth scope: https://www.googleapis.com/auth/indexing
 * Terms of Service: https://developers.google.com/terms/
 * Privacy Policy: https://policies.google.com/privacy
+
+= Cloudflare Workers AI (optional) =
+Powers the built-in Chat assistant when no OpenAI key is configured.
+* Data sent: Chat messages, site context (name, URL, page titles)
+* When: Only when the Chat tab is used and no OpenAI key is available
+* Service: https://api.cloudflare.com/client/v4/accounts/{id}/ai/
+* Terms of Service: https://www.cloudflare.com/terms/
+* Privacy Policy: https://www.cloudflare.com/privacypolicy/
 
 == Support ==
 

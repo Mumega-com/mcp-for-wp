@@ -257,7 +257,9 @@ class Spai_Users {
 			return new WP_Error( 'cannot_delete', __( 'Cannot delete this user.', 'site-pilot-ai' ) );
 		}
 
-		require_once ABSPATH . 'wp-admin/includes/user.php';
+		if ( ! function_exists( 'wp_delete_user' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/user.php';
+		}
 
 		$result = wp_delete_user( $user_id, $reassign );
 

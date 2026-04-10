@@ -57,7 +57,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	 * @return array Map of tool_name => category_slug.
 	 */
 	public function get_tool_categories() {
-		return array(
+		$categories = array(
 			// Site & Analytics
 			'wp_site_info'               => 'site',
 			'wp_introspect'              => 'site',
@@ -203,6 +203,13 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			'wp_get_guide'               => 'site',
 			'wp_get_workflow'            => 'site',
 		);
+
+		// Remove custom CSS tool categories in WP.org build.
+		if ( defined( 'SPAI_WPORG_BUILD' ) ) {
+			unset( $categories['wp_get_custom_css'], $categories['wp_set_custom_css'], $categories['wp_delete_custom_css'], $categories['wp_get_css_length'] );
+		}
+
+		return $categories;
 	}
 
 	/**
@@ -504,42 +511,44 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 			)
 		);
 
-		// Custom CSS
-		$tools[] = $this->define_tool(
-			'wp_get_custom_css',
-			'Get the Additional CSS from the WordPress Customizer. Returns the full CSS string currently applied to the site.',
-			array()
-		);
+		if ( ! defined( 'SPAI_WPORG_BUILD' ) ) {
+			// Custom CSS tools (not available in WP.org build).
+			$tools[] = $this->define_tool(
+				'wp_get_custom_css',
+				'Get the Additional CSS from the WordPress Customizer. Returns the full CSS string currently applied to the site.',
+				array()
+			);
 
-		$tools[] = $this->define_tool(
-			'wp_set_custom_css',
-			'Set or append CSS to the WordPress Customizer Additional CSS. Use mode "append" to add new rules without removing existing ones, or "replace" to overwrite all custom CSS. CSS is applied site-wide immediately.',
-			array(
-				'css' => array(
-					'type'        => 'string',
-					'description' => 'CSS code to set or append',
-					'required'    => true,
-				),
-				'mode' => array(
-					'type'        => 'string',
-					'description' => 'How to apply: "replace" overwrites all CSS, "append" adds to existing (default)',
-					'enum'        => array( 'replace', 'append' ),
-					'default'     => 'append',
-				),
-			)
-		);
+			$tools[] = $this->define_tool(
+				'wp_set_custom_css',
+				'Set or append CSS to the WordPress Customizer Additional CSS. Use mode "append" to add new rules without removing existing ones, or "replace" to overwrite all custom CSS. CSS is applied site-wide immediately.',
+				array(
+					'css' => array(
+						'type'        => 'string',
+						'description' => 'CSS code to set or append',
+						'required'    => true,
+					),
+					'mode' => array(
+						'type'        => 'string',
+						'description' => 'How to apply: "replace" overwrites all CSS, "append" adds to existing (default)',
+						'enum'        => array( 'replace', 'append' ),
+						'default'     => 'append',
+					),
+				)
+			);
 
-		$tools[] = $this->define_tool(
-			'wp_delete_custom_css',
-			'Delete all Additional CSS from the WordPress Customizer. Removes all custom CSS rules. Returns the previous CSS length.',
-			array()
-		);
+			$tools[] = $this->define_tool(
+				'wp_delete_custom_css',
+				'Delete all Additional CSS from the WordPress Customizer. Removes all custom CSS rules. Returns the previous CSS length.',
+				array()
+			);
 
-		$tools[] = $this->define_tool(
-			'wp_get_css_length',
-			'Get the length and line count of the Additional CSS without returning the full CSS body. Lightweight check to see if custom CSS exists.',
-			array()
-		);
+			$tools[] = $this->define_tool(
+				'wp_get_css_length',
+				'Get the length and line count of the Additional CSS without returning the full CSS body. Lightweight check to see if custom CSS exists.',
+				array()
+			);
+		} // end if ( ! defined( 'SPAI_WPORG_BUILD' ) )
 
 		$tools[] = $this->define_tool(
 			'wp_get_rendered_html',
@@ -2422,7 +2431,7 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 	 * @return array Tool mappings.
 	 */
 	public function get_tool_map() {
-		return array(
+		$map = array(
 			// Site & Analytics
 			'wp_site_info'      => array(
 				'method' => 'GET',
@@ -2937,5 +2946,12 @@ class Spai_MCP_Free_Tools extends Spai_MCP_Tool_Registry {
 				'route'  => '/workflows/{name}',
 			),
 		);
+
+		// Remove custom CSS tools in WP.org build.
+		if ( defined( 'SPAI_WPORG_BUILD' ) ) {
+			unset( $map['wp_get_custom_css'], $map['wp_set_custom_css'], $map['wp_delete_custom_css'], $map['wp_get_css_length'] );
+		}
+
+		return $map;
 	}
 }

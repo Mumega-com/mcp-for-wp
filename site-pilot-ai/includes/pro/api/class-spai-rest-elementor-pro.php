@@ -252,49 +252,51 @@ class Spai_REST_Elementor_Pro extends Spai_REST_API {
 			)
 		);
 
-		// Elementor Pro Custom Code (snippets).
-		register_rest_route(
-			$this->namespace,
-			'/elementor/custom-code',
-			array(
+		if ( ! defined( 'SPAI_WPORG_BUILD' ) ) {
+			// Elementor Pro Custom Code (snippets) — not available in WP.org build.
+			register_rest_route(
+				$this->namespace,
+				'/elementor/custom-code',
 				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'list_custom_code' ),
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( $this, 'list_custom_code' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+						'args'                => $this->get_pagination_args(),
+					),
+				)
+			);
+
+			register_rest_route(
+				$this->namespace,
+				'/elementor/custom-code/(?P<id>\\d+)/disable',
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'disable_custom_code' ),
 					'permission_callback' => array( $this, 'check_permission' ),
-					'args'                => $this->get_pagination_args(),
-				),
-			)
-		);
+				)
+			);
 
-		register_rest_route(
-			$this->namespace,
-			'/elementor/custom-code/(?P<id>\\d+)/disable',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'disable_custom_code' ),
-				'permission_callback' => array( $this, 'check_permission' ),
-			)
-		);
+			register_rest_route(
+				$this->namespace,
+				'/elementor/custom-code/(?P<id>\\d+)/enable',
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'enable_custom_code' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				)
+			);
 
-		register_rest_route(
-			$this->namespace,
-			'/elementor/custom-code/(?P<id>\\d+)/enable',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'enable_custom_code' ),
-				'permission_callback' => array( $this, 'check_permission' ),
-			)
-		);
-
-		register_rest_route(
-			$this->namespace,
-			'/elementor/custom-code/(?P<id>\\d+)/sanitize',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'sanitize_custom_code' ),
-				'permission_callback' => array( $this, 'check_permission' ),
-			)
-		);
+			register_rest_route(
+				$this->namespace,
+				'/elementor/custom-code/(?P<id>\\d+)/sanitize',
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'sanitize_custom_code' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+				)
+			);
+		} // end if ( ! defined( 'SPAI_WPORG_BUILD' ) )
 
 		// Build page from section blueprints.
 		register_rest_route(
