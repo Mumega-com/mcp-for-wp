@@ -24,14 +24,9 @@ class Spai_Media {
 	 * @return array|WP_Error Attachment data or error.
 	 */
 	public function upload_file( $file, $args = array() ) {
-		if ( ! function_exists( 'wp_handle_upload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		if ( ! function_exists( 'media_handle_upload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-			require_once ABSPATH . 'wp-admin/includes/media.php';
-		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
 
 		// Validate file
 		if ( empty( $file['tmp_name'] ) ) {
@@ -100,11 +95,9 @@ class Spai_Media {
 	 * @return array|WP_Error Attachment data or error.
 	 */
 	public function upload_from_url( $url, $args = array() ) {
-		if ( ! function_exists( 'media_sideload_image' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-			require_once ABSPATH . 'wp-admin/includes/media.php';
-		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
 
 		// Validate URL
 		$url = esc_url_raw( $url );
@@ -197,14 +190,9 @@ class Spai_Media {
 	 * @return array|WP_Error Attachment data or error.
 	 */
 	public function upload_from_base64( $base64_data, $filename, $args = array() ) {
-		if ( ! function_exists( 'wp_handle_upload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-			require_once ABSPATH . 'wp-admin/includes/media.php';
-		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
 
 		// Strip optional data URI prefix (e.g. "data:image/png;base64,").
 		if ( preg_match( '/^data:[^;]+;base64,/', $base64_data ) ) {

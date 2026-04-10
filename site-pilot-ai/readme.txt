@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.8.0
+Stable tag: 2.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,12 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.8.1 =
+* Fix: Remove POST/DELETE methods from /custom-css endpoint (WP.org review)
+* Fix: Replace deprecated utf8_encode() with mb_convert_encoding() (WP.org review)
+* Fix: Consolidate wp-admin includes in media upload methods (WP.org review)
+* Docs: Add Figma API, LottieFiles, and Google Indexing API to External Services section (WP.org review)
 
 = 2.8.0 =
 
@@ -903,6 +909,32 @@ Used for stock photo search and download when configured by the user.
 * Service: https://api.pexels.com/
 * Terms of Service: https://www.pexels.com/api/documentation/#guidelines
 * Privacy Policy: https://www.pexels.com/privacy-policy/
+
+= Figma API (optional) =
+Used to import design files, extract colors, typography, and component data from Figma when configured by the user. Supports both personal access tokens and OAuth 2.0.
+* Data sent: Figma file keys and node IDs to retrieve design data; no content from your WordPress site is sent to Figma
+* When: Only when the user has configured a Figma access token and calls wp_get_figma_file, wp_get_figma_node, or uses the Figma OAuth integration
+* OAuth authorization: https://www.figma.com/oauth
+* OAuth token exchange: https://api.figma.com/v1/oauth/token
+* API service: https://api.figma.com/v1
+* Terms of Service: https://www.figma.com/tos/
+* Privacy Policy: https://www.figma.com/privacy/
+
+= LottieFiles (optional) =
+Used when the user sets an external Lottie animation URL on a Lottie widget. The browser (not the server) fetches the animation JSON file directly from the URL provided by the user.
+* Data sent: HTTP request from the visitor's browser to the Lottie JSON URL
+* When: Only when a Lottie widget is configured with an external source URL (e.g. https://assets.lottiefiles.com/...)
+* Service: https://lottiefiles.com/
+* Privacy Policy: https://lottiefiles.com/page/privacy-policy
+
+= Google Indexing API (optional) =
+Used to submit URLs to Google for indexing when configured by the user with a Google service account.
+* Data sent: Page URLs from your WordPress site for indexing notification
+* When: Only when the user has configured a Google service account JSON and calls wp_submit_to_google_index or wp_google_index_status
+* Service: https://indexing.googleapis.com/v3/urlNotifications
+* Required OAuth scope: https://www.googleapis.com/auth/indexing
+* Terms of Service: https://developers.google.com/terms/
+* Privacy Policy: https://policies.google.com/privacy
 
 == Support ==
 

@@ -954,12 +954,11 @@ class Spai_Elementor_Basic {
 			}
 		}
 
-		// 4. utf8_encode for encoding issues (only if mbstring detects non-UTF-8).
-		if ( function_exists( 'mb_detect_encoding' ) && ! mb_detect_encoding( $raw_string, 'UTF-8', true ) ) {
-			// phpcs:ignore PHPCompatibility.FunctionUse.RemovedFunctions.utf8_encodeDeprecated
-			$utf8    = function_exists( 'mb_convert_encoding' )
-				? mb_convert_encoding( $raw_string, 'UTF-8', 'ISO-8859-1' )
-				: utf8_encode( $raw_string );
+		// 4. mb_convert_encoding for non-UTF-8 strings (requires mbstring, available PHP 7.0+).
+		if ( function_exists( 'mb_detect_encoding' ) && function_exists( 'mb_convert_encoding' )
+			&& ! mb_detect_encoding( $raw_string, 'UTF-8', true )
+		) {
+			$utf8    = mb_convert_encoding( $raw_string, 'UTF-8', 'ISO-8859-1' );
 			$decoded = json_decode( $utf8, true );
 			if ( null !== $decoded || json_last_error() === JSON_ERROR_NONE ) {
 				return $decoded;

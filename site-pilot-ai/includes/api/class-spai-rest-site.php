@@ -612,54 +612,56 @@ class Spai_REST_Site extends Spai_REST_API {
 			)
 		);
 
-		// Custom CSS (Additional CSS from Customizer).
-		register_rest_route(
-			$this->namespace,
-			'/custom-css',
-			array(
+		if ( ! defined( 'SPAI_WPORG_BUILD' ) ) {
+			// Custom CSS endpoints (not available in WP.org build).
+			register_rest_route(
+				$this->namespace,
+				'/custom-css',
 				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'get_custom_css' ),
-					'permission_callback' => array( $this, 'check_permission' ),
-				),
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'set_custom_css' ),
-					'permission_callback' => array( $this, 'check_permission' ),
-					'args'                => array(
-						'css'  => array(
-							'description' => __( 'CSS code to set or append.', 'site-pilot-ai' ),
-							'type'        => 'string',
-							'required'    => true,
-						),
-						'mode' => array(
-							'description' => __( 'How to apply: "replace" overwrites all CSS, "append" adds to existing.', 'site-pilot-ai' ),
-							'type'        => 'string',
-							'default'     => 'append',
-							'enum'        => array( 'replace', 'append' ),
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( $this, 'get_custom_css' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+					),
+					array(
+						'methods'             => WP_REST_Server::CREATABLE,
+						'callback'            => array( $this, 'set_custom_css' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+						'args'                => array(
+							'css'  => array(
+								'description' => __( 'CSS code to set or append.', 'site-pilot-ai' ),
+								'type'        => 'string',
+								'required'    => true,
+							),
+							'mode' => array(
+								'description' => __( 'How to apply: "replace" overwrites all CSS, "append" adds to existing.', 'site-pilot-ai' ),
+								'type'        => 'string',
+								'default'     => 'append',
+								'enum'        => array( 'replace', 'append' ),
+							),
 						),
 					),
-				),
-				array(
-					'methods'             => WP_REST_Server::DELETABLE,
-					'callback'            => array( $this, 'delete_custom_css' ),
-					'permission_callback' => array( $this, 'check_permission' ),
-				),
-			)
-		);
+					array(
+						'methods'             => WP_REST_Server::DELETABLE,
+						'callback'            => array( $this, 'delete_custom_css' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+					),
+				)
+			);
 
-		// Custom CSS length (lightweight check without full CSS body).
-		register_rest_route(
-			$this->namespace,
-			'/custom-css/length',
-			array(
+			// Custom CSS length (lightweight check without full CSS body).
+			register_rest_route(
+				$this->namespace,
+				'/custom-css/length',
 				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'get_css_length' ),
-					'permission_callback' => array( $this, 'check_permission' ),
-				),
-			)
-		);
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( $this, 'get_css_length' ),
+						'permission_callback' => array( $this, 'check_permission' ),
+					),
+				)
+			);
+		} // end if ( ! defined( 'SPAI_WPORG_BUILD' ) )
 
 		// Post meta
 		register_rest_route(
@@ -3403,11 +3405,15 @@ class Spai_REST_Site extends Spai_REST_API {
 
 	/**
 	 * Set or append to the Additional CSS in the Customizer.
+	 * Not available in WP.org build (SPAI_WPORG_BUILD).
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response Response.
 	 */
 	public function set_custom_css( $request ) {
+		if ( defined( 'SPAI_WPORG_BUILD' ) ) {
+			return $this->error_response( 'not_available', __( 'This endpoint is not available in this build.', 'site-pilot-ai' ), 403 );
+		}
 		$this->log_activity( 'set_custom_css', $request );
 
 		$new_css = $request->get_param( 'css' );
@@ -3596,11 +3602,15 @@ class Spai_REST_Site extends Spai_REST_API {
 
 	/**
 	 * Delete all custom CSS (clear the Customizer Additional CSS).
+	 * Not available in WP.org build (SPAI_WPORG_BUILD).
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response Response.
 	 */
 	public function delete_custom_css( $request ) {
+		if ( defined( 'SPAI_WPORG_BUILD' ) ) {
+			return $this->error_response( 'not_available', __( 'This endpoint is not available in this build.', 'site-pilot-ai' ), 403 );
+		}
 		$this->log_activity( 'delete_custom_css', $request );
 
 		$previous_length = strlen( wp_get_custom_css() );
