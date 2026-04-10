@@ -375,8 +375,8 @@ class Spai_Admin {
 	public function ajax_chat() {
 		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			wp_send_json_error( array( 'message' => 'Chat requires administrator access.' ) );
 		}
 
 		$message  = isset( $_POST['message'] ) ? sanitize_text_field( wp_unslash( $_POST['message'] ) ) : '';
@@ -429,9 +429,14 @@ class Spai_Admin {
 
 		$site_context = implode( "\n", $site_context_parts );
 
+		$chat_secret = get_option( 'spai_chat_secret', '' );
+
 		$response = wp_remote_post( $chat_endpoint, array(
 			'timeout' => 30,
-			'headers' => array( 'Content-Type' => 'application/json' ),
+			'headers' => array(
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . $chat_secret,
+			),
 			'body'    => wp_json_encode( array(
 				'message'      => $message,
 				'history'      => is_array( $history ) ? array_slice( $history, -10 ) : array(),
@@ -457,8 +462,8 @@ class Spai_Admin {
 	public function ajax_chat_execute_tool() {
 		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			wp_send_json_error( array( 'message' => 'Tool execution requires administrator access.' ) );
 		}
 
 		$tool      = isset( $_POST['tool'] ) ? sanitize_text_field( wp_unslash( $_POST['tool'] ) ) : '';

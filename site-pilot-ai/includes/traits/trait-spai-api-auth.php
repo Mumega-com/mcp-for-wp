@@ -40,8 +40,13 @@ trait Spai_Api_Auth {
 	 * @return bool|WP_Error True if valid, error otherwise.
 	 */
 	public function verify_api_key( $request ) {
-		// Bypass for internal server-side requests (e.g. Chat tab tool execution).
-		if ( apply_filters( 'spai_bypass_api_key_check', false ) ) {
+		// Bypass for internal server-side requests (Chat tab tool execution).
+		// Only works when called from within WordPress admin context by an admin user.
+		if ( apply_filters( 'spai_bypass_api_key_check', false )
+			&& is_admin()
+			&& current_user_can( 'activate_plugins' )
+			&& defined( 'DOING_AJAX' ) && DOING_AJAX
+		) {
 			return true;
 		}
 
