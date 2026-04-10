@@ -1,5 +1,5 @@
 {
-  "version": "2.2.2",
+  "version": "2.8.1",
   "download_url": "https://mumega.com/mcp-updates/mumega-mcp-latest.zip",
   "requires": "5.0",
   "requires_php": "7.4",
@@ -8,5 +8,5 @@
   "homepage": "https://mucp.mumega.com",
   "author": "Mumega",
   "author_homepage": "https://mumega.com/",
-  "changelog": "<h4>2.2.2</h4><ul><li>Fix partial updates for Elementor archetypes and reusable parts so omitted metadata fields are preserved instead of being cleared</li><li>Clarify the admin Library model: SPAI archetypes and reusable parts are Elementor templates with SPAI metadata layered on top</li><li>Carry forward the 2.2.1 shared-host-safe Elementor route improvements and operator workflow features</li></ul>"
+  "changelog": "<h4>2.8.1</h4><ul><li>WP.org review fixes: remove custom-css write endpoint, drop deprecated utf8_encode(), unconditional admin includes in media handler, add external service disclosures for Figma API, LottieFiles, and Google Indexing API</li></ul>"
 }
