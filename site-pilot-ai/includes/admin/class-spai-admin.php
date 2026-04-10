@@ -386,6 +386,12 @@ class Spai_Admin {
 			wp_send_json_error( array( 'message' => 'Message is required' ) );
 		}
 
+		// Determine which AI provider to use.
+		$manager     = Spai_Integration_Manager::get_instance();
+		$openai_key  = $manager->get_provider_key( 'openai' );
+		$gemini_key  = $manager->get_provider_key( 'gemini' );
+		$use_own_key = ! empty( $openai_key ); // Prefer OpenAI if configured.
+
 		$chat_endpoint = get_option( 'spai_chat_endpoint', 'https://mumcp-chat.weathered-scene-2272.workers.dev' );
 
 		// Build rich site context so the AI knows about the business.
@@ -429,31 +435,93 @@ class Spai_Admin {
 
 		$site_context = implode( "\n", $site_context_parts );
 
-		$chat_secret = get_option( 'spai_chat_secret', '' );
+		// Build the system prompt with site context.
+		$system_prompt = "You are mumcp, an AI assistant embedded in a WordPress site. Help the user manage their site.\n\n"
+			. "When the user asks you to DO something (build, edit, create, delete, update), respond with a JSON tool call:\n"
+			. "{\"tool\": \"tool_name\", \"arguments\": {\"key\": \"value\"}}\n\n"
+			. "Available tools: wp_build_page, wp_edit_widget, wp_edit_section, wp_add_section, wp_create_page, wp_update_page, "
+			. "wp_list_pages, wp_upload_media_from_url, wp_search, wp_get_elementor_summary, wp_regenerate_elementor_css\n\n"
+			. "Blueprint types: hero, features, cta, pricing, faq, testimonials, team, portfolio, blog_grid, services, about, "
+			. "process_steps, social_proof, product_showcase, before_after, newsletter, stats, gallery, text, map, countdown, logo_grid, video, contact_form\n\n"
+			. "If the user asks a QUESTION, respond normally as text.\n\n"
+			. "Site context:\n" . $site_context;
 
-		$response = wp_remote_post( $chat_endpoint, array(
-			'timeout' => 30,
-			'headers' => array(
-				'Content-Type'  => 'application/json',
-				'Authorization' => 'Bearer ' . $chat_secret,
-			),
-			'body'    => wp_json_encode( array(
-				'message'      => $message,
-				'history'      => is_array( $history ) ? array_slice( $history, -10 ) : array(),
-				'site_context' => $site_context,
-			) ),
+		$messages = array(
+			array( 'role' => 'system', 'content' => $system_prompt ),
+		);
+		if ( is_array( $history ) ) {
+			foreach ( array_slice( $history, -10 ) as $msg ) {
+				if ( isset( $msg['role'], $msg['content'] ) ) {
+					$messages[] = array( 'role' => sanitize_key( $msg['role'] ), 'content' => $msg['content'] );
+				}
+			}
+		}
+		$messages[] = array( 'role' => 'user', 'content' => $message );
+
+		if ( $use_own_key ) {
+			// Use user's OpenAI key — better model, their cost.
+			$response = wp_remote_post( 'https://api.openai.com/v1/chat/completions', array(
+				'timeout' => 60,
+				'headers' => array(
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $openai_key,
+				),
+				'body'    => wp_json_encode( array(
+					'model'    => 'gpt-4o-mini',
+					'messages' => $messages,
+				) ),
+			) );
+
+			if ( is_wp_error( $response ) ) {
+				wp_send_json_error( array( 'message' => $response->get_error_message() ) );
+			}
+
+			$body = json_decode( wp_remote_retrieve_body( $response ), true );
+			$ai_response = $body['choices'][0]['message']['content'] ?? '';
+			$model_used  = 'openai/' . ( $body['model'] ?? 'gpt-4o-mini' );
+		} else {
+			// Fall back to free Cloudflare Workers AI.
+			$chat_secret = get_option( 'spai_chat_secret', '' );
+
+			$response = wp_remote_post( $chat_endpoint, array(
+				'timeout' => 30,
+				'headers' => array(
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $chat_secret,
+				),
+				'body'    => wp_json_encode( array(
+					'message'      => $message,
+					'history'      => is_array( $history ) ? array_slice( $history, -10 ) : array(),
+					'site_context' => $site_context,
+				) ),
+			) );
+
+			if ( is_wp_error( $response ) ) {
+				wp_send_json_error( array( 'message' => $response->get_error_message() ) );
+			}
+
+			$body = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( ! is_array( $body ) ) {
+				wp_send_json_error( array( 'message' => 'Invalid response from AI' ) );
+			}
+			wp_send_json_success( $body );
+			return;
+		}
+
+		// Parse tool calls from the response.
+		$tool_call = null;
+		if ( preg_match( '/\{[\s\S]*"tool"\s*:\s*"[\s\S]*\}/', $ai_response, $match ) ) {
+			$parsed = json_decode( $match[0], true );
+			if ( isset( $parsed['tool'] ) ) {
+				$tool_call = $parsed;
+			}
+		}
+
+		wp_send_json_success( array(
+			'response'  => $ai_response,
+			'tool_call' => $tool_call,
+			'model'     => $model_used,
 		) );
-
-		if ( is_wp_error( $response ) ) {
-			wp_send_json_error( array( 'message' => $response->get_error_message() ) );
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( ! is_array( $body ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid response from AI' ) );
-		}
-
-		wp_send_json_success( $body );
 	}
 
 	/**
