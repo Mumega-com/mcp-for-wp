@@ -387,7 +387,47 @@ class Spai_Admin {
 		}
 
 		$chat_endpoint = get_option( 'spai_chat_endpoint', 'https://mumcp-chat.weathered-scene-2272.workers.dev' );
-		$site_context  = sprintf( "Site: %s\nURL: %s\nPlugin: mumcp v%s", get_bloginfo( 'name' ), home_url(), SPAI_VERSION );
+
+		// Build rich site context so the AI knows about the business.
+		$site_context_parts = array(
+			'Site: ' . get_bloginfo( 'name' ),
+			'URL: ' . home_url(),
+			'Description: ' . get_bloginfo( 'description' ),
+			'Plugin: mumcp v' . SPAI_VERSION,
+		);
+
+		// Add site character/context if configured.
+		$site_character = get_option( 'spai_site_context', '' );
+		if ( ! empty( $site_character ) ) {
+			$site_context_parts[] = 'Site Character: ' . wp_trim_words( $site_character, 200 );
+		}
+
+		// Add page list for context.
+		$pages = get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 'posts_per_page' => 20, 'fields' => 'ids' ) );
+		if ( ! empty( $pages ) ) {
+			$page_list = array();
+			foreach ( $pages as $pid ) {
+				$page_list[] = sprintf( '%d: %s', $pid, get_the_title( $pid ) );
+			}
+			$site_context_parts[] = 'Published pages: ' . implode( ', ', $page_list );
+		}
+
+		// Capabilities.
+		$caps = array();
+		if ( defined( 'ELEMENTOR_VERSION' ) ) {
+			$caps[] = 'Elementor ' . ELEMENTOR_VERSION;
+		}
+		if ( class_exists( 'WooCommerce' ) ) {
+			$caps[] = 'WooCommerce';
+		}
+		if ( defined( 'WPSEO_VERSION' ) ) {
+			$caps[] = 'Yoast SEO';
+		}
+		if ( ! empty( $caps ) ) {
+			$site_context_parts[] = 'Active integrations: ' . implode( ', ', $caps );
+		}
+
+		$site_context = implode( "\n", $site_context_parts );
 
 		$response = wp_remote_post( $chat_endpoint, array(
 			'timeout' => 30,
