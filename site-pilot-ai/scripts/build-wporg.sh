@@ -55,6 +55,10 @@ rm -f "$DEST"/assets/icon.svg
 rm -rf "$DEST/freemius"
 rm -f  "$DEST/includes/freemius-init.php"
 
+# ── Inject SPAI_WPORG_BUILD constant for WP.org compliance ─────
+echo "    Injecting SPAI_WPORG_BUILD constant..."
+sed -i "s|define( 'SPAI_VERSION'|define( 'SPAI_WPORG_BUILD', true );\ndefine( 'SPAI_VERSION'|" "$DEST/$PLUGIN_SLUG.php"
+
 # ── Apply .distignore exclusions ────────────────────────────────
 echo "    Applying .distignore..."
 if [[ -f "$DEST/.distignore" ]]; then
