@@ -92,6 +92,7 @@ class Spai_Loader {
 		// AJAX handlers
 		$this->add_action( 'wp_ajax_spai_test_connection', $admin, 'ajax_test_connection' );
 		$this->add_action( 'wp_ajax_spai_dismiss_welcome', $admin, 'ajax_dismiss_welcome' );
+		$this->add_action( 'wp_ajax_spai_chat', $admin, 'ajax_chat' );
 
 		// Integrations AJAX handlers
 		$this->add_action( 'wp_ajax_spai_save_integration_key', $integrations_admin, 'ajax_save_key' );

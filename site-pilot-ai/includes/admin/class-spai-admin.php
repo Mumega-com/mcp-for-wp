@@ -370,6 +370,48 @@ class Spai_Admin {
 	}
 
 	/**
+	 * AJAX proxy for chat — calls Workers AI endpoint server-side.
+	 */
+	public function ajax_chat() {
+		check_ajax_referer( 'spai_admin_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+		}
+
+		$message  = isset( $_POST['message'] ) ? sanitize_text_field( wp_unslash( $_POST['message'] ) ) : '';
+		$history  = isset( $_POST['history'] ) ? json_decode( wp_unslash( $_POST['history'] ), true ) : array();
+
+		if ( empty( $message ) ) {
+			wp_send_json_error( array( 'message' => 'Message is required' ) );
+		}
+
+		$chat_endpoint = get_option( 'spai_chat_endpoint', 'https://mumcp-chat.weathered-scene-2272.workers.dev' );
+		$site_context  = sprintf( "Site: %s\nURL: %s\nPlugin: mumcp v%s", get_bloginfo( 'name' ), home_url(), SPAI_VERSION );
+
+		$response = wp_remote_post( $chat_endpoint, array(
+			'timeout' => 30,
+			'headers' => array( 'Content-Type' => 'application/json' ),
+			'body'    => wp_json_encode( array(
+				'message'      => $message,
+				'history'      => is_array( $history ) ? array_slice( $history, -10 ) : array(),
+				'site_context' => $site_context,
+			) ),
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			wp_send_json_error( array( 'message' => $response->get_error_message() ) );
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( ! is_array( $body ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid response from AI' ) );
+		}
+
+		wp_send_json_success( $body );
+	}
+
+	/**
 	 * Render the Library page.
 	 */
 	public function render_library_page() {

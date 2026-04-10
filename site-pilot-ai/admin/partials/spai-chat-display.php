@@ -68,13 +68,8 @@ $plugin_ver    = SPAI_VERSION;
 	const messagesEl = document.getElementById('spai-chat-messages');
 	const inputEl = document.getElementById('spai-chat-input');
 	const sendBtn = document.getElementById('spai-chat-send');
-	const chatEndpoint = <?php echo wp_json_encode( $chat_endpoint ); ?>;
-	const siteContext = <?php echo wp_json_encode( "Site: {$site_name}\nURL: {$site_url}\nPlugin: mumcp v{$plugin_ver}" ); ?>;
-	const apiKey = <?php
-		$stored = get_option( 'spai_api_key', '' );
-		// We don't expose the key — the chat worker uses its own auth
-		echo wp_json_encode( '' );
-	?>;
+	const ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+	const ajaxNonce = <?php echo wp_json_encode( wp_create_nonce( 'spai_admin_nonce' ) ); ?>;
 
 	let history = [];
 
@@ -180,17 +175,19 @@ $plugin_ver    = SPAI_VERSION;
 		history.push({ role: 'user', content: message });
 
 		try {
-			const resp = await fetch(chatEndpoint, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					message,
-					history: history.slice(-10),
-					site_context: siteContext,
-				}),
-			});
+			const formData = new FormData();
+			formData.append('action', 'spai_chat');
+			formData.append('nonce', ajaxNonce);
+			formData.append('message', message);
+			formData.append('history', JSON.stringify(history.slice(-10)));
 
-			const data = await resp.json();
+			const resp = await fetch(ajaxUrl, { method: 'POST', body: formData });
+			const ajaxResp = await resp.json();
+
+			if (!ajaxResp.success) {
+				throw new Error(ajaxResp.data?.message || 'Chat failed');
+			}
+			const data = ajaxResp.data;
 
 			if (data.tool_call) {
 				addMessage('assistant', 'Running: ' + data.tool_call.tool + '...');
