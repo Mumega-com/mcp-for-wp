@@ -77,6 +77,16 @@ class Spai_Admin {
 			array( $this, 'render_setup_page' )
 		);
 
+		// Chat — AI assistant.
+		add_submenu_page(
+			self::PAGE_SLUG,
+			__( 'Chat', 'site-pilot-ai' ),
+			__( 'Chat', 'site-pilot-ai' ),
+			'edit_posts',
+			'site-pilot-ai-chat',
+			array( $this, 'render_chat_page' )
+		);
+
 		// Library.
 		add_submenu_page(
 			self::PAGE_SLUG,
@@ -350,6 +360,13 @@ class Spai_Admin {
 		$scoped_keys = $this->list_scoped_api_keys( true );
 
 		include SPAI_PLUGIN_DIR . 'admin/partials/spai-setup-display.php';
+	}
+
+	/**
+	 * Render the Chat page.
+	 */
+	public function render_chat_page() {
+		include SPAI_PLUGIN_DIR . 'admin/partials/spai-chat-display.php';
 	}
 
 	/**

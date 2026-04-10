@@ -5,7 +5,7 @@ Tags: ai, claude, mcp, model-context-protocol, elementor, api
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.7.2
+Stable tag: 2.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,12 @@ Each site needs its own plugin installation and API key. Multi-site management f
 4. Advanced tab — REST API reference with copy-paste curl examples
 
 == Changelog ==
+
+= 2.8.0 =
+
+* New: Chat tab in WP Admin — talk to your site, AI executes MCP tools
+* New: Powered by Cloudflare Workers AI (Llama 3.1 8B)
+* Fix: Elementor HTML rendering cache flush after all saves (v2.7.2)
 
 = 2.7.0 =
 
