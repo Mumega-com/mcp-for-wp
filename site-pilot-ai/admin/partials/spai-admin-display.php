@@ -377,8 +377,8 @@ if ( isset( $new_key ) && $new_key ) {
 				<p>
 					<strong><?php esc_html_e( 'Scopes', 'site-pilot-ai' ); ?></strong><br />
 					<label><input type="checkbox" name="spai_scoped_key_scopes[]" value="read" checked /> <?php esc_html_e( 'Read', 'site-pilot-ai' ); ?></label>
-					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="write" /> <?php esc_html_e( 'Write', 'site-pilot-ai' ); ?></label>
-					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="admin" /> <?php esc_html_e( 'Admin', 'site-pilot-ai' ); ?></label>
+					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="write" checked /> <?php esc_html_e( 'Write', 'site-pilot-ai' ); ?></label>
+					<label style="margin-left:12px;"><input type="checkbox" name="spai_scoped_key_scopes[]" value="admin" checked /> <?php esc_html_e( 'Admin', 'site-pilot-ai' ); ?></label>
 				</p>
 				<button type="submit" name="spai_create_scoped_key" class="button button-primary">
 					<?php esc_html_e( 'Create API Key', 'site-pilot-ai' ); ?>
