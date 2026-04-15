@@ -1,5 +1,5 @@
 {
-  "version": "2.8.1",
+  "version": "2.8.2",
   "download_url": "https://mumega.com/mcp-updates/mumega-mcp-latest.zip",
   "requires": "5.0",
   "requires_php": "7.4",
@@ -8,5 +8,5 @@
   "homepage": "https://mucp.mumega.com",
   "author": "Mumega",
   "author_homepage": "https://mumega.com/",
-  "changelog": "<h4>2.8.1</h4><ul><li>WP.org review fixes: remove custom-css write endpoint, drop deprecated utf8_encode(), unconditional admin includes in media handler, add external service disclosures for Figma API, LottieFiles, and Google Indexing API</li></ul>"
+  "changelog": "<h4>2.8.2</h4><ul><li>Fix: API key creation form now defaults all scopes (Read, Write, Admin) checked — new keys were read-only by default</li></ul>"
 }
